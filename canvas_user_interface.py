@@ -19,11 +19,13 @@ selection_start = None
 selection_end = None
 selected_cells = []  # List of selected cells
 
+
 # Function to toggle cell color (Draw Mode)
 def toggle_color(event):
     """Color a cell with the currently selected color."""
     cell = event.widget
     cell.config(bg=current_color)
+
 
 # Function to paint cells while moving the mouse with the left button held down (Draw Mode)
 def paint_color(event):
@@ -31,6 +33,7 @@ def paint_color(event):
     widget = event.widget.winfo_containing(event.x_root, event.y_root)
     if isinstance(widget, tk.Label) and widget not in palette_frame.winfo_children():
         widget.config(bg=current_color)
+
 
 # Function to reset the canvas to the default color and clear selection
 def reset_canvas():
@@ -50,10 +53,11 @@ def reset_canvas():
     selection_end = None
 
     # Safely hide the repeat buttons if they exist
-    if 'repeat_x_button' in globals() and repeat_x_button.winfo_exists():
+    if "repeat_x_button" in globals() and repeat_x_button.winfo_exists():
         repeat_x_button.pack_forget()
-    if 'repeat_y_button' in globals() and repeat_y_button.winfo_exists():
+    if "repeat_y_button" in globals() and repeat_y_button.winfo_exists():
         repeat_y_button.pack_forget()
+
 
 # Function to set the current active color
 def select_color(new_color, color_button):
@@ -66,6 +70,7 @@ def select_color(new_color, color_button):
     # Highlight the newly selected button
     color_button.config(relief="ridge", borderwidth=3)
     selected_button = color_button
+
 
 # Function to add a new color to the palette
 def add_color():
@@ -100,6 +105,7 @@ def add_color():
             plus_button.pack_forget()
             plus_button.pack(side="left", padx=5)
 
+
 # Function to toggle between Select Mode and Draw Mode
 def toggle_select_mode():
     """Toggle between Select Mode and Draw Mode."""
@@ -127,11 +133,13 @@ def toggle_select_mode():
         clear_selection()  # Clear the selection boundary
         update_grid_bindings(select_mode=False)
 
+
 # Function to start the selection (Select Mode)
 def start_selection(event):
     """Start selecting an area on the grid."""
     global selection_start
     selection_start = event.widget
+
 
 # Function to update the selection dynamically (Select Mode)
 def update_selection(event):
@@ -142,6 +150,7 @@ def update_selection(event):
         if isinstance(current_widget, tk.Label):
             selection_end = current_widget
             highlight_area()
+
 
 # Function to finalize the selection (Select Mode)
 def finalize_selection(event):
@@ -158,14 +167,21 @@ def finalize_selection(event):
     if not repeat_y_button.winfo_ismapped():
         repeat_y_button.pack(side="left", padx=5)
 
+
 # Function to highlight the selected area dynamically (Select Mode)
 def highlight_area():
     """Highlight the selected area dynamically without overwriting cell colors."""
     global selected_cells
     clear_selection()  # Clear previous selection overlay
     if selection_start and selection_end:
-        start_row, start_col = selection_start.grid_info()["row"], selection_start.grid_info()["column"]
-        end_row, end_col = selection_end.grid_info()["row"], selection_end.grid_info()["column"]
+        start_row, start_col = (
+            selection_start.grid_info()["row"],
+            selection_start.grid_info()["column"],
+        )
+        end_row, end_col = (
+            selection_end.grid_info()["row"],
+            selection_end.grid_info()["column"],
+        )
         row_start, row_end = sorted([start_row, end_row])
         col_start, col_end = sorted([start_col, end_col])
 
@@ -174,8 +190,11 @@ def highlight_area():
                 if 1 <= row <= GRID_HEIGHT and 1 <= col <= GRID_WIDTH:
                     cell = cells[row - 1][col - 1]
                     # Add transparent overlay without changing the original color
-                    cell.config(borderwidth=2, relief="solid", highlightbackground="lightyellow")
+                    cell.config(
+                        borderwidth=2, relief="solid", highlightbackground="lightyellow"
+                    )
                     selected_cells.append(cell)
+
 
 # Function to clear the current selection
 def clear_selection():
@@ -184,6 +203,7 @@ def clear_selection():
     for cell in selected_cells:
         cell.config(borderwidth=1, relief="solid")  # Restore to default appearance
     selected_cells = []
+
 
 # Function to update event bindings for the grid cells based on mode
 def update_grid_bindings(select_mode):
@@ -203,14 +223,21 @@ def update_grid_bindings(select_mode):
                 cell.bind("<Button-1>", toggle_color)
                 cell.bind("<B1-Motion>", paint_color)
 
+
 # Function to repeat the selected area along the x-axis
 def repeat_x():
     """Repeat the selected grid area along the x-axis."""
     if not selection_start or not selection_end:
         return  # No selection to repeat
 
-    start_row, start_col = selection_start.grid_info()["row"], selection_start.grid_info()["column"]
-    end_row, end_col = selection_end.grid_info()["row"], selection_end.grid_info()["column"]
+    start_row, start_col = (
+        selection_start.grid_info()["row"],
+        selection_start.grid_info()["column"],
+    )
+    end_row, end_col = (
+        selection_end.grid_info()["row"],
+        selection_end.grid_info()["column"],
+    )
     pattern_width = end_col - start_col + 1
 
     for row_idx in range(start_row, end_row + 1):
@@ -218,8 +245,11 @@ def repeat_x():
             for pattern_col_offset in range(pattern_width):
                 if col_idx + pattern_col_offset > GRID_WIDTH:
                     break
-                color = cells[row_idx - 1][start_col + pattern_col_offset - 1].cget("bg")
+                color = cells[row_idx - 1][start_col + pattern_col_offset - 1].cget(
+                    "bg"
+                )
                 cells[row_idx - 1][col_idx + pattern_col_offset - 1].config(bg=color)
+
 
 # Function to repeat the selected area along the y-axis
 def repeat_y():
@@ -227,8 +257,14 @@ def repeat_y():
     if not selection_start or not selection_end:
         return  # No selection to repeat
 
-    start_row, start_col = selection_start.grid_info()["row"], selection_start.grid_info()["column"]
-    end_row, end_col = selection_end.grid_info()["row"], selection_end.grid_info()["column"]
+    start_row, start_col = (
+        selection_start.grid_info()["row"],
+        selection_start.grid_info()["column"],
+    )
+    end_row, end_col = (
+        selection_end.grid_info()["row"],
+        selection_end.grid_info()["column"],
+    )
     pattern_height = end_row - start_row + 1
 
     for col_idx in range(start_col, end_col + 1):
@@ -236,8 +272,11 @@ def repeat_y():
             for pattern_row_offset in range(pattern_height):
                 if row_idx + pattern_row_offset > GRID_HEIGHT:
                     break
-                color = cells[start_row + pattern_row_offset - 1][col_idx - 1].cget("bg")
+                color = cells[start_row + pattern_row_offset - 1][col_idx - 1].cget(
+                    "bg"
+                )
                 cells[row_idx + pattern_row_offset - 1][col_idx - 1].config(bg=color)
+
 
 # Create the main Tkinter window
 root = tk.Tk()
@@ -251,16 +290,22 @@ frame.pack()
 cells = []  # Store references to all cells
 for row in range(GRID_HEIGHT + 2):  # Include extra rows for top and bottom numbers
     row_cells = []
-    for col in range(GRID_WIDTH + 2):  # Include extra columns for left and right numbers
+    for col in range(
+        GRID_WIDTH + 2
+    ):  # Include extra columns for left and right numbers
         if row == 0:
             if col == 0 or col == GRID_WIDTH + 1:
-                label = tk.Label(frame, text="", width=2, height=1)  # Empty corner cells
+                label = tk.Label(
+                    frame, text="", width=2, height=1
+                )  # Empty corner cells
             else:
                 # Column numbers (top row)
                 label = tk.Label(frame, text=str(col), width=2, height=1, relief="flat")
         elif row == GRID_HEIGHT + 1:
             if col == 0 or col == GRID_WIDTH + 1:
-                label = tk.Label(frame, text="", width=2, height=1)  # Empty corner cells
+                label = tk.Label(
+                    frame, text="", width=2, height=1
+                )  # Empty corner cells
             else:
                 # Column numbers (bottom row)
                 label = tk.Label(frame, text=str(col), width=2, height=1, relief="flat")
@@ -331,7 +376,14 @@ reset_button = tk.Button(root, text="Reset Canvas", command=reset_canvas)
 reset_button.pack(pady=10)
 
 # Add a Select Button
-select_button = tk.Button(root, text="Select", command=toggle_select_mode, bg="lightgray", borderwidth=1, relief="solid")
+select_button = tk.Button(
+    root,
+    text="Select",
+    command=toggle_select_mode,
+    bg="lightgray",
+    borderwidth=1,
+    relief="solid",
+)
 select_button.pack(side="left", padx=5, pady=10)
 
 # Initialize repeat buttons
