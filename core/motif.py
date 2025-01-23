@@ -38,12 +38,46 @@ class Color(Enum):
             return Color(c2)
         if c2 == Color.INVIS:
             return Color(self)
-        raise ColorOverlapException
+        raise ColorOverflowException
+
+    def __sub__(self, c2: Color) -> Color:
+        """Subtracts c2 from self
+
+        Args:
+            c2 (Color): Color to subtract
+
+        Raises:
+            ColorUnderflowException: Subtract a visible color from invisible
+            ColorMismatchException: Subtract different visible colors
+
+        Returns:
+            Color: difference
+        """
+        if self == Color.INVIS and c2 != Color.INVIS:
+            raise ColorUnderflowException
+        if c2 == Color.INVIS:
+            # identity
+            return Color(self)
+        # know that c2 is visible and self is visible
+        if self == c2:
+            # successful subtraction
+            return Color.INVIS
+        raise ColorMismatchException
 
 
-class ColorOverlapException(Exception):
+class ColorOverflowException(Exception):
     """Raised whenever two colors are added together
     and neither are invisible"""
+
+
+class ColorUnderflowException(Exception):
+    """Raised whenever a visible color is subtracted
+    from an invisible one"""
+
+
+class ColorMismatchException(Exception):
+    """Raised whenever a visible color is subtracted
+    from a different visible one"""
 
 
 def empty(lst: Iterable[Color]) -> bool:
@@ -58,7 +92,7 @@ def empty(lst: Iterable[Color]) -> bool:
     """
     try:
         return sum(lst, Color.INVIS) == Color.INVIS
-    except ColorOverlapException:
+    except ColorOverflowException:
         return False
 
 
@@ -133,6 +167,14 @@ class Motif:
     def __iter__(self):
         return iter(self.__data)
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Motif):
+            return False
+        return list(iter(self)) == list(iter(other))
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.__data))
+
 
 class MotifRow:
     """Row of a motif, glorified list of colors used to prevent
@@ -146,3 +188,11 @@ class MotifRow:
 
     def __iter__(self):
         return iter(self.__data)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, MotifRow):
+            return False
+        return list(iter(self)) == list(iter(other))
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.__data))

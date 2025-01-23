@@ -6,7 +6,15 @@ It helped us because now we can have more trustworthy code and focus
 on writing new code rather than debugging old code"""
 
 import pytest
-from core.motif import Color, ColorOverlapException, empty, Motif, MotifRow
+from core.motif import (
+    Color,
+    ColorMismatchException,
+    ColorOverflowException,
+    ColorUnderflowException,
+    empty,
+    Motif,
+    MotifRow,
+)
 
 
 def test_color_addition():
@@ -14,8 +22,35 @@ def test_color_addition():
     assert (Color.INVIS + Color.BACK) == Color.BACK
     assert (Color.INVIS + Color.INVIS) == Color.INVIS
 
-    with pytest.raises(ColorOverlapException):
+    with pytest.raises(ColorOverflowException):
         _ = Color.FORE + Color.BACK
+
+
+def test_color_subtraction_success():
+    # Subtracting visible color from itself should return INVIS
+    assert Color.FORE - Color.FORE == Color.INVIS
+    assert Color.BACK - Color.BACK == Color.INVIS
+
+    # Subtracting INVIS from a visible color should return the original color
+    assert Color.FORE - Color.INVIS == Color.FORE
+    assert Color.BACK - Color.INVIS == Color.BACK
+    assert Color.INVIS - Color.INVIS == Color.INVIS
+
+
+def test_color_subtraction_underflow():
+    # Subtracting a visible color from INVIS should raise ColorUnderflowException
+    with pytest.raises(ColorUnderflowException):
+        _ = Color.INVIS - Color.FORE
+    with pytest.raises(ColorUnderflowException):
+        _ = Color.INVIS - Color.BACK
+
+
+def test_color_subtraction_mismatch():
+    # Subtracting different visible colors should raise ColorMismatchException
+    with pytest.raises(ColorMismatchException):
+        _ = Color.FORE - Color.BACK
+    with pytest.raises(ColorMismatchException):
+        _ = Color.BACK - Color.FORE
 
 
 def test_empty_function():
