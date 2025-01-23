@@ -6,7 +6,7 @@ It helped us because now we can have more trustworthy code and focus
 on writing new code rather than debugging old code"""
 
 import pytest
-from core.motif import (
+from modularmotifs.core.motif import (
     Color,
     ColorMismatchException,
     ColorOverflowException,

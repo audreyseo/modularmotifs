@@ -1,12 +1,17 @@
 import pytest
-from core.motif import (
+from modularmotifs.core.motif import (
     Color,
     ColorUnderflowException,
     Motif,
     ColorOverflowException,
     ColorMismatchException,
 )
-from core.design import Design, PlacedMotif, PixelData, MotifOverlapException
+from modularmotifs.core.design import (
+    Design,
+    PlacedMotif,
+    PixelData,
+    MotifOverlapException,
+)
 
 
 @pytest.fixture

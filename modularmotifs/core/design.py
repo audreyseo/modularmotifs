@@ -3,7 +3,7 @@ of motifs"""
 
 from __future__ import annotations
 from typing import Optional
-from core.motif import Color, ColorOverflowException, Motif
+from modularmotifs.core.motif import Color, ColorOverflowException, Motif
 
 
 class PlacedMotif:
