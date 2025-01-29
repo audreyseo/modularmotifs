@@ -97,6 +97,30 @@ class PixelData:
         return self.__motif
 
 
+class RGBColor:
+    """Simple RGB [0, 255] triple"""
+
+    def __init__(self, red: int, green: int, blue: int):
+        if max(red, green, blue) > 255:
+            raise ValueError("RGB coordinates must be less than 255!")
+        if min(red, green, blue) < 0:
+            raise ValueError("RGB coordinates must be greater than 0!")
+        self.__red = red
+        self.__blue = blue
+        self.__green = green
+
+    def hex(self) -> str:
+        """Returns the hex representation
+        (e.g., "#3300F2") of the color
+
+        Returns:
+            String: hex representation
+        """
+        return "#" + "".join(
+            [hex(p).lstrip("0x") for p in [self.__red, self.__blue, self.__green]]
+        )
+
+
 class Design:
     """Collection of motifs on a canvas"""
 
@@ -104,6 +128,7 @@ class Design:
     __width: int
     __motifs: set[PlacedMotif]
     __canvas: list[list[PixelData]]
+    __colors: tuple[RGBColor, RGBColor]  # fore, back
 
     def __init__(self, height: int, width: int):
         self.__height = height
@@ -113,6 +138,7 @@ class Design:
             for _ in range(self.__height)
         ]
         self.__motifs = set()
+        self.__colors = (RGBColor(0, 0, 0), RGBColor(255, 255, 255))  # black on white
 
     def complete(self) -> bool:
         """Returns True if and only if the design is
@@ -191,6 +217,42 @@ class Design:
             Color: Color at that point
         """
         return self.__canvas[y][x].col()
+
+    def get_rgb(self, x: int, y: int) -> Optional[RGBColor]:
+        """Get the RGB color at some point. Returns None
+        when the color is invisible
+
+        Args:
+            x (int): x coordinate, from left
+            y (int): y coordinate, from top
+
+        Returns:
+            Optional[RGBColor]: RGB color at this point; None
+            if invisible
+        """
+        match self.get_color(x, y):
+            case Color.INVIS:
+                return None
+            case Color.FORE:
+                return self.__colors[0]
+            case Color.BACK:
+                return self.__colors[1]
+
+    def set_foreground(self, fore: RGBColor):
+        """Setter
+
+        Args:
+            fore (RGBColor): new foreground color
+        """
+        self.__colors = (fore, self.__colors[1])
+
+    def set_background(self, back: RGBColor):
+        """Setter
+
+        Args:
+            back (RGBColor): new background color
+        """
+        self.__colors = (self.__colors[0], back)
 
     def get_motif(self, x: int, y: int) -> Optional[PlacedMotif]:
         """Get the placed motif responsible for the color

@@ -1,0 +1,3 @@
+[submodule "SD-piXL"]
+	path = SD-piXL
+	url = https://github.com/AlexandreBinninger/SD-piXL
