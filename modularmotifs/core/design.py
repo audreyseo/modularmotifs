@@ -114,6 +114,19 @@ class Design:
         ]
         self.__motifs = set()
 
+    def complete(self) -> bool:
+        """Returns True if and only if the design is
+        complete (that is, all pixels are visible)
+
+        Returns:
+            bool: whether the design is complete
+        """
+        for row in self.__canvas:
+            for px in row:
+                if px.col == Color.INVIS:
+                    return False
+        return True
+
     def add_motif(self, m: Motif, x: int, y: int):
         """Add a motif to this design. If an error is encountered,
         the design is unchanged
