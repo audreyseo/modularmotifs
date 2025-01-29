@@ -9,3 +9,4 @@ You will also need to install a [platform-specific version of
 `tk`](https://stackoverflow.com/questions/25905540/importerror-no-module-named-tkinter).
 
 
+This will need to coincide with your python version.
