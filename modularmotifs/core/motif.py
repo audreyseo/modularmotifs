@@ -4,36 +4,17 @@ motifs"""
 
 from __future__ import annotations
 from enum import Enum
-from typing import Iterable
+from typing import Iterable, Dict
 
 
 class Color(Enum):
-    """Colors are either foreground (black?),
-    background (white?), or invisible (to help everything
-    have a square bounding box despite not being square).
-
-    They can be added together as long as at least one is
-    invisible, otherwise it raises a custom exception"""
-
+    """Defines foreground, background, and invisible colors."""
     FORE = 1
     BACK = 2
     INVIS = 3
 
     def __add__(self, c2: Color):
-        """Adds two colors, raising an exception if
-        both are visible
-
-        Args:
-            c2 (Color): Other color to be added with
-
-        Raises:
-            ColorOverlapException: When both colors
-            are visible
-
-        Returns:
-            Color: new color that represents the visible
-            color if one is visible, otherwise invisible
-        """
+        """Adds two colors, raising an exception if both are visible."""
         if self == Color.INVIS:
             return Color(c2)
         if c2 == Color.INVIS:
@@ -41,55 +22,30 @@ class Color(Enum):
         raise ColorOverflowException
 
     def __sub__(self, c2: Color) -> Color:
-        """Subtracts c2 from self
-
-        Args:
-            c2 (Color): Color to subtract
-
-        Raises:
-            ColorUnderflowException: Subtract a visible color from invisible
-            ColorMismatchException: Subtract different visible colors
-
-        Returns:
-            Color: difference
-        """
+        """Subtracts c2 from self."""
         if self == Color.INVIS and c2 != Color.INVIS:
             raise ColorUnderflowException
         if c2 == Color.INVIS:
-            # identity
             return Color(self)
-        # know that c2 is visible and self is visible
         if self == c2:
-            # successful subtraction
             return Color.INVIS
         raise ColorMismatchException
 
 
 class ColorOverflowException(Exception):
-    """Raised whenever two colors are added together
-    and neither are invisible"""
+    """Raised when two visible colors are added."""
 
 
 class ColorUnderflowException(Exception):
-    """Raised whenever a visible color is subtracted
-    from an invisible one"""
+    """Raised when a visible color is subtracted from an invisible one."""
 
 
 class ColorMismatchException(Exception):
-    """Raised whenever a visible color is subtracted
-    from a different visible one"""
+    """Raised when subtracting different visible colors."""
 
 
 def empty(lst: Iterable[Color]) -> bool:
-    """Decides whether the list of colors is empty
-    (all invisible)
-
-    Args:
-        lst (Iterable[Color]): iterable container of colors
-
-    Returns:
-        bool: True when all colors are invisible
-    """
+    """Checks if a list of colors is entirely invisible."""
     try:
         return sum(lst, Color.INVIS) == Color.INVIS
     except ColorOverflowException:
@@ -97,32 +53,9 @@ def empty(lst: Iterable[Color]) -> bool:
 
 
 class Motif:
-    """A motif is an immutable rectangle of Color.
-    There's no restriction that the visible Colors are
-    connected, but we'd expect them to be.
-
-    Motifs are iterable using extended for loops; they
-    are iterated in row-major order (left to right, then
-    top to bottom)
-    """
-
-    __width: int
-    __height: int
-    __data: list[list[Color]]
+    """Represents an immutable motif as a grid of colors."""
 
     def __init__(self, bbox: list[list[Color]]):
-        """Constructs a new Motif.
-
-        Args:
-            bbox (list[list[Color]]): Rectangular bounding
-            box for the motif, describing its values. Must
-            have positive area. Additionally, must not
-            start or end with an empty column or row
-
-        Raises:
-            ValueError: Nonpositive, nonrectangular, or
-            nonminimal bounding box
-        """
         self.__height = len(bbox)
         if self.__height <= 0:
             raise ValueError("Motifs must have positive height!")
@@ -136,53 +69,29 @@ class Motif:
 
         self.__data = [MotifRow(row) for row in bbox]
 
-        # check columns
-        if empty([row[0] for row in bbox]):
-            raise ValueError("Motif starts with an empty column!")
-        if empty([row[-1] for row in bbox]):
-            raise ValueError("Motif ends with an empty column!")
-
-        # check rows
-        if empty(self.__data[0]):
-            raise ValueError("Motif starts with an empty row!")
-        if empty(self.__data[-1]):
-            raise ValueError("Motif ends with an empty row!")
+        if empty([row[0] for row in bbox]) or empty([row[-1] for row in bbox]):
+            raise ValueError("Motif has empty border columns!")
+        if empty(self.__data[0]) or empty(self.__data[-1]):
+            raise ValueError("Motif has empty border rows!")
 
     def height(self) -> int:
-        """Height of the bounding box for this motif (number of rows)
-
-        Returns:
-            int
-        """
         return self.__height
 
     def width(self) -> int:
-        """Height of the bounding box for this motif (number of columns)
-
-        Returns:
-            int
-        """
         return self.__width
 
     def __iter__(self):
         return iter(self.__data)
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Motif):
-            return False
-        return list(iter(self)) == list(iter(other))
+        return isinstance(other, Motif) and list(iter(self)) == list(iter(other))
 
     def __hash__(self) -> int:
         return hash(tuple(self.__data))
 
 
 class MotifRow:
-    """Row of a motif, glorified list of colors used to prevent
-    people from mutating motifs. Asserts that it contains
-    at least one color"""
-
-    __data: list[Color]
-
+    """Immutable row of a motif."""
     def __init__(self, data: list[Color]):
         self.__data = data
 
@@ -190,9 +99,27 @@ class MotifRow:
         return iter(self.__data)
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, MotifRow):
-            return False
-        return list(iter(self)) == list(iter(other))
+        return isinstance(other, MotifRow) and list(iter(self)) == list(iter(other))
 
     def __hash__(self) -> int:
         return hash(tuple(self.__data))
+
+
+# Motif Library
+MOTIFS: Dict[str, Motif] = {
+    "plus-3x3": Motif([
+        [Color.BACK, Color.FORE, Color.BACK],
+        [Color.FORE, Color.FORE, Color.FORE],
+        [Color.BACK, Color.FORE, Color.BACK]
+    ]),
+    "x-3x3": Motif([
+        [Color.FORE, Color.BACK, Color.FORE],
+        [Color.BACK, Color.FORE, Color.BACK],
+        [Color.FORE, Color.BACK, Color.FORE]
+    ]),
+    "crosshair-3x3": Motif([
+        [Color.BACK, Color.FORE, Color.BACK],
+        [Color.FORE, Color.BACK, Color.FORE],
+        [Color.BACK, Color.FORE, Color.BACK]
+    ])
+}
