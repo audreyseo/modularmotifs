@@ -119,17 +119,18 @@ repeat_y_button = tk.Button(root, text="Repeat along y-axis", command=lambda: ca
 frame = tk.Frame(root)
 frame.pack(padx=10, pady=10)
 
-scrollbar = tk.Scrollbar(frame, orient=tk.VERTICAL)
-listbox = tk.Listbox(frame, yscrollcommand=scrollbar.set, height=10, width=30)
-for motif in motifs:
-    # for now, just put the names of the motifs in the list
-    listbox.insert(tk.END, motif)
-    pass
+# scrollbar = tk.Scrollbar(frame, orient=tk.VERTICAL)
+# listbox = tk.Listbox(frame, yscrollcommand=scrollbar.set, height=10, width=30)
+# for motif in motifs:
+#     # for now, just put the names of the motifs in the list
+#     listbox.insert(tk.END, motif)
+#     pass
 
-scrollbar.config(command=listbox.yview)
+# scrollbar.config(command=listbox.yview)
 
-listbox.pack(side=tk.LEFT)
-scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+# listbox.pack(side=tk.LEFT)
+# scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
 
 
 
