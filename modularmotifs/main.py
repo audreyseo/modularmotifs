@@ -1,6 +1,6 @@
 """Top-level code"""
 
-from modularmotifs.ui.new_interface import KnitWindow
+from modularmotifs.ui.interface import KnitWindow
 
 
 def main() -> None:

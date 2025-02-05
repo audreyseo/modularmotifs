@@ -19,6 +19,7 @@ selection_start = None
 selection_end = None
 selected_cells = []  # List of selected cells
 
+
 ##Adding the plus motif pattern
 # Function to toggle cell color (Draw Mode)
 def toggle_color(event):
@@ -31,9 +32,9 @@ def toggle_color(event):
     pattern_offsets = [
         (0, 0),  # Center (clicked cell)
         (-1, 0),  # Top
-        (1, 0),   # Bottom
+        (1, 0),  # Bottom
         (0, -1),  # Left
-        (0, 1)    # Right
+        (0, 1),  # Right
     ]
 
     for dr, dc in pattern_offsets:
@@ -41,7 +42,6 @@ def toggle_color(event):
         if 1 <= r <= GRID_HEIGHT and 1 <= c <= GRID_WIDTH:
             cells[r - 1][c - 1].config(bg=current_color)
             painted_cells.add((r, c))  # Mark cell as permanently colored
-
 
 
 ##Adding the plus motif while keeping the left click on
@@ -55,11 +55,11 @@ def paint_color(event):
 
         # Define a plus pattern: center + top, bottom, left, right
         pattern_offsets = [
-            (0, 0),   # Center (current cell)
+            (0, 0),  # Center (current cell)
             (-1, 0),  # Top
-            (1, 0),   # Bottom
+            (1, 0),  # Bottom
             (0, -1),  # Left
-            (0, 1)    # Right
+            (0, 1),  # Right
         ]
 
         for dr, dc in pattern_offsets:
@@ -310,10 +310,12 @@ def repeat_y():
                 )
                 cells[row_idx + pattern_row_offset - 1][col_idx - 1].config(bg=color)
 
-#add preview the motif functionality:
+
+# add preview the motif functionality:
 
 preview_color = "#A9A9A9"  # Light black for preview
 painted_cells = set()  # Store permanently painted cells to avoid clearing them
+
 
 def preview_motif(event):
     """Preview the plus (+) pattern in light black when hovering over a cell."""
@@ -324,11 +326,11 @@ def preview_motif(event):
 
         # Define a plus pattern: center + top, bottom, left, right
         pattern_offsets = [
-            (0, 0),   # Center (current cell)
+            (0, 0),  # Center (current cell)
             (-1, 0),  # Top
-            (1, 0),   # Bottom
+            (1, 0),  # Bottom
             (0, -1),  # Left
-            (0, 1)    # Right
+            (0, 1),  # Right
         ]
 
         for dr, dc in pattern_offsets:
@@ -346,6 +348,7 @@ def clear_preview(event):
             row, col = cell.grid_info()["row"], cell.grid_info()["column"]
             if cell.cget("bg") == preview_color and (row, col) not in painted_cells:
                 cell.config(bg=DEFAULT_COLOR)  # Restore only previewed cells
+
 
 # Create the main Tkinter window
 root = tk.Tk()
