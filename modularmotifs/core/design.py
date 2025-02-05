@@ -197,8 +197,8 @@ class Design:
             an existing motif's
         """
         if (
-            m.height() + y >= self.__height
-            or m.width() + x >= self.__width
+            m.height() + y > self.__height
+            or m.width() + x > self.__width
             or min(x, y) < 0
         ):
             raise IndexError("Motif is out of bounds!")
