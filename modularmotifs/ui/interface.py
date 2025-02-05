@@ -208,15 +208,18 @@ class KnitWindow:
             def handle(_):
                 if self.__selected_motif_button is not None:
                     KnitWindow.deselect(self.__selected_motif_button)
-                self.__selected_motif_button = motif_button
-                KnitWindow.select(self.__selected_motif_button)
-                self.__selected_motif = motif
+                if self.__selected_motif == motif:
+                    self.__selected_motif = None
+                    self.__selected_motif_button = None
+                else:
+                    self.__selected_motif_button = motif_button
+                    self.__selected_motif = motif
+                    KnitWindow.select(self.__selected_motif_button)
 
             return handle
 
         for motif in self.__motifs:
             motif_frame = tk.Frame(motifs_frame)
-            KnitWindow.deselect(motif_frame)
             motif_frame.pack(side="right", padx=10)
 
             motif_button = tk.Label(
@@ -225,6 +228,7 @@ class KnitWindow:
                 height=2,
             )
             motif_button.pack()
+            KnitWindow.deselect(motif_button)
 
             for bindable in [motif_frame, motif_button]:
                 bindable.bind("<Button-1>", pick_motif_listener(motif, motif_button))
