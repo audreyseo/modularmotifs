@@ -79,6 +79,9 @@ class PixelData:
         new_motif = None if new_color == Color.INVIS else self.__motif
         return PixelData(new_color, new_motif)
 
+    def __str__(self) -> str:
+        return f"PixelData({self.__col}, {self.__motif})"
+
     def col(self) -> Color:
         """Getter
 
@@ -217,7 +220,7 @@ class Design:
                 for ix, col in enumerate(row):
                     if successful_pixel_operations == 0:
                         break
-                    self.__canvas[y + iy][x + ix] -= PixelData(col, p)
+                    self.__canvas[y + iy][x + ix] -= col
                     successful_pixel_operations -= 1
             raise MotifOverlapException from exc
 
