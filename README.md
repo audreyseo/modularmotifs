@@ -1,4 +1,7 @@
 # modularmotifs
+
+Run with `python3 -m modularmotifs.main`
+
 Colorwork knitting design tool that allows modular editing, placement, tiling, etc. of motifs.
 
 

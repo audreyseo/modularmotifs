@@ -5,7 +5,6 @@ from modularmotifs.ui.callbacks import UICallbacks
 
 # instantiate the class that has all of the callbacks and global state
 callbacks = UICallbacks()
-
 # Create the main Tkinter window
 root = tk.Tk()
 root.title("Knitting Canvas")

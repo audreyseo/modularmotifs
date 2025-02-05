@@ -21,22 +21,25 @@ class Color(Enum):
 
     def __add__(self, c2: Color):
         """Adds two colors, raising an exception if
-        both are visible
+        both are visible but not both background
 
         Args:
             c2 (Color): Other color to be added with
 
         Raises:
             ColorOverlapException: When both colors
-            are visible
+            are visible and not both background
 
         Returns:
             Color: new color that represents the visible
-            color if one is visible, otherwise invisible
+            color if one is visible, background if both
+            are background, otherwise invisible
         """
         if self == Color.INVIS:
             return Color(c2)
         if c2 == Color.INVIS:
+            return Color(self)
+        if self == Color.BACK and c2 == Color.BACK:
             return Color(self)
         raise ColorOverflowException
 
@@ -62,6 +65,16 @@ class Color(Enum):
         if self == c2:
             # successful subtraction
             return Color.INVIS
+        raise ColorMismatchException
+
+    def __str__(self) -> str:
+        if self == Color.INVIS:
+            return "invis"
+        if self == Color.BACK:
+            return "back"
+        if self == Color.FORE:
+            return "fore"
+        # panic!
         raise ColorMismatchException
 
 
