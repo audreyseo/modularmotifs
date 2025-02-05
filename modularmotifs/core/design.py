@@ -128,7 +128,7 @@ class Design:
     __width: int
     __motifs: set[PlacedMotif]
     __canvas: list[list[PixelData]]
-    __colors: tuple[RGBColor, RGBColor]  # fore, back
+    __colors: tuple[RGBColor, RGBColor, RGBColor]  # fore, back, invis
 
     def __init__(self, height: int, width: int):
         self.__height = height
@@ -138,7 +138,28 @@ class Design:
             for _ in range(self.__height)
         ]
         self.__motifs = set()
-        self.__colors = (RGBColor(0, 0, 0), RGBColor(255, 255, 255))  # black on white
+        # black on white, gray bground
+        self.__colors = (
+            RGBColor(0, 0, 0),
+            RGBColor(255, 255, 255),
+            RGBColor(128, 128, 128),
+        )
+
+    def width(self) -> int:
+        """Getter
+
+        Returns:
+            int: width of the design
+        """
+        return self.__width
+
+    def height(self) -> int:
+        """Getter
+
+        Returns:
+            int: height of the design
+        """
+        return self.__height
 
     def complete(self) -> bool:
         """Returns True if and only if the design is
