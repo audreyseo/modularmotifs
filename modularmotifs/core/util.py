@@ -1,6 +1,8 @@
 """ Utilities """
+
 from modularmotifs.core.motif import Motif, Color
 from PIL import Image
+
 
 # ====================================================
 # Motif PNG conversion
@@ -22,6 +24,7 @@ def png2motif(png_path: str) -> Motif:
         bbox.append(row)
     return Motif(bbox)
 
+
 def motif2png(motif: Motif, png_path: str) -> None:
     w, h = motif.width(), motif.height()
     img = Image.new("1", (w, h))
@@ -37,4 +40,3 @@ def motif2png(motif: Motif, png_path: str) -> None:
             else:
                 raise ValueError
     img.save(png_path)
-            
