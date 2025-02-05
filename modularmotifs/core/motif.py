@@ -64,6 +64,16 @@ class Color(Enum):
             return Color.INVIS
         raise ColorMismatchException
 
+    def __str__(self) -> str:
+        if self == Color.INVIS:
+            return "invis"
+        if self == Color.BACK:
+            return "back"
+        if self == Color.FORE:
+            return "fore"
+        # panic!
+        raise ColorMismatchException
+
 
 class ColorOverflowException(Exception):
     """Raised whenever two colors are added together
