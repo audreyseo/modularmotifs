@@ -76,7 +76,7 @@ class PixelData:
 
     def __sub__(self, other: Color) -> PixelData:
         new_color = self.__col - other
-        new_motif = None if new_color == Color.INVIS else self.__motif
+        new_motif = self.__motif if new_color == Color.INVIS else None
         return PixelData(new_color, new_motif)
 
     def __str__(self) -> str:
