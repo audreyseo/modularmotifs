@@ -2,9 +2,11 @@
 
 import tkinter as tk
 from typing import Optional
+from PIL import ImageTk, Image
 
 from modularmotifs.core.design import Design, MotifOverlapException, RGBColor
 from modularmotifs.core.motif import Motif
+from modularmotifs.core.util import motif2png
 from modularmotifs.motiflibrary.examples import motifs
 
 # Default grid dimensions
@@ -202,7 +204,20 @@ class KnitWindow:
 
     def __init_motifs(self) -> None:
         motifs_frame = tk.Frame(self.__root)
-        motifs_frame.pack(side="right", padx=10)
+        motifs_frame.pack(side="right", padx=10, fill="y")
+
+        canvas = tk.Canvas(motifs_frame)
+        canvas.pack(side="left", fill="both", expand=True)
+
+        scrollbar = tk.Scrollbar(motifs_frame, orient="vertical", command=canvas.yview)
+        scrollbar.pack(side="right", fill="y")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        inner_frame = tk.Frame(canvas)
+        canvas.create_window((0, 0), window=inner_frame, anchor="nw")
+        inner_frame.bind("<Configure>", lambda event: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        self.__motif_images = []
 
         def pick_motif_listener(motif: Motif, motif_button):
             def handle(_):
@@ -219,16 +234,13 @@ class KnitWindow:
             return handle
 
         for motif in self.__motifs:
-            motif_frame = tk.Frame(motifs_frame)
-            motif_frame.pack(side="right", padx=10)
+            pil_image = motif2png(motif)
+            scaling = 150 // pil_image.width
+            pil_image = pil_image.resize((pil_image.width * scaling, pil_image.height * scaling), resample=Image.NEAREST)
+            motif_thumbnail = ImageTk.PhotoImage(pil_image)
+            self.__motif_images.append(motif_thumbnail)
 
-            motif_button = tk.Label(
-                motif_frame,
-                width=4,
-                height=2,
-            )
-            motif_button.pack()
-            KnitWindow.deselect(motif_button)
+            motif_label = tk.Label(inner_frame, image=motif_thumbnail, borderwidth=1, relief="solid")
+            motif_label.pack(pady=5, padx=5)
 
-            for bindable in [motif_frame, motif_button]:
-                bindable.bind("<Button-1>", pick_motif_listener(motif, motif_button))
+            motif_label.bind("<Button-1>", pick_motif_listener(motif, motif_label))

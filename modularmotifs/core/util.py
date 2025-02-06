@@ -25,7 +25,7 @@ def png2motif(png_path: str) -> Motif:
     return Motif(bbox)
 
 
-def motif2png(motif: Motif, png_path: str) -> None:
+def motif2png(motif: Motif) -> Image.Image:
     w, h = motif.width(), motif.height()
     img = Image.new("1", (w, h))
     pixels = img.load()
@@ -39,4 +39,6 @@ def motif2png(motif: Motif, png_path: str) -> None:
                 pixels[y, x] = 255  # set invis to white, can change alpha later
             else:
                 raise ValueError
-    img.save(png_path)
+    return img
+
+
