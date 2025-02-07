@@ -53,7 +53,9 @@ def bg_square(w: int) -> Motif:
     return int_lol_to_motif(lol)
 
 
-if __name__ == "__main__":
-    print(fg_square(1))
+
+
+# if __name__ == "__main__":
+#     print(fg_square(1))
 
     
