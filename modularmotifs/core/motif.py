@@ -188,6 +188,9 @@ class Motif:
     def __hash__(self) -> int:
         return hash(tuple(self.__data))
 
+    def __repr__(self) -> str:
+        return f"Motif({self.__data})"
+
 
 class MotifRow:
     """Row of a motif, glorified list of colors used to prevent
@@ -209,3 +212,6 @@ class MotifRow:
 
     def __hash__(self) -> int:
         return hash(tuple(self.__data))
+
+    def __repr__(self) -> str:
+        return f"MotifRow({list(map(str, self.__data))})"
