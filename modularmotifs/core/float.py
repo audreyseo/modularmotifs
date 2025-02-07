@@ -62,7 +62,8 @@ class FloatStrand:
     def xs(self) -> Tuple[int, int]:
         return self.x_left(), self.x_right()
 
-    
+    def __repr__(self) -> str:
+        return f"Float(row {self.__rownum}, {self.__start}-{self.x_right()}, {len(self)}, {self.__color})"
     
 
     
