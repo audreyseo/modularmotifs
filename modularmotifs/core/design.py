@@ -2,7 +2,7 @@
 of motifs"""
 
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, Generator, Tuple, Iterable
 from modularmotifs.core.motif import Color, ColorOverflowException, Motif
 
 
@@ -278,6 +278,16 @@ class Design:
             otherwise the responsible placed motif
         """
         return self.__canvas[y][x].motif()
+
+    def __iter__(self) -> Generator[Iterable[Tuple[Color, int, int]], None, None]:
+        """Iterate over the design in row-major order
+        The inner iterable will give (color, x, y) for each pixel
+        """
+        for y in range(self.__height):
+            yield [(self.get_color(x, y), x, y) for x in range(self.__width)]
+
+        
+        
 
 
 class MotifOverlapException(Exception):
