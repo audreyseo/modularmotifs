@@ -4,6 +4,7 @@ import tkinter as tk
 from typing import Optional
 from PIL import ImageTk, Image
 
+from modularmotifs.ui.util.selection_manager import SelectionManager
 from modularmotifs.core.design import Design, MotifOverlapException, RGBColor
 from modularmotifs.core.motif import Motif
 from modularmotifs.core.util import motif2png
@@ -27,6 +28,7 @@ class KnitWindow:
     """Main window to fill out a design"""
 
     def __init__(self):
+        self.selection_manager = SelectionManager()
         self.__selected_motif: Optional[Motif] = None
         self.__selected_motif_button = None
 
@@ -122,6 +124,7 @@ class KnitWindow:
 
         def click_color_listener(row: int, col: int):
             def handle(_):
+                self.selection_manager.add_cell(col, row)  # Store the selected cell
                 if self.__selected_motif is not None:
                     try:
                         self.__design.add_motif(self.__selected_motif, col, row)
