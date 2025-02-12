@@ -279,6 +279,14 @@ class Design:
         """
         return self.__canvas[y][x].motif()
 
+    def in_range(self, x: int, y: int) -> bool:
+        """Whether the given coordinates are inside this design
+        """
+        return 0 <= x < self.__width and 0 <= y < self.__height
+
+    def __repr__(self) -> str:
+        return f"Design({self.__width}, {self.__height})"
+
     def __iter__(self) -> Generator[Iterable[Tuple[Color, int, int]], None, None]:
         """Iterate over the design in row-major order
         The inner iterable will give (color, x, y) for each pixel
