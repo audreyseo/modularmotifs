@@ -182,7 +182,7 @@ class Design:
                     return False
         return True
 
-    def add_motif(self, m: Motif, x: int, y: int):
+    def add_motif(self, m: Motif, x: int, y: int) -> PlacedMotif:
         """Add a motif to this design. If an error is encountered,
         the design is unchanged
 
@@ -195,6 +195,9 @@ class Design:
             IndexError: Motif would be placed out of bounds
             MotifOverlapException: Motif's visible data overlaps
             an existing motif's
+
+        Returns:
+            PlacedMotif: The motif that has been placed
         """
         if (
             m.height() + y > self.__height
@@ -223,6 +226,8 @@ class Design:
                     self.__canvas[y + iy][x + ix] -= col
                     successful_pixel_operations -= 1
             raise MotifOverlapException from exc
+        finally:
+            return p
 
     def remove_motif(self, p: PlacedMotif):
         """Removes a motif from the design
