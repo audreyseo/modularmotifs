@@ -15,7 +15,9 @@ frame.pack()
 
 # Create the grid with numbers on all four sides
 cells = []  # Store references to all cells
-for row in range(callbacks.GRID_HEIGHT + 2):  # Include extra rows for top and bottom numbers
+for row in range(
+    callbacks.GRID_HEIGHT + 2
+):  # Include extra rows for top and bottom numbers
     row_cells = []
     for col in range(
         callbacks.GRID_WIDTH + 2
@@ -75,7 +77,8 @@ for color in callbacks.color_palette:
         borderwidth=1,
     )
     color_button.bind(
-        "<Button-1>", lambda event, col=color, btn=color_button: callbacks.select_color(col, btn)
+        "<Button-1>",
+        lambda event, col=color, btn=color_button: callbacks.select_color(col, btn),
     )
     color_button.pack(side="left", padx=5)
     # Highlight black color by default
@@ -112,8 +115,12 @@ select_button = tk.Button(
 select_button.pack(side="left", padx=5, pady=10)
 
 # Initialize repeat buttons
-repeat_x_button = tk.Button(root, text="Repeat along x-axis", command=lambda: callbacks.repeat_x())
-repeat_y_button = tk.Button(root, text="Repeat along y-axis", command=lambda: callbacks.repeat_y())
+repeat_x_button = tk.Button(
+    root, text="Repeat along x-axis", command=lambda: callbacks.repeat_x()
+)
+repeat_y_button = tk.Button(
+    root, text="Repeat along y-axis", command=lambda: callbacks.repeat_y()
+)
 
 frame = tk.Frame(root)
 frame.pack(padx=10, pady=10)
@@ -131,8 +138,6 @@ frame.pack(padx=10, pady=10)
 # scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
 
-
-
 callbacks.add_ui_element("cells", cells)
 callbacks.add_ui_element("repeat_x_button", repeat_x_button)
 callbacks.add_ui_element("repeat_y_button", repeat_y_button)
@@ -140,9 +145,6 @@ callbacks.add_ui_element("select_button", select_button)
 callbacks.add_ui_element("plus_button", plus_button)
 callbacks.add_ui_element("root", root)
 callbacks.add_ui_element("palette_frame", palette_frame)
-
-
-
 
 
 # Set initial bindings for Draw Mode

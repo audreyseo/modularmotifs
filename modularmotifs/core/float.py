@@ -2,12 +2,14 @@
 
 Possibly over-engineering here...
 """
+
 from modularmotifs.core.motif import Color
 from typing import Tuple
 
+
 class FloatStrand:
-    """Floats are horizontal lengths of yarn that occur because of color changes in stranded colorwork knitting
-    """
+    """Floats are horizontal lengths of yarn that occur because of color changes in stranded colorwork knitting"""
+
     # Length of the float
     __length: int
     # the x coordinate of where the float begins. The next stitch using this color is at __start + __length + 1 -- note that this is inclusize
@@ -24,14 +26,16 @@ class FloatStrand:
         ====
 
         start: int -- the left x coordinate of this float (i.e., the last stitch knit with this color)
-        
+
         length: int -- the number of stitches in between that were knit in the other color. The right x coordinate of this float (i.e., the next stitch knit with this color) should be at start + length + 1
 
         row: int, optional -- the row where this float occurs
 
         color: Color, optional -- the color of this float. If provided, this color should not be 'invisible'
         """
-        assert color is None or color != Color.INVIS, f"FloatStrand: color {color} should be None or not 'invisible'"
+        assert (
+            color is None or color != Color.INVIS
+        ), f"FloatStrand: color {color} should be None or not 'invisible'"
         self.__length = length
         self.__start = start
         self.__rownum = row
@@ -64,7 +68,3 @@ class FloatStrand:
 
     def __repr__(self) -> str:
         return f"Float(row {self.__rownum}, {self.__start}-{self.x_right()}, {len(self)}, {self.__color})"
-    
-
-    
-    

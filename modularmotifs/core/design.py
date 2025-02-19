@@ -89,7 +89,7 @@ class PixelData:
             Color: color at this pixel
         """
         return self.__col
-    
+
     def motifs(self) -> Set[PlacedMotif]:
         """Getter
 
@@ -296,8 +296,7 @@ class Design:
         return self.__canvas[y][x].motif()
 
     def in_range(self, x: int, y: int) -> bool:
-        """Whether the given coordinates are inside this design
-        """
+        """Whether the given coordinates are inside this design"""
         return 0 <= x < self.__width and 0 <= y < self.__height
 
     def __repr__(self) -> str:
@@ -309,9 +308,6 @@ class Design:
         """
         for y in range(self.__height):
             yield [(self.get_color(x, y), x, y) for x in range(self.__width)]
-
-        
-        
 
 
 class MotifOverlapException(Exception):

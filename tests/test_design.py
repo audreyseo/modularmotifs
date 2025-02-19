@@ -111,6 +111,7 @@ def test_color_subtraction_exceptions():
 def empty_design():
     return Design(height=0, width=0)  # Empty design with no pixels
 
+
 @pytest.fixture
 def small_design():
     design = Design(height=3, width=3)
@@ -123,11 +124,12 @@ def small_design():
     design.add_motif(bg_1, 2, 2)
     design.add_motif(bg_1, 0, 2)
     design.add_motif(bg_1, 1, 2)
-    
+
     # design.get_color(0, 0)  # Foreground color at (0, 0)
     # design.get_color(1, 1)  # Background color at (1, 1)
     # design.get_color(2, 2)  # Invisible color at (2, 2)
     return design
+
 
 @pytest.fixture
 def design_with_motifs():
@@ -137,36 +139,41 @@ def design_with_motifs():
     design.add_motif(motif, x=0, y=0)
     return design
 
+
 def test_iter_empty_design(empty_design):
     # Test that iterating over an empty design yields no results
     result = list(empty_design)
     assert result == []  # No rows, no pixels
+
 
 def test_iter_small_design(small_design):
     # Test that iterating over a small design with specific colors gives correct output
     expected_output = [
         [(Color.FORE, 0, 0), (Color.FORE, 1, 0), (Color.BACK, 2, 0)],
         [(Color.FORE, 0, 1), (Color.FORE, 1, 1), (Color.BACK, 2, 1)],
-        [(Color.BACK, 0, 2), (Color.BACK, 1, 2), (Color.BACK, 2, 2)]
+        [(Color.BACK, 0, 2), (Color.BACK, 1, 2), (Color.BACK, 2, 2)],
     ]
     result = list(small_design)
     assert result == expected_output
+
 
 def test_iter_design_with_motifs(design_with_motifs):
     # Test that iterating over a design with motifs placed still yields correct (color, x, y)
     expected_output = [
         [(Color.FORE, 0, 0), (Color.BACK, 1, 0), (Color.FORE, 2, 0)],
         [(Color.BACK, 0, 1), (Color.FORE, 1, 1), (Color.BACK, 2, 1)],
-        [(Color.FORE, 0, 2), (Color.BACK, 1, 2), (Color.FORE, 2, 2)]
+        [(Color.FORE, 0, 2), (Color.BACK, 1, 2), (Color.FORE, 2, 2)],
     ]
     result = list(design_with_motifs)
     assert result == expected_output
+
 
 def test_iter_single_row(design_with_motifs):
     # Test that iterating over a single row of the design returns the correct tuple
     row_data = list(design_with_motifs)[0]  # Get the first row
     expected_row = [(Color.FORE, 0, 0), (Color.BACK, 1, 0), (Color.FORE, 2, 0)]
     assert row_data == expected_row
+
 
 def test_iter_multiple_rows(design_with_motifs):
     # Test that iterating over multiple rows works and returns the expected colors

@@ -40,5 +40,3 @@ def motif2png(motif: Motif) -> Image.Image:
             else:
                 raise ValueError
     return img
-
-

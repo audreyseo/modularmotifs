@@ -215,7 +215,10 @@ class KnitWindow:
 
         inner_frame = tk.Frame(canvas)
         canvas.create_window((0, 0), window=inner_frame, anchor="nw")
-        inner_frame.bind("<Configure>", lambda event: canvas.configure(scrollregion=canvas.bbox("all")))
+        inner_frame.bind(
+            "<Configure>",
+            lambda event: canvas.configure(scrollregion=canvas.bbox("all")),
+        )
 
         self.__motif_images = []
 
@@ -236,11 +239,16 @@ class KnitWindow:
         for motif in self.__motifs:
             pil_image = motif2png(motif)
             scaling = 150 // pil_image.width
-            pil_image = pil_image.resize((pil_image.width * scaling, pil_image.height * scaling), resample=Image.NEAREST)
+            pil_image = pil_image.resize(
+                (pil_image.width * scaling, pil_image.height * scaling),
+                resample=Image.NEAREST,
+            )
             motif_thumbnail = ImageTk.PhotoImage(pil_image)
             self.__motif_images.append(motif_thumbnail)
 
-            motif_label = tk.Label(inner_frame, image=motif_thumbnail, borderwidth=1, relief="solid")
+            motif_label = tk.Label(
+                inner_frame, image=motif_thumbnail, borderwidth=1, relief="solid"
+            )
             motif_label.pack(pady=5, padx=5)
 
             motif_label.bind("<Button-1>", pick_motif_listener(motif, motif_label))

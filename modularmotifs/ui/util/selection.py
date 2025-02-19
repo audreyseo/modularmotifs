@@ -1,16 +1,17 @@
 # Represents selected cells
 from typing import Self, Generator, Tuple
 
+
 class Selection:
     """
     A basic selection class that stores selected coordinates.
 
     Does not assume any particular shape of the selection. (i.e., these selections need not be rectangular)
     """
-    
+
     selected_cells: set[Tuple[int, int]]
-    
-    def __init__(self, selected: list[Tuple[int, int]]=None):
+
+    def __init__(self, selected: list[Tuple[int, int]] = None):
         if not selected:
             self.selected_cells = set()
         else:
@@ -29,8 +30,7 @@ class Selection:
         # flip back (y, x) -> (x, y)
         cells = [(x, y) for y, x in cells]
         return cells
-    
-    
+
     def __iter__(self) -> Generator[Tuple[int, int], None, None]:
         """
         Returns an iterator that iterates through the selected cells in row major order
@@ -45,13 +45,12 @@ class Selection:
         cells = self._row_major_cells()
         cellstring = ",".join(list(map(str, cells)))
         return f"Selection([{cellstring}])"
-    
+
     pass
 
 
 # Might want a specific subclass that does selections too, but this is probably good for now?
 # class GridSelection:
-    
 
 
 if __name__ == "__main__":

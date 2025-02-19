@@ -42,20 +42,18 @@ motifs = {
     ),
 }
 
+
 def fg_square(w: int) -> Motif:
     """Return a w x w motif where every color is the foreground color"""
-    lol = [ [1] * w ] * w
+    lol = [[1] * w] * w
     return int_lol_to_motif(lol)
+
 
 def bg_square(w: int) -> Motif:
     """Return a w x w motif where every color is the background color"""
-    lol = [ [2] * w] * w
+    lol = [[2] * w] * w
     return int_lol_to_motif(lol)
-
-
 
 
 # if __name__ == "__main__":
 #     print(fg_square(1))
-
-    

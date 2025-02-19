@@ -7,13 +7,18 @@ from modularmotifs.core import Design, Color, Motif, Colorization, TwoColorsPerR
 from modularmotifs.core.design import RGBColor
 import random
 
+
 def rowizable(d: Design) -> bool:
-    """ Traditional fair isle sweaters and the like are usually arranged in rows of motifs, though this isn't necessarily always true. Eventually I want this algorithm to be able to make smarter decisions, but for now, something that just tries to colorize is fine.
-    """
+    """Traditional fair isle sweaters and the like are usually arranged in rows of motifs, though this isn't necessarily always true. Eventually I want this algorithm to be able to make smarter decisions, but for now, something that just tries to colorize is fine."""
     return False
 
 
-def fair_isle_colorization(d: Design, colors: list[RGBColor], max_colors_per_row: int = 2, random_seed: int = None) -> Colorization:
+def fair_isle_colorization(
+    d: Design,
+    colors: list[RGBColor],
+    max_colors_per_row: int = 2,
+    random_seed: int = None,
+) -> Colorization:
     """Colorizes a given design in fair isle-style with some colors
 
     Args:
@@ -45,7 +50,5 @@ def fair_isle_colorization(d: Design, colors: list[RGBColor], max_colors_per_row
             pass
         pass
     return assignments
-    
-    
 
-    # simplest form: for any given row, 
+    # simplest form: for any given row,
