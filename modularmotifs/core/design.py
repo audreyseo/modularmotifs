@@ -280,6 +280,7 @@ class Design:
                 return self.back_color
             case Color.INVIS:
                 return self.invis_color
+        raise ValueError("I don't know which color this is!")
 
     def get_motif(self, x: int, y: int) -> Optional[PlacedMotif]:
         """Get the placed motif responsible for the color

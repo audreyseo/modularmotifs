@@ -1,7 +1,7 @@
 """User interface that uses Designs to model pixels"""
 
 import tkinter as tk
-from typing import Optional
+from typing import Any, List, Optional
 from PIL import ImageTk, Image
 
 from modularmotifs.core.design import Design, MotifOverlapException, RGBColor
@@ -26,7 +26,7 @@ DEFAULT_MOTIFS: list[Motif] = list(motifs.values())
 class KnitWindow:
     """Main window to fill out a design"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.__selected_motif: Optional[Motif] = None
         self.__selected_motif_button = None
 
@@ -39,7 +39,7 @@ class KnitWindow:
         self.__pixel_frame = tk.Frame(self.__root)
         self.__pixel_frame.pack()
 
-        self.__cells = []
+        self.__cells: List[List[Any]] = []
 
         self.__init_pixels()
         self.__refresh_pixels()

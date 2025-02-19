@@ -121,7 +121,7 @@ class Motif:
 
     __width: int
     __height: int
-    __data: list[list[Color]]
+    __data: list[MotifRow]
 
     def __init__(self, bbox: list[list[Color]]):
         """Constructs a new Motif.
