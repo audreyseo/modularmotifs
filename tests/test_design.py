@@ -73,19 +73,19 @@ def test_pixel_data_addition():
     """Test adding two PixelData objects"""
     motif1 = PlacedMotif(0, 0, motif_example)
     motif2 = PlacedMotif(1, 1, motif_example)
-    pixel_data1 = PixelData(Color.INVIS, motif1)
-    pixel_data2 = PixelData(Color.BACK, motif2)
+    pixel_data1 = PixelData(Color.INVIS, set([motif1]))
+    pixel_data2 = PixelData(Color.FORE, set([motif2]))
 
     result = pixel_data1 + pixel_data2
-    assert result.col() == Color.BACK and result.motif() == motif2
+    assert result.col() == Color.FORE and result.motif() == motif2
 
 
 def test_pixel_data_subtraction():
     """Test subtracting a Color from PixelData"""
     motif1 = PlacedMotif(0, 0, motif_example)
-    pixel_data = PixelData(Color.FORE, motif1)
+    pixel_data = PixelData(Color.FORE, set([motif1]))
 
-    result = pixel_data - Color.FORE
+    result = pixel_data - pixel_data
     assert result.col() == Color.INVIS
 
 

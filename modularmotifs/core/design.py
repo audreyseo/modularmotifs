@@ -2,7 +2,7 @@
 of motifs"""
 
 from __future__ import annotations
-from typing import Optional, Generator, Tuple, Iterable
+from typing import Optional, Generator, Tuple, Iterable, Set
 from modularmotifs.core.motif import Color, ColorOverflowException, Motif
 
 
@@ -57,30 +57,30 @@ class PlacedMotif:
 
 class PixelData:
     """Data to be associated with a pixel: a color at that
-    pixel, and the motif that caused that color if the color
+    pixel, and the motif(s) that caused that color if the color
     is visible"""
 
     __col: Color
-    __motif: Optional[PlacedMotif]
+    __motifs: Set[PlacedMotif]
 
-    def __init__(self, col: Color, motif: Optional[PlacedMotif]):
+    def __init__(self, col: Color, motifs: Set[PlacedMotif]):
         self.__col = col
-        self.__motif = motif if col != Color.INVIS else None
-        if self.__col != Color.INVIS and self.__motif is None:
+        self.__motifs = motifs if self.__col != Color.INVIS else set()
+        if self.__col != Color.INVIS and len(motifs) is None:
             raise ValueError("Visible colors must be caused by motifs!")
 
     def __add__(self, other: PixelData) -> PixelData:
         new_color = self.__col + other.col()
-        new_motif = self.__motif if self.__col != Color.INVIS else other.motif()
-        return PixelData(new_color, new_motif)
+        new_motifs = self.__motifs.union(other.motifs())
+        return PixelData(new_color, new_motifs)
 
-    def __sub__(self, other: Color) -> PixelData:
-        new_color = self.__col - other
-        new_motif = None if new_color == Color.INVIS else self.__motif
-        return PixelData(new_color, new_motif)
+    def __sub__(self, other: PixelData) -> PixelData:
+        new_motifs = self.__motifs.difference(other.motifs())
+        new_color = self.__col - other.col() if len(new_motifs) == 0 else self.__col
+        return PixelData(new_color, new_motifs)
 
     def __str__(self) -> str:
-        return f"PixelData({self.__col}, {self.__motif})"
+        return f"PixelData({self.__col}, {self.__motifs})"
 
     def col(self) -> Color:
         """Getter
@@ -89,15 +89,26 @@ class PixelData:
             Color: color at this pixel
         """
         return self.__col
+    
+    def motifs(self) -> Set[PlacedMotif]:
+        """Getter
+
+        Returns:
+            Set[PlacedMotif]: Motifs responsible for this color
+        """
+        return self.__motifs
 
     def motif(self) -> Optional[PlacedMotif]:
         """Getter
 
         Returns:
-            Optional[PlacedMotif]: None if this is invisible,
-            placed motif responsible for the color if visible
+            Optional[PlacedMotif]: None if this is not foreground (black),
+            placed motif responsible for the color if foreground
         """
-        return self.__motif
+        if self.__col != Color.FORE:
+            return None
+        assert len(self.__motifs) == 1
+        return next(iter(self.__motifs))
 
 
 class RGBColor:
@@ -144,7 +155,7 @@ class Design:
         self.__height = height
         self.__width = width
         self.__canvas = [
-            [PixelData(Color.INVIS, None) for _ in range(self.__width)]
+            [PixelData(Color.INVIS, set()) for _ in range(self.__width)]
             for _ in range(self.__height)
         ]
         self.__motifs = set()
@@ -214,7 +225,7 @@ class Design:
         try:
             for iy, row in enumerate(m):
                 for ix, col in enumerate(row):
-                    self.__canvas[y + iy][x + ix] += PixelData(col, p)
+                    self.__canvas[y + iy][x + ix] += PixelData(col, set([p]))
                     successful_pixel_operations += 1
         except ColorOverflowException as exc:
             # roll back!
@@ -223,7 +234,7 @@ class Design:
                 for ix, col in enumerate(row):
                     if successful_pixel_operations == 0:
                         break
-                    self.__canvas[y + iy][x + ix] -= col
+                    self.__canvas[y + iy][x + ix] -= PixelData(col, set([p]))
                     successful_pixel_operations -= 1
             raise MotifOverlapException from exc
         finally:
@@ -237,7 +248,7 @@ class Design:
         """
         for iy, row in enumerate(p.motif()):
             for ix, col in enumerate(row):
-                self.__canvas[p.y() + iy][p.x() + ix] -= col
+                self.__canvas[p.y() + iy][p.x() + ix] -= PixelData(col, set([p]))
         self.__motifs.remove(p)
 
     def get_color(self, x: int, y: int) -> Color:
