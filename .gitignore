@@ -174,3 +174,5 @@ cython_debug/
 settings.json
 .vscode
 
+# Knitout files
+*.k
