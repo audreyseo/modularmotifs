@@ -237,8 +237,7 @@ class Design:
                     self.__canvas[y + iy][x + ix] -= PixelData(col, set([p]))
                     successful_pixel_operations -= 1
             raise MotifOverlapException from exc
-        finally:
-            return p
+        return p
 
     def remove_motif(self, p: PlacedMotif):
         """Removes a motif from the design
