@@ -9,6 +9,8 @@ from modularmotifs.core.motif import Motif
 from modularmotifs.core.util import motif2png
 from modularmotifs.motiflibrary.examples import motifs
 
+from modularmotifs.ui.grid_selection import GridSelection
+
 # Default grid dimensions
 GRID_HEIGHT: int = 25
 GRID_WIDTH: int = 50
@@ -49,6 +51,10 @@ class KnitWindow:
 
         # Color picker for foreground, background, invis
         self.__init_colors()
+
+        # Add grid selection integration here:
+        grid_selector = GridSelection(self)
+
 
         # Starts the window
         self.__root.mainloop()
