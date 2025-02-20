@@ -1,5 +1,6 @@
 from modularmotifs.core.design import RGBColor
 from modularmotifs.core.design import Design, Color, Motif
+from modularmotifs.core.util import rgbcolors_to_image
 import abc
 from typing import Generator, Tuple, Self, Union
 from PIL import Image
@@ -110,27 +111,37 @@ class TwoColorsPerRow(Colorization):
         pass
 
     def to_image(self, square_size=10) -> Image.Image:
-        w, h = self._d.width(), self._d.height()
-        img = Image.new("RGB", (w * square_size, h * square_size))
-        pixels = img.load()
-        for y in range(h):
-            col1 = self._foreground[y]
-            col2 = self._background[y]
-            for x in range(w):
-                # default to the background color
-                col = col2
-                if self._d.get_color(x, y) == Color.FORE:
-                    # otherwise, make it the foreground color
-                    col = col1
-                    pass
-                for i in range(square_size):
-                    for j in range(square_size):
-                        pixels[x * square_size + i, y * square_size + j] = col.tuple()
-                        pass
-                    pass
-                pass
-            pass
-        return img
+        colors = [[self._foreground[y] if c == Color.FORE else self._background[y] for c, x, y in r] for r in self._d]
+        return rgbcolors_to_image(colors, square_size=square_size)
+        
+        # for r in self._d:
+        # for c, x, y in r:
+        # col = self._foreground[y] if c == Color.FORE else self._background[y]
+        # print(col, x, y)
+                
+
+        
+        # w, h = self._d.width(), self._d.height()
+        # img = Image.new("RGB", (w * square_size, h * square_size))
+        # pixels = img.load()
+        # for y in range(h):
+        #     col1 = self._foreground[y]
+        #     col2 = self._background[y]
+        #     for x in range(w):
+        #         # default to the background color
+        #         col = col2
+        #         if self._d.get_color(x, y) == Color.FORE:
+        #             # otherwise, make it the foreground color
+        #             col = col1
+        #             pass
+        #         for i in range(square_size):
+        #             for j in range(square_size):
+        #                 pixels[x * square_size + i, y * square_size + j] = col.tuple()
+        #                 pass
+        #             pass
+        #         pass
+        #     pass
+        # return img
                         
             
     pass

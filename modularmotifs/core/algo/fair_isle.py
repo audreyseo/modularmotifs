@@ -85,9 +85,11 @@ if __name__ == "__main__":
               RGBColor.from_hex("#A6CFD5"),
               RGBColor.from_hex("#DBFCFF")]
 
-    colorized = fair_isle_colorization(d, colors, random_seed=1)
+    seed = 1
+
+    colorized = fair_isle_colorization(d, colors, random_seed=seed)
     img = colorized.to_image(square_size=30)
-    img.save("example3.png")
+    img.save(f"example{seed}.png")
     
 
 

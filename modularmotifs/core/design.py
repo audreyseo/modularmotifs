@@ -148,6 +148,9 @@ class RGBColor:
         blue = int(hexstr[5:7], 16)
         return RGBColor(red, green, blue)
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.hex()})"
+
     def tuple(self) -> tuple[int, int, int]:
         """ Returns a tuple of the red, green, and blue parts
         """
