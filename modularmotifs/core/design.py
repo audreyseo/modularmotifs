@@ -2,7 +2,8 @@
 of motifs"""
 
 from __future__ import annotations
-from typing import Optional, Generator, Tuple, Iterable, Set
+import re
+from typing import Optional, Generator, Tuple, Iterable, Set, Self
 from modularmotifs.core.motif import Color, ColorOverflowException, Motif
 
 
@@ -137,6 +138,22 @@ class RGBColor:
             ]
         )
 
+    @classmethod
+    def from_hex(cls, hexstr) -> Self:
+        """Given a hex string, returns a new RGBColor instance representing that color.
+        """
+        assert len(hexstr) == 7 and re.match(r"#[0-9a-f]{6}", hexstr, re.I), f"RGBColor.from_hex: hex string {hexstr} has the wrong format"
+        red = int(hexstr[1:3], 16)
+        green = int(hexstr[3:5], 16)
+        blue = int(hexstr[5:7], 16)
+        return RGBColor(red, green, blue)
+
+    def tuple(self) -> tuple[int, int, int]:
+        """ Returns a tuple of the red, green, and blue parts
+        """
+        return (self.__red, self.__green, self.__blue)
+                                        
+
 
 DEFAULT_FORE: RGBColor = RGBColor(0, 0, 0)
 DEFAULT_BACK: RGBColor = RGBColor(255, 255, 255)
@@ -249,6 +266,9 @@ class Design:
             for ix, col in enumerate(row):
                 self.__canvas[p.y() + iy][p.x() + ix] -= PixelData(col, set([p]))
         self.__motifs.remove(p)
+
+    def row_colors(self, y: int) -> list[Color]:
+        return [self.get_color(x, y) for x in range(self.__width)]
 
     def get_color(self, x: int, y: int) -> Color:
         """Get the color at some point

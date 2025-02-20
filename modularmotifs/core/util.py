@@ -1,6 +1,8 @@
 """ Utilities """
 
 from modularmotifs.core.motif import Motif, Color
+from modularmotifs.core.design import Design
+from typing import Optional
 from PIL import Image
 
 
@@ -40,3 +42,21 @@ def motif2png(motif: Motif) -> Image.Image:
             else:
                 raise ValueError
     return img
+
+
+def design_to_lol(d: Design, mapper = None) -> list[list[int]]:
+    lol = []
+    for i in range(d.height()):
+        newrow = []
+        for j in range(d.width()):
+            val = d.get_color(j, i).value
+            if mapper is not None and val in mapper:
+                newrow.append(mapper[val])
+                pass
+            else:
+                newrow.append(val)
+                pass
+            pass
+        lol.append(newrow)
+        pass
+    return lol

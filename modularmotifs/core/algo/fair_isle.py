@@ -38,7 +38,7 @@ def fair_isle_colorization(
     assignments = TwoColorsPerRow(d, colors)
 
     for i in range(d.height()):
-        cols = d.row_colors(i)
+        cols = set(d.row_colors(i))
         if len(cols) == 1:
             # It doesn't matter which
             c = random.choice(colors)
@@ -49,6 +49,45 @@ def fair_isle_colorization(
             assignments.set(i, twocolors[0], twocolors[1])
             pass
         pass
-    return assignments
+    return assignments    # simplest form: for any given row,
 
-    # simplest form: for any given row,
+if __name__ == "__main__":
+    # do some very basic testing out of stuff...
+    from modularmotifs.motiflibrary.examples import motifs
+    from modularmotifs.core.util import design_to_lol
+
+    d = Design(height=11, width=11)
+    d.add_motif(motifs["plus-3x3"], 0, 0)
+    d.add_motif(motifs["x-3x3"], 4, 0)
+    d.add_motif(motifs["plus-3x3"], 8, 0)
+    d.add_motif(motifs["x-3x3"], 0, 4)
+    d.add_motif(motifs["plus-3x3"], 4, 4)
+    d.add_motif(motifs["x-3x3"], 8, 4)
+    d.add_motif(motifs["plus-3x3"], 0, 8)
+    d.add_motif(motifs["x-3x3"], 4, 8)
+    d.add_motif(motifs["plus-3x3"], 8, 8)
+
+    for r in d:
+        for (col, x, y) in r:
+            print(x, y, col)
+            pass
+        pass
+
+    lol = design_to_lol(d, mapper={1: 0, 2: 1, 3: 1})
+
+    for r in lol:
+        print(" ".join(list(map(str, r))))
+        pass
+
+    colors = [RGBColor.from_hex("#320E3B"),
+              RGBColor.from_hex("#E56399"),
+              RGBColor.from_hex("#7F96FF"),
+              RGBColor.from_hex("#A6CFD5"),
+              RGBColor.from_hex("#DBFCFF")]
+
+    colorized = fair_isle_colorization(d, colors, random_seed=1)
+    img = colorized.to_image(square_size=30)
+    img.save("example3.png")
+    
+
+
