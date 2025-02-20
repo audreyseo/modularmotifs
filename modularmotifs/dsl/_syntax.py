@@ -278,6 +278,12 @@ class DesignInterpreter:
             self._placed_motifs[action.v.name] = res
             return res
             pass
+        if isinstance(action, RemoveMotif):
+            assert self.design_var == action.d.name, f"{self.cn}.interpret: design name {action.d.name} not recognized"
+            pm = self.eval(action.placed_motif)
+            self.design.remove_motif(pm)
+            pass
+            
         pass
     
 
