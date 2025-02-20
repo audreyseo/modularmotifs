@@ -1,7 +1,7 @@
 """ Utilities """
 
 from modularmotifs.core.motif import Motif, Color
-from modularmotifs.core.design import Design
+from modularmotifs.core.design import Design, RGBColor
 from typing import Optional
 from PIL import Image
 
@@ -26,6 +26,38 @@ def png2motif(png_path: str) -> Motif:
         bbox.append(row)
     return Motif(bbox)
 
+
+def rgbcolors_to_image(lol: list[list[RGBColor]], square_size=1, mode="RGB") -> Image.Image:
+    assert lol and lol[0], f"{rgbcolors_to_image.__qualname__}: 2d list of RGBColors must be non-empty -- {lol}"
+    h = len(lol)
+    w = len(lol[0])
+    assert all(len(r) == w for r in lol), f"{rgbcolors_to_image.__qualname__}: each row must have the same length -- {lol}"
+    if mode != "RGB":
+        raise NotImplementedError(f"{rgbcolors_to_image.__qualname__}: modes other than RGB are not yet supported (mode: {mode})")
+    img = Image.new(mode, (w * square_size, h * square_size))
+    pixels = img.load()
+    if square_size == 1:
+        for y in range(h):
+            for x in range(w):
+                pixels[x, y] = lol[y][x].tuple()
+                pass
+            pass
+        return img
+    
+    for y in range(h):
+        for x in range(w):
+            color = lol[y][x]
+            for i in range(square_size):
+                for j in range(square_size):
+                    pixels[x * square_size + i, y * square_size + j] = color.tuple()
+                    pass
+                pass
+            pass
+        pass
+    return img
+            
+    
+    
 
 def motif2png(motif: Motif) -> Image.Image:
     w, h = motif.width(), motif.height()
