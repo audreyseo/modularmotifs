@@ -28,6 +28,16 @@ def png2motif(png_path: str) -> Motif:
 
 
 def rgbcolors_to_image(lol: list[list[RGBColor]], square_size=1, mode="RGB") -> Image.Image:
+    """Convert a list of list of RGBColors to an image
+
+    Arguments
+      lol (list[list[RGBColor]]): a list of lists of RGBColor objects - i.e., a 2d list representing the colors in the image.
+      square_size (int): the default size (in pixels) of the square that represents each color. Defaults to 1
+      mode (str): the image mode to use. Currently not implemented! Defaults to "RGB" -- the only option currently supported
+
+    Returns:
+      Image.Image, a PIL.Image.Image object where each "square" has the corresponding color from the input 2d list
+    """
     assert lol and lol[0], f"{rgbcolors_to_image.__qualname__}: 2d list of RGBColors must be non-empty -- {lol}"
     h = len(lol)
     w = len(lol[0])
