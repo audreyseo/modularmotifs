@@ -71,7 +71,7 @@ class GridSelection:
 
         # "Reset" button deactivates selection mode.
         self.reset_button = tk.Button(
-            self.selection_frame, text="Reset", command=self.reset_selection
+            self.selection_frame, text="Reset Selection", command=self.reset_selection
         )
         self.reset_button.pack(side="left", padx=5)
 

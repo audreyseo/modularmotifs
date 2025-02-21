@@ -11,6 +11,8 @@ from modularmotifs.motiflibrary.examples import motifs
 
 from modularmotifs.ui.grid_selection import GridSelection
 
+from modularmotifs.dsl import DesignProgramBuilder, DesignInterpreter
+
 # Default grid dimensions
 GRID_HEIGHT: int = 25
 GRID_WIDTH: int = 50
@@ -29,11 +31,14 @@ class KnitWindow:
     """Main window to fill out a design"""
 
     def __init__(self) -> None:
-        self.__selected_motif: Optional[Motif] = None
+        self.__selected_motif: Optional[tuple[str, Motif]] = None
         self.__selected_motif_button = None
 
         self.__design: Design = Design(GRID_HEIGHT, GRID_WIDTH)
-        self.__motifs: list[Motif] = DEFAULT_MOTIFS
+        self.__program_builder: DesignProgramBuilder = DesignProgramBuilder(self.__design)
+        self.__program_builder.add_modularmotifs_motif_library()
+        self.__motifs: dict[Motif] = motifs
+        self.__interpreter: DesignInterpreter = self.__program_builder.get_interpreter()
 
         self.__root = tk.Tk()
         self.__root.title(WINDOW_TITLE)
@@ -51,6 +56,9 @@ class KnitWindow:
 
         # Color picker for foreground, background, invis
         self.__init_colors()
+
+        # History actions: undo and redo
+        self.__init_history()
 
         # Add grid selection integration here:
         grid_selector = GridSelection(self)
@@ -130,7 +138,21 @@ class KnitWindow:
             def handle(_):
                 if self.__selected_motif is not None:
                     try:
-                        self.__design.add_motif(self.__selected_motif, col, row)
+                        # add an op that builds the motif to the program currently being built
+                        op = self.__program_builder.add_motif(self.__selected_motif[0], col, row)
+                        # interpret the operation, which will have an effect on the design
+                        self.__interpreter.interpret(op)
+
+                        if self.__redo_enabled():
+                            self.__disable_redo()
+                            pass
+
+                        if not self.__undo_enabled():
+                            self.__enable_undo()
+                            pass
+
+                        
+                        # self.__design.add_motif(self.__selected_motif, col, row)
                         self.__refresh_pixels()
                     except MotifOverlapException:
                         self.error("Placed motif overlaps with something else!")
@@ -228,7 +250,7 @@ class KnitWindow:
 
         self.__motif_images = []
 
-        def pick_motif_listener(motif: Motif, motif_button):
+        def pick_motif_listener(motif_name: str, motif: Motif, motif_button):
             def handle(_):
                 if self.__selected_motif_button is not None:
                     KnitWindow.deselect(self.__selected_motif_button)
@@ -237,12 +259,12 @@ class KnitWindow:
                     self.__selected_motif_button = None
                 else:
                     self.__selected_motif_button = motif_button
-                    self.__selected_motif = motif
+                    self.__selected_motif = (motif_name, motif) # motif
                     KnitWindow.select(self.__selected_motif_button)
 
             return handle
 
-        for motif in self.__motifs:
+        for motif_name, motif in self.__program_builder._motifs.items():
             pil_image = motif2png(motif)
             scaling = 150 // pil_image.width
             pil_image = pil_image.resize(
@@ -257,4 +279,78 @@ class KnitWindow:
             )
             motif_label.pack(pady=5, padx=5)
 
-            motif_label.bind("<Button-1>", pick_motif_listener(motif, motif_label))
+            motif_label.bind("<Button-1>", pick_motif_listener(motif_name, motif, motif_label))
+
+            pass
+        pass
+
+    def __undo_enabled(self) -> bool:
+        return self.__undo_button["state"] == "normal"
+
+    def __redo_enabled(self) -> bool:
+        return self.__undo_button["state"] == "normal"
+
+    def __disable_undo(self) -> None:
+        self.__undo_button["state"] = "disabled"
+        pass
+
+    def __disable_redo(self) -> None:
+        self.__redo_button["state"] = "disabled"
+        pass
+
+    def __enable_redo(self) -> None:
+        self.__redo_button["state"] = "normal"
+        pass
+
+    def __enable_undo(self) -> None:
+        self.__undo_button["state"] = "normal"
+        
+
+    def __init_history(self) -> None:
+        # initialize buttons that deal with the history manipulation -- i.e., undo, redo
+
+        def undo_listener():
+            def handle():
+                undo_action = self.__program_builder.undo()
+                if undo_action:
+                    self.__interpreter.interpret(undo_action)
+                    if not self.__program_builder.can_undo():
+                        self.__disable_undo()
+                        pass
+                    self.__enable_redo()
+                    self.__refresh_pixels()
+                    pass
+                pass
+            return handle
+
+        def redo_listener():
+            def handle():
+                redo_action = self.__program_builder.redo()
+                if redo_action:
+                    self.__interpreter.interpret(redo_action)
+                    if not self.__program_builder.can_redo():
+                        self.__disable_redo()
+                        pass
+                    self.__enable_undo()
+                    self.__refresh_pixels()
+                    pass
+                pass
+            return handle
+
+        history_frame = tk.Frame(self.__root)
+        history_frame.pack(side="left", padx=10, fill="y")
+
+        # Create the buttons. They start out as being disabled because you haven't done anything to the designs...yet
+        undoer = tk.Button(history_frame, text="Undo", command=undo_listener())
+        undoer.pack(side="left", padx=5)
+        
+        redoer = tk.Button(history_frame, text="Redo", command=redo_listener())
+        redoer.pack(side="left", padx=5)
+
+        self.__undo_button = undoer
+        self.__redo_button = redoer
+
+        self.__disable_undo()
+        self.__disable_redo()
+
+        

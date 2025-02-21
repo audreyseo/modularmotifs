@@ -233,7 +233,7 @@ class DesignInterpreter:
     def __init__(self, design: Design, design_var: str, motifs: dict[str, Motif], imports: list[Import]):
         self.cn = self.__class__.__qualname__
         self.design = design
-        self.design_var = str
+        self.design_var = design_var
         self._motifs = motifs
         self._imports = imports
         self._placed_motifs = dict()
@@ -346,7 +346,7 @@ class DesignProgramBuilder:
         If at any point we add another action that overwrites past, undone actions, we overwrite the old history
         """
         if self._index < self.num_actions() - 1:
-            self._actions = self._actions[:self_index + 1]
+            self._actions = self._actions[:self._index + 1]
             pass
         pass
     
@@ -369,8 +369,13 @@ class DesignProgramBuilder:
         self._index += 1
         return self._actions[self._index]
 
+    def can_undo(self) -> bool:
+        return self._index >= 0
+    def can_redo(self) -> bool:
+        return self._index < self.num_actions() - 1
+
     def undo(self) -> Optional[DesignOp]:
-        if self._index >= 0:
+        if self.can_undo():
             old_index = self._index
             self._index -= 1
             return self._actions[old_index].inverse()
@@ -380,7 +385,7 @@ class DesignProgramBuilder:
         return len(self._actions)
 
     def redo(self) -> Optional[DesignOp]:
-        if self._index < self.num_actions() - 1:
+        if self.can_redo():
             self._index += 1
             return self._actions[self._index]
         return None
