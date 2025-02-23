@@ -10,12 +10,19 @@ from modularmotifs.core.util import motif2png
 from modularmotifs.motiflibrary.examples import motifs
 
 from modularmotifs.ui.grid_selection import GridSelection
+from modularmotifs.ui.grid_labels import GridLabels
 
 from modularmotifs.dsl import DesignProgramBuilder, DesignInterpreter
 
 # Default grid dimensions
-GRID_HEIGHT: int = 25
-GRID_WIDTH: int = 50
+# GRID_HEIGHT: int = 25
+# GRID_WIDTH: int = 50
+GRID_HEIGHT = 10
+GRID_WIDTH = 10
+
+# Maximum dimensions
+MAX_HEIGHT: int = 200
+MAX_WIDTH: int = 200
 
 TKINTER_OFFSET: int = 1
 
@@ -47,6 +54,8 @@ class KnitWindow:
         self.__pixel_frame.pack()
 
         self.__cells: List[List[Any]] = []
+        self.__grid_labels = GridLabels()
+        
 
         self.__init_pixels()
         self.__refresh_pixels()
@@ -59,6 +68,9 @@ class KnitWindow:
 
         # History actions: undo and redo
         self.__init_history()
+        
+        # Add size increment entry
+        self.__init_sizes()
 
         # Add grid selection integration here:
         grid_selector = GridSelection(self)
@@ -128,7 +140,15 @@ class KnitWindow:
         """Queries the Design for new colors and displays them"""
         for y, row in enumerate(self.__cells):
             for x, cell in enumerate(row):
-                cell.config(bg=self.__design.get_rgb(x, y).hex())
+                if self.__design.in_range(x, y):
+                    cell.config(bg=self.__design.get_rgb(x, y).hex())
+                    pass
+                pass
+            pass
+        pass
+    
+                
+                
 
     def __init_pixels(self) -> None:
         """Initializes the array of visible pixels from the
@@ -163,9 +183,9 @@ class KnitWindow:
 
             return handle
 
-        for row in range(self.height()):
+        for row in range(MAX_HEIGHT):
             row_cells = []
-            for col in range(self.width()):
+            for col in range(MAX_WIDTH):
                 cell = tk.Label(
                     self.__pixel_frame,
                     width=2,
@@ -174,6 +194,8 @@ class KnitWindow:
                     borderwidth=1,
                 )
                 KnitWindow.grid(cell, row, col)
+                if row >= self.height() or col >= self.width():
+                    cell.grid_remove()
                 cell.bind("<Button-1>", click_color_listener(row, col))
                 row_cells.append(cell)
             self.__cells.append(row_cells)
@@ -181,19 +203,29 @@ class KnitWindow:
     def __init_labels(self) -> None:
         """Initializes the labels for the pixel array"""
         # Create the column labels
+        
         for row in [-1, self.height()]:
-            for col in range(self.width()):
+            for col in range(MAX_WIDTH):
                 label = tk.Label(
                     self.__pixel_frame, text=str(col), width=2, height=1, relief="flat"
                 )
+                self.__grid_labels.add_tb_label(label, row)
                 KnitWindow.grid(label, row, col)
         # Create the row labels
         for col in [-1, self.width()]:
-            for row in range(self.height()):
+            for row in range(MAX_HEIGHT):
                 label = tk.Label(
                     self.__pixel_frame, text=str(row), width=2, height=1, relief="flat"
                 )
+                self.__grid_labels.add_lr_label(label, col)
                 KnitWindow.grid(label, row, col)
+                pass
+            pass
+        for j in range(self.height(), MAX_HEIGHT):
+            self.__grid_labels.grid_remove_lr(j)
+            pass
+        for j in range(self.width(), MAX_WIDTH):
+            self.__grid_labels.grid_remove_tb(j)
 
     def __init_colors(self) -> None:
         """Initializes the color viewer and picker at the bottom"""
@@ -353,4 +385,104 @@ class KnitWindow:
         self.__disable_undo()
         self.__disable_redo()
 
+        pass
+    
+    def __remove_row(self, at_index: int) -> None:
+        self.__grid_labels.grid_remove_bottom()
+        for i in range(self.width()):
+            self.__cells[at_index][i].grid_remove()
+            KnitWindow.grid(self.__grid_labels.get_bottom_label(i), self.height(), i)
+            pass
+        self.__grid_labels.grid_remove_lr(at_index)
+        pass
+    
+    def __remove_column(self, at_index: int) -> None:
+        self.__grid_labels.grid_remove_right()
+        for i in range(self.height()):
+            self.__cells[i][at_index].grid_remove()
+            KnitWindow.grid(self.__grid_labels.get_right_label(i), i, self.width())
+            pass
+        self.__grid_labels.grid_remove_tb(at_index)
+        pass
+    
+    def __add_row(self, at_index: int) -> None:
+        self.__grid_labels.grid_remove_bottom()
+        for i in range(self.width()):
+            KnitWindow.grid(self.__cells[at_index][i], at_index, i)
+            KnitWindow.grid(self.__grid_labels.get_bottom_label(i), self.height(), i)
+            pass
+        l, r = self.__grid_labels.get_lr_labels(at_index)
+        KnitWindow.grid(l, at_index, -1)
+        KnitWindow.grid(r, at_index, self.width())
+        pass
+    
+    def __add_column(self, at_index: int) -> None:
+        self.__grid_labels.grid_remove_right()
+        for i in range(self.height()):
+            KnitWindow.grid(self.__cells[i][at_index], i, at_index)
+            KnitWindow.grid(self.__grid_labels.get_right_label(i), i, self.width())
+            pass
+        t, b = self.__grid_labels.get_tb_labels(at_index)
+        KnitWindow.grid(t, -1, at_index)
+        KnitWindow.grid(b, self.height(), at_index)
+        pass
+    
+    def __init_sizes(self) -> None:
+        sizes_frame = tk.Frame(self.__root)
+        sizes_frame.pack(side="left", padx=10, fill="y")
+        
+        height_var = tk.StringVar()
+        height_var.set(str(self.height()))
+        
+        def height_command():
+            def handler():
+                print("Height: " + height_var.get())
+                h = int(height_var.get())
+                if h < self.height():
+                    self.__design.remove_row()
+                    self.__remove_row(h)
+                    pass
+                elif h > self.height():
+                    self.__design.add_row()
+                    self.__add_row(h - 1)
+                    
+                    pass
+                self.__refresh_pixels()
+                pass
+            return handler
+        
+        width_var = tk.StringVar()
+        width_var.set(str(self.width()))
+        
+        def width_command():
+            def handler():
+                print("Width: " + width_var.get())
+                w = int(width_var.get())
+                dwidth = self.__design.width()
+                if w < dwidth:
+                    self.__design.remove_column()
+                    self.__remove_column(w)
+                    pass
+                elif w > dwidth:
+                    self.__design.add_column()
+                    self.__add_column(w - 1)
+                    pass
+                self.__refresh_pixels()
+                pass
+            return handler
+
+        height_frame = tk.Frame(sizes_frame)
+        height_frame.pack()
+        hlabel = tk.Label(height_frame, text="Height")
+        hspinbox = tk.Spinbox(height_frame, from_=1, to=MAX_HEIGHT, width=5, textvariable=height_var, command=height_command())
+        hlabel.pack()
+        hspinbox.pack()
+        
+        width_frame = tk.Frame(sizes_frame)
+        width_frame.pack()
+        wlabel = tk.Label(width_frame, text="Width")
+        wspinbox = tk.Spinbox(width_frame, from_=1, to=MAX_WIDTH, width=5, textvariable=width_var, command=width_command())
+        wlabel.pack()
+        wspinbox.pack()
+        pass
         
