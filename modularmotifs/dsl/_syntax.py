@@ -5,6 +5,7 @@ from types import ModuleType
 from modularmotifs.core import Motif, Design
 from modularmotifs.core.design import PlacedMotif
 import modularmotifs.motiflibrary.examples as libexamples
+# from pathlib import Path
 
 class FreshVar:
     """A source of fresh variable names
@@ -21,6 +22,9 @@ class FreshVar:
         
 
 class Syntax(abc.ABC):
+    """ An immutable type that represents the syntax of the DSL
+    """
+    
     cn = __qualname__
     
     def __init__(self):
@@ -36,6 +40,15 @@ class Syntax(abc.ABC):
 
     def __str__(self) -> str:
         return self.to_python()
+
+    def __eq__(self, other: 'Syntax'):
+        # TODO: Find out what type other should have
+        # if it returns the same code, it's the same
+        return self.to_python() == other.to_python()
+
+    def __hash__(self):
+        # as a bare minimum, let's treat anything that returns the same code as the same
+        return hash(self.to_python())
     pass
 
 
@@ -125,7 +138,41 @@ class ObjectInit(Expr):
         self.className = className
         self.args = args
         pass
+
+    def to_python(self) -> str:
+        args = ", ".join(list(map(lambda x: x.to_python(), self.args)))
+        return f"{self.className}({args})"
     pass
+
+class AttrAccess(Expr):
+    def __init__(self, obj: Expr, key: Expr):
+        super().__init__()
+        self.obj = obj
+        self.key = key
+        pass
+
+    def to_python(self) -> str:
+        return f"{self.obj}[{self.key}]"
+    pass
+
+class ModuleRef(Expr):
+    def __init__(self, module: str):
+        super().__init__()
+        self.module = module
+        pass
+
+    def to_python(self) -> str:
+        return self.module
+
+class ModuleAccess(Expr):
+    def __init__(self, module: Expr, attr: str):
+        super().__init__()
+        self.module = module
+        self.attr = attr
+        pass
+
+    def to_python(self) -> str:
+        return f"{self.module}.{self.attr}"
 
 class ObjectAccess(Expr):
     def __init__(self, v: Variable, prop: str):
@@ -229,15 +276,16 @@ class DesignInterpreter:
     _imports: list[Import]
     _placed_motifs: dict[str, PlacedMotif]
     _classes: set[str] = set([Motif.__name__, Design.__name__])
+    _builder: 'DesignProgramBuilder'
 
-    def __init__(self, design: Design, design_var: str, motifs: dict[str, Motif], imports: list[Import]):
+    def __init__(self, design: Design, design_var: str, motifs: dict[str, Motif], imports: list[Import], builder: 'DesignProgramBuilder'):
         self.cn = self.__class__.__qualname__
         self.design = design
         self.design_var = design_var
         self._motifs = motifs
         self._imports = imports
         self._placed_motifs = dict()
-        
+        self._builder = builder
         pass
 
     def eval(self, e: Expr):
@@ -266,6 +314,15 @@ class DesignInterpreter:
         if isinstance(e, ObjectMethodCall):
             args = map_eval_over(e.args)
             return getattr(self.eval(e.v), method)(*args)
+        # Avoid unprincipled eval if we can...
+        maybeMotif = self._builder._get_motif(e)
+        if maybeMotif:
+            return maybeMotif
+        
+        if isinstance(e, ModuleRef) or isinstance(e, ModuleAccess):
+            return eval(e.to_python())
+        if isinstance(e, AttrAccess):
+            return eval(e.obj.to_python())[self.eval(e.key)]
         assert False, f"{self.cn}.eval: impossible kind of expr encountered '{e}'"
 
     def interpret(self, action: DesignOp):
@@ -297,7 +354,10 @@ class DesignProgramBuilder:
     _design_var: Variable
     cn: str = __qualname__
     base_design: Design
-    
+    _motif_name_to_expr: dict[str, Expr]
+    # TODO: actually use
+    _motif_creations: list[SetVariable]
+    _expr_to_motif_name: dict[Expr, str]
 
     def __init__(self, base_design: Design):
         self._imports = list()
@@ -307,26 +367,52 @@ class DesignProgramBuilder:
         self._design_var = self._get_fresh_var()
         self.base_design = base_design
         self._motifs = dict()
+        self._motif_name_to_expr = dict()
+        self._expr_to_motif_name = dict()
+        self._motif_creations = list()
         pass
 
-    def load_motif(self, name: str, m: Motif) -> Self:
+    def load_motif(self, name: str, m: Motif, e: Optional[Expr] = None) -> Self:
         self._motifs[name] = m
+        if e:
+            self._motif_name_to_expr[name] = e
+            self._expr_to_motif_name[e] = name
+            pass
+        else:
+            # TODO: add another set_variable to self._motif_creations
+            pass
         return self
 
-    # def write(self, name
+    def _get_motif(self, m: Union[str, Expr]) -> Optional[Motif]:
+        if isinstance(m, str) and m in self._motifs:
+            return self._motifs[m]
+        if isinstance(m, Expr) and m in self._expr_to_motif_name:
+            mname = self._expr_to_motif_name[m]
+            if mname in self._motifs:
+                return self._motifs[mname]
+            pass
+        return None
+
+    def to_python(self) -> str:
+        def map_to_python(l: list[Syntax]) -> list[str]:
+            return list(map(lambda x: x.to_python(), l))
+        imports = "\n".join(map_to_python(self._imports))
+        design_statement = SetVariable(self._design_var, ObjectInit("Design", Literal(self.base_design.width()), Literal(self.base_design.height()))).to_python()
+        ops = "\n".join(map_to_python(self._actions[:self._index + 1]))
+        return "\n\n".join([imports, design_statement, ops])
 
     def add_modularmotifs_motif_library(self) -> Self:
         print(libexamples.__name__)
         self.add_import(libexamples, _as="libexamples")
 
         for m in libexamples.motifs:
-            self.load_motif(m, libexamples.motifs[m])
+            self.load_motif(m, libexamples.motifs[m], e=AttrAccess(ModuleAccess(ModuleRef("libexamples"), "motifs"), Literal(m)))
             pass
         
         return self
 
     def get_interpreter(self) -> DesignInterpreter:
-        return DesignInterpreter(self.base_design, self._design_var.name, self._motifs, self._imports)
+        return DesignInterpreter(self.base_design, self._design_var.name, self._motifs, self._imports, self)
 
     def _get_fresh_var(self):
         return Variable(self._fresh.get_fresh())
@@ -352,9 +438,9 @@ class DesignProgramBuilder:
     
 
     def add_motif(self, name: str, x: int, y: int) -> DesignOp:
-        assert name in self._motifs, f"{self.cn}.add_motif: could not find motif with name {name}, did you forget to load_motif it?"
+        assert name in self._motif_name_to_expr, f"{self.cn}.add_motif: could not find motif with name {name}, did you forget to load_motif it?"
         self._overwrite()
-        self._actions.append(AddMotif(self._get_fresh_var(), self._design_var, Variable(name), Literal(x), Literal(y), self._fresh))
+        self._actions.append(AddMotif(self._get_fresh_var(), self._design_var, self._motif_name_to_expr[name], Literal(x), Literal(y), self._fresh))
         self._index += 1
         return self._actions[self._index]
 
@@ -418,10 +504,12 @@ if __name__ == "__main__":
     builder = DesignProgramBuilder(Design(10, 10))
     builder.add_modularmotifs_motif_library()
     interp = builder.get_interpreter()
-    op = builder.add_motif("plus-3x3", 1, 1)
+    op = builder.add_motif("plus-3x3", 0, 0)
+    _ = builder.add_motif("crosshair-3x3", 3, 3)
     
     print(op)
     res = interp.interpret(op)
     print(res)
+    print(builder.to_python())
     
     pass
