@@ -180,3 +180,108 @@ def test_iter_multiple_rows(design_with_motifs):
     rows = list(design_with_motifs)
     assert len(rows) == 3  # There should be 3 rows
     assert len(rows[0]) == 3  # Each row should have 3 columns
+
+def test_add_row_at_end():
+    design = Design(10, 10)
+    initial_height = design.height()
+    design.add_row()
+    assert design.height() == initial_height + 1, "Height should increase by 1"
+    assert len([r for r in design]) == design.height(), "Canvas should have the new row added at the end"
+
+def test_add_row_at_index():
+    design = Design(10, 10)
+    design.add_row()
+    initial_height = design.height()
+    design.add_row(at_index=0)
+    assert design.height() == initial_height + 1, "Height should increase by 1"
+    assert len([r for r in design]) == design.height(), "Canvas should have the new row inserted at index 0"
+
+def test_add_row_invalid_index():
+    design = Design(10, 10)
+    try:
+        design.add_row(at_index=100)  # Invalid index
+        assert False, "Expected AssertionError"
+    except AssertionError:
+        pass
+
+def test_add_column_at_end():
+    design = Design(10, 10)
+    initial_width = design.width()
+    design.add_column()
+    assert design.width() == initial_width + 1, "Width should increase by 1"
+    for row in design:
+        assert len(row) == design.width(), "Each row should have an additional column"
+
+def test_add_column_at_index():
+    design = Design(10, 10)
+    design.add_column()
+    initial_width = design.width()
+    design.add_column(at_index=0)
+    assert design.width() == initial_width + 1, "Width should increase by 1"
+    for row in design:
+        assert len(row) == design.width(), "Each row should have the new column inserted at index 0"
+
+def test_add_column_invalid_index():
+    design = Design(10, 10)
+    try:
+        design.add_column(at_index=100)  # Invalid index
+        assert False, "Expected AssertionError"
+    except AssertionError:
+        pass
+
+def test_remove_row_at_end():
+    design = Design(10, 10)
+    design.add_row()
+    initial_height = design.height()
+    removed_row = design.remove_row()
+    assert design.height() == initial_height - 1, "Height should decrease by 1"
+    assert len([r for r in design]) == design.height(), "Canvas should have one less row"
+    assert removed_row is not None, "The removed row should be returned"
+
+def test_remove_row_at_index():
+    design = Design(10, 10)
+    design.add_row()
+    design.add_row()
+    initial_height = design.height()
+    removed_row = design.remove_row(at_index=0)
+    assert design.height() == initial_height - 1, "Height should decrease by 1"
+    assert len([r for r in design]) == design.height(), "Canvas should have one less row"
+    assert removed_row is not None, "The removed row should be returned"
+    
+def test_remove_row_invalid_index():
+    design = Design(10, 10)
+    try:
+        design.remove_row(at_index=100)  # Invalid index
+        assert False, "Expected IndexError"
+    except IndexError:
+        pass
+
+
+def test_remove_column_at_end():
+    design = Design(10, 10)
+    design.add_column()
+    initial_width = design.width()
+    removed_column = design.remove_column()
+    assert design.width() == initial_width - 1, "Width should decrease by 1"
+    for row in design:
+        assert len(row) == design.width(), "Each row should have one less column"
+    assert removed_column is not None, "The removed column should be returned"
+
+def test_remove_column_at_index():
+    design = Design(10, 10)
+    design.add_column()
+    design.add_column()
+    initial_width = design.width()
+    removed_column = design.remove_column(at_index=0)
+    assert design.width() == initial_width - 1, "Width should decrease by 1"
+    for row in design:
+        assert len(row) == design.width(), "Each row should have one less column"
+    assert removed_column is not None, "The removed column should be returned"
+
+def test_remove_column_invalid_index():
+    design = Design(10, 10)
+    try:
+        design.remove_column(at_index=100)  # Invalid index
+        assert False, "Expected IndexError"
+    except IndexError:
+        pass

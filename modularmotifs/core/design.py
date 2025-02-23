@@ -163,6 +163,7 @@ DEFAULT_BACK: RGBColor = RGBColor(255, 255, 255)
 DEFAULT_INVIS: RGBColor = RGBColor(128, 128, 128)
 
 
+
 class Design:
     """Collection of motifs on a canvas"""
 
@@ -170,12 +171,14 @@ class Design:
     __width: int
     __motifs: set[PlacedMotif]
     __canvas: list[list[PixelData]]
+    
+    
 
     def __init__(self, height: int, width: int):
         self.__height = height
         self.__width = width
         self.__canvas = [
-            [PixelData(Color.INVIS, set()) for _ in range(self.__width)]
+            self.__new_row()
             for _ in range(self.__height)
         ]
         self.__motifs = set()
@@ -183,7 +186,89 @@ class Design:
         self.fore_color: RGBColor = DEFAULT_FORE
         self.back_color: RGBColor = DEFAULT_BACK
         self.invis_color: RGBColor = DEFAULT_INVIS
+        pass
+    
+    def __new_row(self) -> list[PixelData]:
+        return [Design.default_pixel_data() for _ in range(self.__width)]
+    
+    @classmethod
+    def default_pixel_data(cls) -> PixelData:
+        return PixelData(Color.INVIS, set())
+    
+    
+    def add_row(self, at_index: int = -1) -> Self:
+        """Add a row to this design, optionally at the specified index.
+        
+        Args:
+            at_index (int, optional): The row at which to insert a new row. This
+                will shift all rows at_index, at_index+1, etc. to at_index + 1,
+                at_index + 2, etc. Defaults to -1 -- which puts it at the end (no shifting)
 
+        Returns:
+            Self: this Design class
+        """
+        if at_index == -1 or at_index == self.__height:
+            self.__canvas.append(self.__new_row())
+            pass
+        else:
+            assert 0 <= at_index < self.__height, f"{self.add_row.__qualname__}: Expected index {at_index} to be in [0, {self.__height})"
+            self.__canvas.insert(at_index, self.__new_row())
+            pass
+        self.__height += 1
+        return self
+    
+    def add_column(self, at_index: int = -1) -> Self:
+        """Add a column to this design, optionally at the specified index.
+
+        Args:
+            at_index (int, optional): The column at which to insert a new column. This will shift all columns at indices at_index, at_index+1, etc. to at_index + 1, at_index + 2, etc. Defaults to -1 -- which puts it at the end (no shifting)
+
+        Returns:
+            Self: this Design class
+        """
+        if at_index == -1 or at_index == self.__width:
+            for i in range(self.__height):
+                self.__canvas[i].append(Design.default_pixel_data())
+                pass
+            pass
+        else:
+            assert 0 <= at_index < self.__width, f"{self.add_column.__qualname__}: Expected index {at_index} to be in [0, {self.__width})"
+            for i in range(self.__height):
+                self.__canvas[i].insert(at_index, Design.default_pixel_data())
+                pass
+            pass
+        self.__width += 1
+        return self
+    
+    def remove_row(self, at_index: int = -1) -> list[PixelData]:
+        """Remove a row from this design, optionally at the specified index
+
+        Args:
+            at_index (int, optional): Remove the row at the given index.
+                Defaults to -1 -- the last row will be removed
+
+        Returns:
+            list[PixelData]: the row that was removed
+        """
+        self.__height -= 1
+        return self.__canvas.pop(at_index)
+    
+    def remove_column(self, at_index: int = -1) -> list[PixelData]:
+        """Remove a column from this design, optionally at the specified index
+
+        Args:
+            at_index (int, optional): Remove the column at the given index. Defaults to -1 -- the last column
+
+        Returns:
+            list[PixelData]: the column that was removed
+        """
+        col = []
+        for i in range(self.__height):
+            col.append(self.__canvas[i].pop(at_index))
+            pass
+        self.__width -= 1
+        return col
+        
     def width(self) -> int:
         """Getter
 
