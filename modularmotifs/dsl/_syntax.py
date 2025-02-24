@@ -1,6 +1,6 @@
 import abc
 # TODO: I think we would want to replace TypeGuard with TypeIs if we were all using Python 3.13...
-from typing import Union, TypeGuard, Self, Optional, Type
+from typing import Union, TypeGuard, Self, Optional, Type, Any
 from types import ModuleType
 from modularmotifs.core import Motif, Design
 from modularmotifs.core.design import PlacedMotif
@@ -199,16 +199,28 @@ class ObjectMethodCall(Expr):
 
     pass
 
+class KeywordArg(Expr):
+    def __init__(self, key: str, e: Expr):
+        super().__init__()
+        self.key = key
+        self.e = e
+        pass
+    
+    def to_python(self) -> str:
+        return f"{self.key}={self.e.to_python()}"
+
 class Statement(Syntax):
     pass
     
 class DesignOp(Statement):
     cn = __qualname__
 
-    def __init__(self, d: Variable, op_name: str):
+    def __init__(self, d: Variable, op_name: str, fresh: FreshVar):
         super().__init__()
         self.d = d
         self.op_name = op_name
+        # source of fresh variable names
+        self.fresh = fresh
 
     @abc.abstractmethod
     def inverse(self) -> 'DesignOp':
@@ -230,7 +242,7 @@ class AddMotif(DesignOp):
     cn = __qualname__
 
     def __init__(self, v: Variable, d: Variable, m: Expr, x: Expr, y: Expr, fresh: FreshVar):
-        super().__init__(d, "add_motif")
+        super().__init__(d, "add_motif", fresh)
         # where the placed motif is stored -- should be a fresh variable
         self.v = v
         # the motif to be added
@@ -238,8 +250,6 @@ class AddMotif(DesignOp):
         # the x and y coordinates
         self.x = x
         self.y = y
-        # source of fresh variable names
-        self.fresh = fresh
         pass
 
     def inverse(self) -> DesignOp:
@@ -252,10 +262,9 @@ class AddMotif(DesignOp):
 
 class RemoveMotif(DesignOp):
     def __init__(self, d: Variable, placedmotif: Variable, fresh: FreshVar):
-        super().__init__(d, "remove_motif")
+        super().__init__(d, "remove_motif", fresh)
         # self.d = d
         self.placed_motif = placedmotif
-        self.fresh = fresh
         pass
 
     def inverse(self) -> DesignOp:
@@ -269,6 +278,88 @@ class RemoveMotif(DesignOp):
         return f"{self.d}.{self.op_name}({self.placed_motif})"
     pass
 
+class SizeOp(DesignOp):
+    def __init__(self, d: Variable, op_name: str, at_index: Optional[Expr], fresh: FreshVar, contents: Optional[Expr] = None):
+        super().__init__(d, op_name, fresh)
+        self.at_index = at_index
+        self.contents = contents
+        pass
+    
+    def get_at_index(self) -> str:
+        return "" if not self.at_index else self.at_index.to_python()
+
+class AddRow(SizeOp):
+    def __init__(self, v: Variable, d: Variable, at_index: Optional[Expr], fresh: FreshVar, contents: Optional[Expr] = None):
+        super().__init__(d, "add_row", at_index, fresh, contents=contents)
+        self.v = v
+        pass
+    
+    def inverse(self) -> DesignOp:
+        return RemoveRow(Variable(self.fresh.get_fresh()),
+                         Variable(self.fresh.get_fresh()),
+                         self.d,
+                         self.v,
+                         self.fresh)
+        
+    def to_python(self) -> str:
+        at_index = self.get_at_index()
+        contents = f", row_contents={self.contents.to_python()}" if self.contents else ""
+        return f"{self.v} = {self.d}.{self.op_name}(at_index={at_index}{contents})"
+    pass
+
+class RemoveRow(SizeOp):
+    def __init__(self, indexVar: Variable, removed: Variable, d: Variable, at_index: Optional[Expr], fresh: FreshVar):
+        super().__init__(d, "remove_row", at_index, fresh)
+        self.indexVar = indexVar
+        self.removed = removed
+        pass
+    
+    def inverse(self) -> DesignOp:
+        return AddRow(Variable(self.fresh.get_fresh()),
+                      self.d,
+                      self.indexVar,
+                      self.fresh,
+                      contents=self.removed)
+    def to_python(self) -> str:
+        return f"{self.indexVar}, {self.removed} = {self.d}.{self.op_name}({self.get_at_index()})"
+    pass
+
+class AddColumn(SizeOp):
+    def __init__(self, v: Variable, d: Variable, at_index: Optional[Expr], fresh: FreshVar, contents: Optional[Expr] = None):
+        super().__init__(d, "add_column", at_index, fresh, contents=contents)
+        self.v = v
+        pass
+    
+    def inverse(self) -> DesignOp:
+        return RemoveColumn(Variable(self.fresh.get_fresh()),
+                         Variable(self.fresh.get_fresh()),
+                         self.d,
+                         self.v,
+                         self.fresh)
+        
+    def to_python(self) -> str:
+        at_index = self.get_at_index()
+        contents = f", column_contents={self.contents.to_python()}" if self.contents else ""
+        return f"{self.v} = {self.d}.{self.op_name}(at_index={at_index}{contents})"
+    pass
+
+class RemoveColumn(SizeOp):
+    def __init__(self, indexVar: Variable, removed: Variable, d: Variable, at_index: Optional[Expr], fresh: FreshVar):
+        super().__init__(d, "remove_column", at_index, fresh)
+        self.indexVar = indexVar
+        self.removed = removed
+        pass
+    
+    def inverse(self) -> DesignOp:
+        return AddColumn(Variable(self.fresh.get_fresh()),
+                      self.d,
+                      self.indexVar,
+                      self.fresh,
+                      contents=self.removed)
+    def to_python(self) -> str:
+        return f"{self.indexVar}, {self.removed} = {self.d}.{self.op_name}({self.get_at_index()})"
+    pass
+
 class DesignInterpreter:
     design: Design
     design_var: str
@@ -277,6 +368,7 @@ class DesignInterpreter:
     _placed_motifs: dict[str, PlacedMotif]
     _classes: set[str] = set([Motif.__name__, Design.__name__])
     _builder: 'DesignProgramBuilder'
+    _vars_to_vals: dict[Variable, Any]
 
     def __init__(self, design: Design, design_var: str, motifs: dict[str, Motif], imports: list[Import], builder: 'DesignProgramBuilder'):
         self.cn = self.__class__.__qualname__
@@ -286,6 +378,7 @@ class DesignInterpreter:
         self._imports = imports
         self._placed_motifs = dict()
         self._builder = builder
+        self._vars_to_vals = dict()
         pass
 
     def eval(self, e: Expr):
@@ -295,6 +388,8 @@ class DesignInterpreter:
         if isinstance(e, Literal):
             return e.const
         if isinstance(e, Variable):
+            if e in self._vars_to_vals:
+                return self._vars_to_vals[e]
             n = e.name
             if n in self._motifs:
                 return self._motifs[n]
@@ -334,13 +429,33 @@ class DesignInterpreter:
             res = self.design.add_motif(motif, x, y)
             self._placed_motifs[action.v.name] = res
             return res
-            pass
         if isinstance(action, RemoveMotif):
             assert self.design_var == action.d.name, f"{self.cn}.interpret: design name {action.d.name} not recognized"
             pm = self.eval(action.placed_motif)
             self.design.remove_motif(pm)
-            pass
-            
+            return
+        if isinstance(action, SizeOp):
+            ind = self.eval(action.at_index) if action.at_index else -1
+            if isinstance(action, RemoveRow):
+                i, r = self.design.remove_row(at_index=ind)
+                self._vars_to_vals[action.indexVar] = i
+                self._vars_to_vals[action.removed] = r
+                return
+            if isinstance(action, RemoveColumn):
+                i, r = self.design.remove_column(at_index=ind)
+                self._vars_to_vals[action.indexVar] = i
+                self._vars_to_vals[action.removed] = r
+                return
+            if isinstance(action, AddRow) or isinstance(action, AddColumn):
+                contents = self.eval(action.contents) if action.contents else None
+                if isinstance(action, AddRow):
+                    v = self.design.add_row(at_index=ind, row_contents=contents)
+                    self._vars_to_vals[action.v] = v
+                    return
+                if isinstance(action, AddColumn):
+                    v = self.design.add_column(at_index=ind, column_contents=contents)
+                    self._vars_to_vals[action.v] = v
+                    return
         pass
     
 
@@ -436,24 +551,53 @@ class DesignProgramBuilder:
             pass
         pass
     
-
-    def add_motif(self, name: str, x: int, y: int) -> DesignOp:
-        assert name in self._motif_name_to_expr, f"{self.cn}.add_motif: could not find motif with name {name}, did you forget to load_motif it?"
-        self._overwrite()
-        self._actions.append(AddMotif(self._get_fresh_var(), self._design_var, self._motif_name_to_expr[name], Literal(x), Literal(y), self._fresh))
-        self._index += 1
-        return self._actions[self._index]
-
     def get_placed_motifs(self):
         placed_names = [a.v.name for a in self._actions if isinstance(a, AddMotif)]
         return placed_names
+    
+    def _add_action(self, d: DesignOp):
+        self._overwrite()
+        self._actions.append(d)
+        self._index += 1
+        return d
+
+    def add_motif(self, name: str, x: int, y: int) -> DesignOp:
+        assert name in self._motif_name_to_expr, f"{self.cn}.add_motif: could not find motif with name {name}, did you forget to load_motif it?"
+        return self._add_action(AddMotif(self._get_fresh_var(), self._design_var, self._motif_name_to_expr[name], Literal(x), Literal(y), self._fresh))
 
     def remove_motif(self, name: str) -> DesignOp:
         assert name in self.get_placed_motifs(), f"{self.cn}.remove_motif: could not find a placed motif with name {name}"
-        self._overwrite()
-        self._actions.append(RemoveMotif(Variable(name), self._fresh))
-        self._index += 1
-        return self._actions[self._index]
+        
+        return self._add_action(RemoveMotif(Variable(name), self._fresh))
+    
+    def add_row(self, at_index: Optional[int] = None) -> DesignOp:
+        at_index_arg = None if not at_index else Literal(at_index)
+        
+        return self._add_action(AddRow(self._get_fresh_var(), self._design_var, at_index_arg, self._fresh))
+    
+    def add_column(self, at_index: Optional[int] = None) -> DesignOp:
+        at_index_arg = None if not at_index else Literal(at_index)
+        
+        return self._add_action(AddColumn(self._get_fresh_var(), self._design_var, at_index_arg, self._fresh))
+    
+    def remove_row(self, at_index: Optional[int] = None) -> DesignOp:
+        at_index_arg = None if not at_index else Literal(at_index)
+        
+        return self._add_action(RemoveRow(self._get_fresh_var(),
+                                       self._get_fresh_var(),
+                                       self._design_var,
+                                       at_index_arg,
+                                       self._fresh))
+        
+    def remove_column(self, at_index: Optional[int] = None) -> DesignOp:
+        at_index_arg = None if not at_index else Literal(at_index)
+        
+        return self._add_action(RemoveColumn(self._get_fresh_var(),
+                                             self._get_fresh_var(),
+                                             self._design_var,
+                                             at_index_arg,
+                                             self._fresh))
+    
 
     def can_undo(self) -> bool:
         return self._index >= 0

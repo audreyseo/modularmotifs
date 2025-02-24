@@ -196,7 +196,7 @@ class Design:
         return PixelData(Color.INVIS, set())
     
     
-    def add_row(self, at_index: int = -1) -> Self:
+    def add_row(self, at_index: int = -1, row_contents: Optional[list[PixelData]] = None) -> int:
         """Add a row to this design, optionally at the specified index.
         
         Args:
@@ -205,42 +205,60 @@ class Design:
                 at_index + 2, etc. Defaults to -1 -- which puts it at the end (no shifting)
 
         Returns:
-            Self: this Design class
+            int: the index of the row added
         """
+        content = row_contents
+        if row_contents:
+            assert len(row_contents) == self.width(), f"{self.add_row.__qualname__}: given row contents is the wrong length -- expected length {self.width()} but got {len(row_contents)}"
+            pass
+        else:
+            content = self.__new_row()
+            pass
+        
         if at_index == -1 or at_index == self.__height:
-            self.__canvas.append(self.__new_row())
+            at_index = self.__height
+            self.__canvas.append(content)
             pass
         else:
             assert 0 <= at_index < self.__height, f"{self.add_row.__qualname__}: Expected index {at_index} to be in [0, {self.__height})"
-            self.__canvas.insert(at_index, self.__new_row())
+            self.__canvas.insert(at_index, content)
             pass
         self.__height += 1
-        return self
+        return at_index
     
-    def add_column(self, at_index: int = -1) -> Self:
+    def add_column(self, at_index: int = -1, column_contents: Optional[list[PixelData]] = None) -> int:
         """Add a column to this design, optionally at the specified index.
 
         Args:
             at_index (int, optional): The column at which to insert a new column. This will shift all columns at indices at_index, at_index+1, etc. to at_index + 1, at_index + 2, etc. Defaults to -1 -- which puts it at the end (no shifting)
 
         Returns:
-            Self: this Design class
+            int: the index of the column added
         """
+        content = column_contents
+        if column_contents:
+            assert len(column_contents) == self.height(), f"{self.add_column.__qualname__}: given column contents is the wrong length -- expected length {self.height()} but got {len(column_contents)}"
+            pass
+        else:
+            content = [Design.default_pixel_data() for i in range(self.__height)]
+            pass
+        
         if at_index == -1 or at_index == self.__width:
+            at_index = self.__width
             for i in range(self.__height):
-                self.__canvas[i].append(Design.default_pixel_data())
+                self.__canvas[i].append(content[i])
                 pass
             pass
         else:
             assert 0 <= at_index < self.__width, f"{self.add_column.__qualname__}: Expected index {at_index} to be in [0, {self.__width})"
             for i in range(self.__height):
-                self.__canvas[i].insert(at_index, Design.default_pixel_data())
+                self.__canvas[i].insert(at_index, content[i])
                 pass
             pass
         self.__width += 1
-        return self
+        return at_index
     
-    def remove_row(self, at_index: int = -1) -> list[PixelData]:
+    def remove_row(self, at_index: int = -1) -> tuple[int, list[PixelData]]:
         """Remove a row from this design, optionally at the specified index
 
         Args:
@@ -251,9 +269,10 @@ class Design:
             list[PixelData]: the row that was removed
         """
         self.__height -= 1
-        return self.__canvas.pop(at_index)
+        at_index = self.__height if at_index == -1 else at_index
+        return at_index, self.__canvas.pop(at_index)
     
-    def remove_column(self, at_index: int = -1) -> list[PixelData]:
+    def remove_column(self, at_index: int = -1) -> tuple[int, list[PixelData]]:
         """Remove a column from this design, optionally at the specified index
 
         Args:
@@ -267,7 +286,8 @@ class Design:
             col.append(self.__canvas[i].pop(at_index))
             pass
         self.__width -= 1
-        return col
+        at_index = self.__width if at_index == -1 else at_index
+        return at_index, col
         
     def width(self) -> int:
         """Getter
