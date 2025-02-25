@@ -42,6 +42,10 @@ class PixelWindow(abc.ABC):
         self._pixel_grid = pixel_grid
         pass
     
+    def get_root(self) -> tk.Tk:
+        return self._root
+    
+    
     def width(self) -> int:
         """Getter
 

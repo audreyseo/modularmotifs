@@ -54,16 +54,6 @@ class KnitWindow(PixelWindow):
         self._motifs: dict[Motif] = motifs
         self._interpreter: DesignInterpreter = self._program_builder.get_interpreter()
 
-        # self._root = tk.Tk()
-        # self._root.title(WINDOW_TITLE)
-
-        # self._pixel_frame = tk.Frame(self._root)
-        # self._pixel_frame.pack()
-
-        # self._cells: List[List[Any]] = []
-        # self._grid_labels = GridLabels()
-        
-
         self._init_pixels()
         self._refresh_pixels()
         self._init_labels()
@@ -85,81 +75,6 @@ class KnitWindow(PixelWindow):
 
         # Starts the window
         self._root.mainloop()
-
-    # def width(self) -> int:
-    #     """Getter
-
-    #     Returns:
-    #         int: width of the stored design
-    #     """
-    #     return self.__design.width()
-
-    # def height(self) -> int:
-    #     """Getter
-
-    #     Returns:
-    #         int: height of the stored design
-    #     """
-    #     return self.__design.height()
-
-    # @staticmethod
-    # def grid(self, griddable, row: int, col: int):
-    #     """Calls tkinter's grid with a positive offset so
-    #     we can use negative indices
-
-    #     Args:
-    #         griddable: Something in tkinter with the .grid method
-    #         row (int): Logical row index
-    #         col (int): Logical column index
-    #     """
-    #     r = row + TKINTER_OFFSET
-    #     c = col + TKINTER_OFFSET
-    #     # if self._GLOBAL_GRID[r][c] is not None and self._GLOBAL_GRID[r][c] != griddable:
-    #     #     self._GLOBAL_GRID[r][c].grid_remove()
-    #     #     pass
-    #     griddable.grid(row=r, column=c)
-    #     self._GLOBAL_GRID[r][c] = griddable
-        
-
-    # @staticmethod
-    # def deselect(configable) -> None:
-    #     """For some tkinter element that has the .config
-    #     method, make the border not-thick
-
-    #     Args:
-    #         configable: Something with the .config method
-    #     """
-    #     configable.config(borderwidth=1, relief="solid")
-
-    # @staticmethod
-    # def select(configable) -> None:
-    #     """For some tkinter element that has the .config
-    #     method, make the border thick
-
-    #     Args:
-    #         configable: Something with the .config method
-    #     """
-    #     configable.config(borderwidth=3, relief="ridge")
-
-    # def error(self, message: str) -> None:
-    #     """Raises an error message to the user
-
-    #     Args:
-    #         message (str): Message to be sent
-    #     """
-    #     # TODO: make this visual, not console output.
-    #     print(message)
-
-    # def _refresh_pixels(self) -> None:
-    #     """Queries the Design for new colors and displays them"""
-    #     for y, row in enumerate(self._cells):
-    #         for x, cell in enumerate(row):
-    #             if self.__design.in_range(x, y):
-    #                 cell.config(bg=self.__design.get_rgb(x, y).hex())
-    #                 pass
-    #             pass
-    #         pass
-    #     pass
     
                 
                 
