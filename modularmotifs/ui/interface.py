@@ -87,6 +87,18 @@ class KnitWindow(PixelWindow):
             f.close()
             pass
         return save_handler
+    
+    def _init_open(self) -> Callable:
+        def open_handler(e):
+            ftypes = [('Python files', '*.py'), ('All files', '*')]
+            f = filedialog.askopenfile(mode='r', filetypes=ftypes)
+            text = f.read()
+            f.close()
+            
+            # TODO: Actually open the file
+            print("Opened file:")
+            print(text)
+        return open_handler
                 
 
     def _init_pixels(self) -> None:

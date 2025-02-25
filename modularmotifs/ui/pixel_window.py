@@ -53,8 +53,10 @@ class PixelWindow(abc.ABC):
             "Shift": "Shift"
         }
         
-        self._root.bind(f"<{self._key_names["Meta"] if is_mac else self._key_names["Ctrl"]}-s>", self._init_save())
+        command_ctrl = self._key_names["Meta"] if is_mac else self._key_names["Ctrl"]
         
+        self._root.bind(f"<{command_ctrl}-s>", self._init_save())
+        self._root.bind(f"<{command_ctrl}-o>", self._init_open())
         pass
     
     def get_root(self) -> tk.Tk:
@@ -62,6 +64,20 @@ class PixelWindow(abc.ABC):
     
     @abc.abstractmethod
     def _init_save(self) -> Callable:
+        """Initialize anything having to do with saving files
+
+        Returns:
+            Callable: the callback for the save file command
+        """
+        pass
+    
+    @abc.abstractmethod
+    def _init_open(self) -> Callable:
+        """Initialize anything having to do with opening files
+
+        Returns:
+            Callable: the callback for the open file command
+        """
         pass
     
     
