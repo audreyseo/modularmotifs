@@ -1,4 +1,5 @@
 from typing import Self
+import re
 
 class RGBColor:
     """Simple RGB [0, 255] triple"""
@@ -25,6 +26,19 @@ class RGBColor:
                 for p in [self.__red, self.__blue, self.__green]
             ]
         )
+        
+    @classmethod
+    def Back(cls) -> Self:
+        return RGBColor.from_hex("#ffffff")
+    
+    @classmethod
+    def Fore(cls) -> Self:
+        return RGBColor.from_hex("#000000")
+    
+    @classmethod
+    def Invis(cls) -> Self:
+        return RGBColor(128, 128, 128)
+    
 
     @classmethod
     def from_hex(cls, hexstr) -> Self:

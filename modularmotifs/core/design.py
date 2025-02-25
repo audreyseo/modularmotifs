@@ -6,6 +6,7 @@ import re
 from typing import Optional, Generator, Tuple, Iterable, Set, Self
 from modularmotifs.core.motif import Color, ColorOverflowException, Motif
 from modularmotifs.core.rgb_color import RGBColor
+from modularmotifs.core.pixel_grid import PixelGrid
 
 class PlacedMotif:
     """Glorified immutable struct"""
@@ -113,13 +114,13 @@ class PixelData:
                                         
 
 
-DEFAULT_FORE: RGBColor = RGBColor(0, 0, 0)
-DEFAULT_BACK: RGBColor = RGBColor(255, 255, 255)
-DEFAULT_INVIS: RGBColor = RGBColor(128, 128, 128)
+DEFAULT_FORE: RGBColor = RGBColor.Fore() #RGBColor(0, 0, 0)
+DEFAULT_BACK: RGBColor = RGBColor.Back() #RGBColor(255, 255, 255)
+DEFAULT_INVIS: RGBColor = RGBColor.Invis() #RGBColor(128, 128, 128)
 
 
 
-class Design:
+class Design(PixelGrid):
     """Collection of motifs on a canvas"""
 
     __height: int

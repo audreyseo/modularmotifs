@@ -5,7 +5,8 @@ motifs"""
 from __future__ import annotations
 from enum import Enum
 from typing import Iterable
-
+from modularmotifs.core.pixel_grid import PixelGrid
+from modularmotifs.core.rgb_color import RGBColor
 
 class Color(Enum):
     """Colors are either foreground (black?),
@@ -109,7 +110,7 @@ def empty(lst: Iterable[Color]) -> bool:
         return False
 
 
-class Motif:
+class Motif(PixelGrid):
     """A motif is an immutable rectangle of Color.
     There's no restriction that the visible Colors are
     connected, but we'd expect them to be.
@@ -190,6 +191,21 @@ class Motif:
 
     def __repr__(self) -> str:
         return f"Motif({self.__data})"
+    
+    def get_color(self, x: int, y: int) -> Color:
+        return self.__data[y].get_color(x)
+    
+    def get_rgb(self, x: int, y: int) -> RGBColor:
+        match self.get_color(x, y):
+            case Color.FORE:
+                return RGBColor.Fore()
+            case Color.BACK:
+                return RGBColor.Back()
+            case Color.INVIS:
+                return RGBColor.Invis()
+        assert False, f"{self.get_rgb.__qualname__}: Impossible case reached"
+        pass
+    
 
 
 class MotifRow:
@@ -201,6 +217,9 @@ class MotifRow:
 
     def __init__(self, data: list[Color]):
         self.__data = data
+        
+    def get_color(self, x: int) -> Color:
+        return self.__data[x]
 
     def __iter__(self):
         return iter(self.__data)
