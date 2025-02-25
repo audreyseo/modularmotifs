@@ -10,6 +10,7 @@ readme = "README.md"
 python = "^3.12"
 tk = "^0.1.0"
 pillow = "^11.1.0"
+lark = "^1.2.2"
 
 
 
