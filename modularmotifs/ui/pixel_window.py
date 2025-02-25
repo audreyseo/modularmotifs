@@ -1,6 +1,7 @@
 """Superclass of windows that support any kind of pixel editing"""
 import abc
 from modularmotifs.core.pixel_grid import PixelGrid
+from modularmotifs.core.rgb_color import RGBColor
 import tkinter as tk
 from typing import Any
 from collections.abc import Callable
@@ -26,6 +27,7 @@ class PixelWindow(abc.ABC):
         self._MAX_HEIGHT = max_height
         self._TKINTER_OFFSET = tkinter_offset
         self._WINDOW_TITLE = window_title
+        self._GLOBAL_GRID = [[None for _ in range(self._MAX_WIDTH + self._TKINTER_OFFSET * 2)] for _ in range(self._MAX_HEIGHT + self._TKINTER_OFFSET * 2)]
         
         self._root = tk.Tk()
         self._root.title(self._WINDOW_TITLE)
@@ -66,6 +68,7 @@ class PixelWindow(abc.ABC):
         r = row + self._TKINTER_OFFSET
         c = col + self._TKINTER_OFFSET
         griddable.grid(row=r, column=c)
+        self._GLOBAL_GRID[r][c] = griddable
         pass
     
     @staticmethod
@@ -158,20 +161,15 @@ class PixelWindow(abc.ABC):
             pass
         pass
     
-    def _init_colors(self) -> None:
+    def _init_colors(self, colors: list[RGBColor]) -> None:
         """Initializes the color viewer and picker at the bottom"""
         palette_frame = tk.Frame(self._root)
         palette_frame.pack(side="bottom", pady=10)
 
-        colors: list[RGBColor] = [
-            self._design.fore_color,
-            self._design.back_color,
-            self._design.invis_color,
-        ]
         names: list[str] = "Fore, Back, Invis".split(", ")
         for color, name in zip(colors, names):
             button_frame = tk.Frame(palette_frame)
-            KnitWindow.deselect(button_frame)
+            PixelWindow.deselect(button_frame)
             button_frame.pack(side="left")
 
             color_button = tk.Label(

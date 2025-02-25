@@ -602,7 +602,7 @@ class DesignProgramBuilder:
         assert self.can_undo(), f"{self.remove_last_action.__qualname__}: No last action to remove"
         old_index = self._index
         self._index -= 1
-        return self._actions[old_index].pop()
+        return self._actions.pop(old_index)
 
     def can_undo(self) -> bool:
         return self._index >= 0
