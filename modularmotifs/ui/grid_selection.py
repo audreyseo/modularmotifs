@@ -41,8 +41,8 @@ class GridSelection:
     def __init__(self, knit_window):
         # Access the main window and grid cells from the KnitWindow instance.
         self.knit_window = knit_window
-        self.root = knit_window._KnitWindow__root  # access the Tk instance
-        self.cells = knit_window._KnitWindow__cells  # 2D list of cell widgets
+        self.root = knit_window._root  # access the Tk instance
+        self.cells = knit_window._cells  # 2D list of cell widgets
 
         # Internal state for selection mode.
         self.selection_mode = False

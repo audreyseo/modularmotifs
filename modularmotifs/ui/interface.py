@@ -4,7 +4,8 @@ import tkinter as tk
 from typing import Any, List, Optional
 from PIL import ImageTk, Image
 
-from modularmotifs.core.design import Design, MotifOverlapException, RGBColor
+from modularmotifs.core.design import Design, MotifOverlapException
+from modularmotifs.core import RGBColor
 from modularmotifs.core.motif import Motif
 from modularmotifs.core.util import motif2png
 from modularmotifs.motiflibrary.examples import motifs
@@ -14,6 +15,8 @@ from modularmotifs.ui.grid_labels import GridLabels
 
 from modularmotifs.dsl import DesignProgramBuilder, DesignInterpreter
 from modularmotifs.dsl._syntax import SizeOp, AddColumn, RemoveColumn, AddRow, RemoveRow
+
+from modularmotifs.ui.pixel_window import PixelWindow
 
 # Default grid dimensions
 # GRID_HEIGHT: int = 25
@@ -35,51 +38,53 @@ CELL_SIZE: int = 20
 DEFAULT_MOTIFS: list[Motif] = list(motifs.values())
 
 
-class KnitWindow:
+class KnitWindow(PixelWindow):
     """Main window to fill out a design"""
 
     def __init__(self) -> None:
-        self.__selected_motif: Optional[tuple[str, Motif]] = None
-        self.__selected_motif_button = None
-        self.__GLOBAL_GRID = [[None for _ in range(MAX_WIDTH + TKINTER_OFFSET * 2)] for _ in range(MAX_HEIGHT + TKINTER_OFFSET * 2)]
-
         self.__design: Design = Design(GRID_HEIGHT, GRID_WIDTH)
-        self.__program_builder: DesignProgramBuilder = DesignProgramBuilder(self.__design)
-        self.__program_builder.add_modularmotifs_motif_library()
-        self.__motifs: dict[Motif] = motifs
-        self.__interpreter: DesignInterpreter = self.__program_builder.get_interpreter()
 
-        self.__root = tk.Tk()
-        self.__root.title(WINDOW_TITLE)
+        super().__init__(MAX_WIDTH, MAX_HEIGHT, TKINTER_OFFSET, WINDOW_TITLE, self.__design)
+        self._selected_motif: Optional[tuple[str, Motif]] = None
+        self._selected_motif_button = None
+        self._GLOBAL_GRID = [[None for _ in range(MAX_WIDTH + TKINTER_OFFSET * 2)] for _ in range(MAX_HEIGHT + TKINTER_OFFSET * 2)]
 
-        self.__pixel_frame = tk.Frame(self.__root)
-        self.__pixel_frame.pack()
+        self._program_builder: DesignProgramBuilder = DesignProgramBuilder(self.__design)
+        self._program_builder.add_modularmotifs_motif_library()
+        self._motifs: dict[Motif] = motifs
+        self._interpreter: DesignInterpreter = self._program_builder.get_interpreter()
 
-        self.__cells: List[List[Any]] = []
-        self.__grid_labels = GridLabels()
+        # self._root = tk.Tk()
+        # self._root.title(WINDOW_TITLE)
+
+        # self._pixel_frame = tk.Frame(self._root)
+        # self._pixel_frame.pack()
+
+        # self._cells: List[List[Any]] = []
+        # self._grid_labels = GridLabels()
         
 
-        self.__init_pixels()
-        self.__refresh_pixels()
-        self.__init_labels()
+        self._init_pixels()
+        self._refresh_pixels()
+        self._init_labels()
 
-        self.__init_motifs()
+        self._init_motifs()
 
         # Color picker for foreground, background, invis
-        self.__init_colors()
+        self._init_colors()
 
         # History actions: undo and redo
-        self.__init_history()
+        self._init_history()
         
         # Add size increment entry
-        self.__init_sizes()
+        self._init_sizes()
 
         # Add grid selection integration here:
         grid_selector = GridSelection(self)
 
 
         # Starts the window
-        self.__root.mainloop()
+        self._root.mainloop()
 
     def width(self) -> int:
         """Getter
@@ -109,11 +114,11 @@ class KnitWindow:
         """
         r = row + TKINTER_OFFSET
         c = col + TKINTER_OFFSET
-        # if self.__GLOBAL_GRID[r][c] is not None and self.__GLOBAL_GRID[r][c] != griddable:
-        #     self.__GLOBAL_GRID[r][c].grid_remove()
+        # if self._GLOBAL_GRID[r][c] is not None and self._GLOBAL_GRID[r][c] != griddable:
+        #     self._GLOBAL_GRID[r][c].grid_remove()
         #     pass
         griddable.grid(row=r, column=c)
-        self.__GLOBAL_GRID[r][c] = griddable
+        self._GLOBAL_GRID[r][c] = griddable
         
 
     @staticmethod
@@ -145,9 +150,9 @@ class KnitWindow:
         # TODO: make this visual, not console output.
         print(message)
 
-    def __refresh_pixels(self) -> None:
+    def _refresh_pixels(self) -> None:
         """Queries the Design for new colors and displays them"""
-        for y, row in enumerate(self.__cells):
+        for y, row in enumerate(self._cells):
             for x, cell in enumerate(row):
                 if self.__design.in_range(x, y):
                     cell.config(bg=self.__design.get_rgb(x, y).hex())
@@ -159,86 +164,89 @@ class KnitWindow:
                 
                 
 
-    def __init_pixels(self) -> None:
+    def _init_pixels(self) -> None:
         """Initializes the array of visible pixels from the
         current design's dimensions. Does not set colors"""
 
         def click_color_listener(row: int, col: int):
             def handle(_):
-                if self.__selected_motif is not None:
+                if self._selected_motif is not None:
                     try:
                         # add an op that builds the motif to the program currently being built
-                        op = self.__program_builder.add_motif(self.__selected_motif[0], col, row)
+                        op = self._program_builder.add_motif(self._selected_motif[0], col, row)
+                        print(op)
                         # interpret the operation, which will have an effect on the design
-                        self.__interpreter.interpret(op)
+                        self._interpreter.interpret(op)
 
-                        if self.__redo_enabled():
-                            self.__disable_redo()
+                        if self._redo_enabled():
+                            self._disable_redo()
                             pass
 
-                        if not self.__undo_enabled():
-                            self.__enable_undo()
+                        if not self._undo_enabled():
+                            self._enable_undo()
                             pass
 
                         
-                        # self.__design.add_motif(self.__selected_motif, col, row)
-                        self.__refresh_pixels()
+                        # self.__design.add_motif(self._selected_motif, col, row)
+                        self._refresh_pixels()
                     except MotifOverlapException:
                         self.error("Placed motif overlaps with something else!")
+                        self._program_builder.remove_last_action()
                     except IndexError:
                         self.error("Placed motif would be out of bounds!")
+                        self._program_builder.remove_last_action()
                 else:
                     self.error("No selected motif!")
 
             return handle
+        super()._init_pixels(click_color_listener)
+        # for row in range(MAX_HEIGHT):
+        #     row_cells = []
+        #     for col in range(MAX_WIDTH):
+        #         cell = tk.Label(
+        #             self._pixel_frame,
+        #             width=2,
+        #             height=1,
+        #             relief="solid",
+        #             borderwidth=1,
+        #         )
+        #         self.grid(cell, row, col)
+        #         if row >= self.height() or col >= self.width():
+        #             cell.grid_remove()
+        #         cell.bind("<Button-1>", click_color_listener(row, col))
+        #         row_cells.append(cell)
+        #     self._cells.append(row_cells)
 
-        for row in range(MAX_HEIGHT):
-            row_cells = []
-            for col in range(MAX_WIDTH):
-                cell = tk.Label(
-                    self.__pixel_frame,
-                    width=2,
-                    height=1,
-                    relief="solid",
-                    borderwidth=1,
-                )
-                self.grid(cell, row, col)
-                if row >= self.height() or col >= self.width():
-                    cell.grid_remove()
-                cell.bind("<Button-1>", click_color_listener(row, col))
-                row_cells.append(cell)
-            self.__cells.append(row_cells)
-
-    def __init_labels(self) -> None:
-        """Initializes the labels for the pixel array"""
-        # Create the column labels
+    # def _init_labels(self) -> None:
+    #     """Initializes the labels for the pixel array"""
+    #     # Create the column labels
         
-        for row in [-1, self.height()]:
-            for col in range(MAX_WIDTH):
-                label = tk.Label(
-                    self.__pixel_frame, text=str(col), width=2, height=1, relief="flat"
-                )
-                self.__grid_labels.add_tb_label(label, row)
-                self.grid(label, row, col)
-        # Create the row labels
-        for col in [-1, self.width()]:
-            for row in range(MAX_HEIGHT):
-                label = tk.Label(
-                    self.__pixel_frame, text=str(row), width=2, height=1, relief="flat"
-                )
-                self.__grid_labels.add_lr_label(label, col)
-                self.grid(label, row, col)
-                pass
-            pass
-        for j in range(self.height(), MAX_HEIGHT):
-            self.__grid_labels.grid_remove_lr(j)
-            pass
-        for j in range(self.width(), MAX_WIDTH):
-            self.__grid_labels.grid_remove_tb(j)
+    #     for row in [-1, self.height()]:
+    #         for col in range(MAX_WIDTH):
+    #             label = tk.Label(
+    #                 self._pixel_frame, text=str(col), width=2, height=1, relief="flat"
+    #             )
+    #             self._grid_labels.add_tb_label(label, row)
+    #             self.grid(label, row, col)
+    #     # Create the row labels
+    #     for col in [-1, self.width()]:
+    #         for row in range(MAX_HEIGHT):
+    #             label = tk.Label(
+    #                 self._pixel_frame, text=str(row), width=2, height=1, relief="flat"
+    #             )
+    #             self._grid_labels.add_lr_label(label, col)
+    #             self.grid(label, row, col)
+    #             pass
+    #         pass
+    #     for j in range(self.height(), MAX_HEIGHT):
+    #         self._grid_labels.grid_remove_lr(j)
+    #         pass
+    #     for j in range(self.width(), MAX_WIDTH):
+    #         self._grid_labels.grid_remove_tb(j)
 
-    def __init_colors(self) -> None:
+    def _init_colors(self) -> None:
         """Initializes the color viewer and picker at the bottom"""
-        palette_frame = tk.Frame(self.__root)
+        palette_frame = tk.Frame(self._root)
         palette_frame.pack(side="bottom", pady=10)
 
         colors: list[RGBColor] = [
@@ -271,8 +279,8 @@ class KnitWindow:
             for bindable in [button_frame, color_button, name_label]:
                 bindable.bind("<Button-1>", pick_color)
 
-    def __init_motifs(self) -> None:
-        motifs_frame = tk.Frame(self.__root)
+    def _init_motifs(self) -> None:
+        motifs_frame = tk.Frame(self._root)
         motifs_frame.pack(side="right", padx=10, fill="y")
 
         canvas = tk.Canvas(motifs_frame)
@@ -289,23 +297,23 @@ class KnitWindow:
             lambda event: canvas.configure(scrollregion=canvas.bbox("all")),
         )
 
-        self.__motif_images = []
+        self._motif_images = []
 
         def pick_motif_listener(motif_name: str, motif: Motif, motif_button):
             def handle(_):
-                if self.__selected_motif_button is not None:
-                    KnitWindow.deselect(self.__selected_motif_button)
-                if self.__selected_motif == motif:
-                    self.__selected_motif = None
-                    self.__selected_motif_button = None
+                if self._selected_motif_button is not None:
+                    KnitWindow.deselect(self._selected_motif_button)
+                if self._selected_motif == motif:
+                    self._selected_motif = None
+                    self._selected_motif_button = None
                 else:
-                    self.__selected_motif_button = motif_button
-                    self.__selected_motif = (motif_name, motif) # motif
-                    KnitWindow.select(self.__selected_motif_button)
+                    self._selected_motif_button = motif_button
+                    self._selected_motif = (motif_name, motif) # motif
+                    KnitWindow.select(self._selected_motif_button)
 
             return handle
 
-        for motif_name, motif in self.__program_builder._motifs.items():
+        for motif_name, motif in self._program_builder._motifs.items():
             pil_image = motif2png(motif)
             scaling = 150 // pil_image.width
             pil_image = pil_image.resize(
@@ -313,7 +321,7 @@ class KnitWindow:
                 resample=Image.NEAREST,
             )
             motif_thumbnail = ImageTk.PhotoImage(pil_image)
-            self.__motif_images.append(motif_thumbnail)
+            self._motif_images.append(motif_thumbnail)
 
             motif_label = tk.Label(
                 inner_frame, image=motif_thumbnail, borderwidth=1, relief="solid"
@@ -325,85 +333,85 @@ class KnitWindow:
             pass
         pass
 
-    def __undo_enabled(self) -> bool:
-        return self.__undo_button["state"] == "normal"
+    def _undo_enabled(self) -> bool:
+        return self._undo_button["state"] == "normal"
 
-    def __redo_enabled(self) -> bool:
-        return self.__undo_button["state"] == "normal"
+    def _redo_enabled(self) -> bool:
+        return self._undo_button["state"] == "normal"
 
-    def __disable_undo(self) -> None:
-        self.__undo_button["state"] = "disabled"
+    def _disable_undo(self) -> None:
+        self._undo_button["state"] = "disabled"
         pass
 
-    def __disable_redo(self) -> None:
-        self.__redo_button["state"] = "disabled"
+    def _disable_redo(self) -> None:
+        self._redo_button["state"] = "disabled"
         pass
 
-    def __enable_redo(self) -> None:
-        self.__redo_button["state"] = "normal"
+    def _enable_redo(self) -> None:
+        self._redo_button["state"] = "normal"
         pass
 
-    def __enable_undo(self) -> None:
-        self.__undo_button["state"] = "normal"
+    def _enable_undo(self) -> None:
+        self._undo_button["state"] = "normal"
         
 
-    def __init_history(self) -> None:
+    def _init_history(self) -> None:
         # initialize buttons that deal with the history manipulation -- i.e., undo, redo
         
         def handle_size(action):
-            w = int(self.__width_var.get())
-            h = int(self.__height_var.get())
+            w = int(self._width_var.get())
+            h = int(self._height_var.get())
             print(action)
             
             if isinstance(action, AddColumn):
-                self.__add_column(self.width())
+                self._add_column(self.width())
                 pass
             elif isinstance(action, AddRow):
-                self.__add_row(self.height())
+                self._add_row(self.height())
                 pass
             elif isinstance(action, RemoveColumn):
-                self.__remove_column(w)
+                self._remove_column(w)
                 pass
             elif isinstance(action, RemoveRow):
-                self.__remove_row(h)
+                self._remove_row(h)
             
-            self.__width_var.set(str(self.width()))
-            self.__height_var.set(str(self.height()))
+            self._width_var.set(str(self.width()))
+            self._height_var.set(str(self.height()))
 
         def undo_listener():
             def handle():
-                undo_action = self.__program_builder.undo()
+                undo_action = self._program_builder.undo()
                 if undo_action:
-                    self.__interpreter.interpret(undo_action)
+                    self._interpreter.interpret(undo_action)
                     if isinstance(undo_action, SizeOp):
                         handle_size(undo_action)
                         pass
-                    if not self.__program_builder.can_undo():
-                        self.__disable_undo()
+                    if not self._program_builder.can_undo():
+                        self._disable_undo()
                         pass
-                    self.__enable_redo()
-                    self.__refresh_pixels()
+                    self._enable_redo()
+                    self._refresh_pixels()
                     pass
                 pass
             return handle
 
         def redo_listener():
             def handle():
-                redo_action = self.__program_builder.redo()
+                redo_action = self._program_builder.redo()
                 if redo_action:
-                    self.__interpreter.interpret(redo_action)
+                    self._interpreter.interpret(redo_action)
                     if isinstance(redo_action, SizeOp):
                         handle_size(redo_action)
-                    if not self.__program_builder.can_redo():
-                        self.__disable_redo()
+                    if not self._program_builder.can_redo():
+                        self._disable_redo()
                         pass
-                    self.__enable_undo()
-                    self.__refresh_pixels()
+                    self._enable_undo()
+                    self._refresh_pixels()
                     pass
                 pass
             return handle
 
-        history_frame = tk.Frame(self.__root)
+        history_frame = tk.Frame(self._root)
         history_frame.pack(side="left", padx=10, fill="y")
 
         # Create the buttons. They start out as being disabled because you haven't done anything to the designs...yet
@@ -413,74 +421,74 @@ class KnitWindow:
         redoer = tk.Button(history_frame, text="Redo", command=redo_listener())
         redoer.pack(side="left", padx=5)
 
-        self.__undo_button = undoer
-        self.__redo_button = redoer
+        self._undo_button = undoer
+        self._redo_button = redoer
 
-        self.__disable_undo()
-        self.__disable_redo()
+        self._disable_undo()
+        self._disable_redo()
 
         pass
     
-    def __remove_row(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
+    def _remove_row(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
         print(f"Remove row: {at_index}")
         if remove_labels:
-            self.__grid_labels.grid_remove_bottom()
+            self._grid_labels.grid_remove_bottom()
         for i in range(MAX_WIDTH):
-            self.__cells[at_index][i].grid_remove()
+            self._cells[at_index][i].grid_remove()
             if add_labels and i < self.width():
-                self.grid(self.__grid_labels.get_bottom_label(i), self.height(), i)
+                self.grid(self._grid_labels.get_bottom_label(i), self.height(), i)
                 pass
             pass
-        self.__grid_labels.grid_remove_lr(at_index)
+        self._grid_labels.grid_remove_lr(at_index)
         pass
     
-    def __remove_column(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
+    def _remove_column(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
         print(f"Remove column: {at_index}")
         if remove_labels:
-            self.__grid_labels.grid_remove_right()
+            self._grid_labels.grid_remove_right()
             pass
         for i in range(MAX_HEIGHT):
-            if self.__GLOBAL_GRID[i + TKINTER_OFFSET][at_index + TKINTER_OFFSET] is not None:
-                self.__GLOBAL_GRID[i + TKINTER_OFFSET][at_index + TKINTER_OFFSET].grid_remove()
-            self.__cells[i][at_index].grid_remove()
+            if self._GLOBAL_GRID[i + TKINTER_OFFSET][at_index + TKINTER_OFFSET] is not None:
+                self._GLOBAL_GRID[i + TKINTER_OFFSET][at_index + TKINTER_OFFSET].grid_remove()
+            self._cells[i][at_index].grid_remove()
             if add_labels and i < self.height():
-                self.grid(self.__grid_labels.get_right_label(i), i, self.width())
+                self.grid(self._grid_labels.get_right_label(i), i, self.width())
                 pass
             pass
-        self.__grid_labels.grid_remove_tb(at_index)
+        self._grid_labels.grid_remove_tb(at_index)
         pass
     
-    def __add_row(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
+    def _add_row(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
         if remove_labels:
-            self.__grid_labels.grid_remove_bottom()
+            self._grid_labels.grid_remove_bottom()
             pass
         for i in range(self.width()):
-            self.grid(self.__cells[at_index][i], at_index, i)
+            self.grid(self._cells[at_index][i], at_index, i)
             if add_labels:
-                self.grid(self.__grid_labels.get_bottom_label(i), self.height(), i)
+                self.grid(self._grid_labels.get_bottom_label(i), self.height(), i)
             pass
-        l, r = self.__grid_labels.get_lr_labels(at_index)
+        l, r = self._grid_labels.get_lr_labels(at_index)
         self.grid(l, at_index, -1)
         self.grid(r, at_index, self.width())
         pass
     
-    def __add_column(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
+    def _add_column(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
         if remove_labels:
-            self.__grid_labels.grid_remove_right()
+            self._grid_labels.grid_remove_right()
             pass
         for i in range(self.height()):
-            self.grid(self.__cells[i][at_index], i, at_index)
+            self.grid(self._cells[i][at_index], i, at_index)
             if add_labels:
-                self.grid(self.__grid_labels.get_right_label(i), i, self.width())
+                self.grid(self._grid_labels.get_right_label(i), i, self.width())
             pass
         
-        t, b = self.__grid_labels.get_tb_labels(at_index)
+        t, b = self._grid_labels.get_tb_labels(at_index)
         self.grid(t, -1, at_index)
         self.grid(b, self.height(), at_index)
         pass
     
-    def __init_sizes(self) -> None:
-        sizes_frame = tk.Frame(self.__root)
+    def _init_sizes(self) -> None:
+        sizes_frame = tk.Frame(self._root)
         sizes_frame.pack(side="left", padx=10, fill="y")
         
         height_var = tk.StringVar()
@@ -497,25 +505,25 @@ class KnitWindow:
         width_frame.pack()
         
         def refresher():
-            if self.__redo_enabled():
-                self.__disable_redo()
+            if self._redo_enabled():
+                self._disable_redo()
                 pass
-            if not self.__undo_enabled():
-                self.__enable_undo()
+            if not self._undo_enabled():
+                self._enable_undo()
                 pass
-            self.__refresh_pixels()
+            self._refresh_pixels()
             pass
         
         def height_handler():
-            print("Height: " + self.__height_var.get())
-            h = int(self.__height_var.get())
+            print("Height: " + self._height_var.get())
+            h = int(self._height_var.get())
             dheight = self.height()
             if h < self.height():
                 for i in range(dheight - 1, h-1, -1):
-                    op = self.__program_builder.remove_row(i)
-                    self.__interpreter.interpret(op)
+                    op = self._program_builder.remove_row(i)
+                    self._interpreter.interpret(op)
                     # self.__design.remove_row()
-                    self.__remove_row(i,
+                    self._remove_row(i,
                                     remove_labels=self.height() == dheight - 1,
                                     add_labels=h == self.height())
                     pass
@@ -523,9 +531,9 @@ class KnitWindow:
             elif h > dheight:
                 for i in range(dheight, h):
                     # self.__design.add_row()
-                    op = self.__program_builder.add_row()
-                    self.__interpreter.interpret(op)
-                    self.__add_row(i,
+                    op = self._program_builder.add_row()
+                    self._interpreter.interpret(op)
+                    self._add_row(i,
                                 remove_labels=self.height() == dheight + 1, add_labels=h == self.height())
                     pass                
                 pass
@@ -536,26 +544,26 @@ class KnitWindow:
         
         
         def width_handler():
-            print("Width: " + self.__width_var.get())
-            w = int(self.__width_var.get())
+            print("Width: " + self._width_var.get())
+            w = int(self._width_var.get())
             dwidth = self.__design.width()
             if w < dwidth:
                 for i in range(dwidth - 1, w-1, -1):
                     # self.__design.remove_column()
-                    op = self.__program_builder.remove_column(i)
+                    op = self._program_builder.remove_column(i)
                     print(op)
-                    self.__interpreter.interpret(op)
-                    self.__remove_column(i,
+                    self._interpreter.interpret(op)
+                    self._remove_column(i,
                                             remove_labels=self.width() == dwidth - 1,
                                             add_labels=w == self.width())
                 pass
             elif w > dwidth:
                 for i in range(dwidth, w):
                     # self.__design.add_column()
-                    op = self.__program_builder.add_column()
+                    op = self._program_builder.add_column()
                     print(op)
-                    self.__interpreter.interpret(op)
-                    self.__add_column(i, remove_labels=self.width() == dwidth + 1, add_labels=w== self.width())
+                    self._interpreter.interpret(op)
+                    self._add_column(i, remove_labels=self.width() == dwidth + 1, add_labels=w== self.width())
                     pass
                 pass
             if w < dwidth or w > dwidth:
@@ -573,11 +581,11 @@ class KnitWindow:
         wspinbox.pack()
         
         def height_entry_handler(e):
-            self.__root.focus()
+            self._root.focus()
             height_handler()
         
         def width_entry_handler(e):
-            self.__root.focus()
+            self._root.focus()
             width_handler()
 
         
@@ -585,11 +593,11 @@ class KnitWindow:
         hspinbox.bind("<Return>", height_entry_handler)
         wspinbox.bind("<Return>", width_entry_handler)
         
-        self.__height_var = height_var
-        self.__width_var = width_var
+        self._height_var = height_var
+        self._width_var = width_var
         
-        # self.__height_handler = height_handler
-        # self.__weight_handler = weight_handler
+        # self._height_handler = height_handler
+        # self._weight_handler = weight_handler
         
         pass
         
