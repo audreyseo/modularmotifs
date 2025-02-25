@@ -20,6 +20,8 @@ from modularmotifs.dsl._syntax import SizeOp, AddColumn, RemoveColumn, AddRow, R
 
 from modularmotifs.ui.pixel_window import PixelWindow
 
+import os
+
 # Default grid dimensions
 # GRID_HEIGHT: int = 25
 # GRID_WIDTH: int = 50
@@ -80,11 +82,21 @@ class KnitWindow(PixelWindow):
     
     def _init_save(self) -> Callable:
         def save_handler(e):
-            f = filedialog.asksaveasfile(mode='w', defaultextension='.py')
-            if f is None:
-                return
-            f.write(self._program_builder.to_python())
-            f.close()
+            if not self._current_file_name:
+                # need to save-as
+                f = filedialog.asksaveasfile(mode='w', defaultextension='.py')
+                self._current_file_name = os.path.abspath(str(f.name))
+                print(self._current_file_name)
+                if f is None:
+                    return
+                f.write(self._program_builder.to_python())
+                f.close()
+                pass
+            else:
+                with open(self._current_file_name, "w") as f:
+                    f.write(self._program_builder.to_python())
+                    pass
+                pass
             pass
         return save_handler
     
@@ -93,11 +105,15 @@ class KnitWindow(PixelWindow):
             ftypes = [('Python files', '*.py'), ('All files', '*')]
             f = filedialog.askopenfile(mode='r', filetypes=ftypes)
             text = f.read()
+            if not self._current_file_name:
+                self._current_file_name = os.path.abspath(str(f.name))
+                pass
             f.close()
             
             # TODO: Actually open the file
             print("Opened file:")
             print(text)
+            pass
         return open_handler
                 
 

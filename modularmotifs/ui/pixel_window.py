@@ -31,6 +31,7 @@ class PixelWindow(abc.ABC):
         self._TKINTER_OFFSET = tkinter_offset
         self._WINDOW_TITLE = window_title
         self._GLOBAL_GRID = [[None for _ in range(self._MAX_WIDTH + self._TKINTER_OFFSET * 2)] for _ in range(self._MAX_HEIGHT + self._TKINTER_OFFSET * 2)]
+        self._current_file_name: Optional[str] = None
         
         self._root = tk.Tk()
         self._root.title(self._WINDOW_TITLE)
