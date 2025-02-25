@@ -1,7 +1,9 @@
 """User interface that uses Designs to model pixels"""
 
 import tkinter as tk
+from tkinter import filedialog
 from typing import Any, List, Optional
+from collections.abc import Callable
 from PIL import ImageTk, Image
 
 from modularmotifs.core.design import Design, MotifOverlapException
@@ -76,7 +78,15 @@ class KnitWindow(PixelWindow):
         # Starts the window
         self._root.mainloop()
     
-                
+    def _init_save(self) -> Callable:
+        def save_handler(e):
+            f = filedialog.asksaveasfile(mode='w', defaultextension='.py')
+            if f is None:
+                return
+            f.write(self._program_builder.to_python())
+            f.close()
+            pass
+        return save_handler
                 
 
     def _init_pixels(self) -> None:

@@ -67,7 +67,7 @@ class Import(Syntax):
     def usename(self) -> str:
         if self._as:
             return self._as
-        return self.mod
+        return self.imported_module
 
     def to_python(self) -> str:
         as_clause = ""
@@ -76,6 +76,16 @@ class Import(Syntax):
             pass
         return f"import {self.imported_module}{as_clause}"
     pass
+
+class FromImport(Import):
+    imports: list[str]
+    def __init__(self, mod: str, *imports):
+        super().__init__(mod)
+        self.imports = imports
+        pass
+    
+    def to_python(self) -> str:
+        return f"from {self.imported_module} import {", ".join(self.imports)}"
 
 class Expr(Syntax):
     cn = __qualname__
@@ -476,6 +486,7 @@ class DesignProgramBuilder:
 
     def __init__(self, base_design: Design):
         self._imports = list()
+        self._imports.append(FromImport("modularmotifs.core", "Design"))
         self._fresh = FreshVar()
         self._actions = list()
         self._index = -1

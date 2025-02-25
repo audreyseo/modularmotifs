@@ -6,6 +6,7 @@ import tkinter as tk
 from typing import Any
 from collections.abc import Callable
 from modularmotifs.ui.grid_labels import GridLabels
+import sys
 
 class PixelWindow(abc.ABC):
     """A pixel display window"""
@@ -40,10 +41,28 @@ class PixelWindow(abc.ABC):
         self._cells = []
         self._grid_labels = GridLabels()
         self._pixel_grid = pixel_grid
+        
+        # set up saving keyboard shortcut
+        is_mac = sys.platform == 'darwin'
+        
+        # Common metakeys
+        self._key_names = {
+            "Alt": "Option" if is_mac else "Alt",
+            "Ctrl": "Control",
+            "Meta": "Command" if is_mac else "Meta",
+            "Shift": "Shift"
+        }
+        
+        self._root.bind(f"<{self._key_names["Meta"] if is_mac else self._key_names["Ctrl"]}-s>", self._init_save())
+        
         pass
     
     def get_root(self) -> tk.Tk:
         return self._root
+    
+    @abc.abstractmethod
+    def _init_save(self) -> Callable:
+        pass
     
     
     def width(self) -> int:
