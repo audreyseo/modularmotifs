@@ -20,6 +20,8 @@ class PixelWindow(abc.ABC):
     _WINDOW_TITLE: str
     # The object we're trying to model
     _pixel_grid: PixelGrid
+    _undo_button: tk.Button
+    _redo_button: tk.Button
     
     def __init__(self, max_width: int, max_height: int, tkinter_offset: int, window_title: str, pixel_grid: PixelGrid):
         
@@ -161,12 +163,15 @@ class PixelWindow(abc.ABC):
             pass
         pass
     
-    def _init_colors(self, colors: list[RGBColor]) -> None:
+    def _init_colors(self, colors: list[RGBColor]) -> list:
         """Initializes the color viewer and picker at the bottom"""
         palette_frame = tk.Frame(self._root)
         palette_frame.pack(side="bottom", pady=10)
 
         names: list[str] = "Fore, Back, Invis".split(", ")
+        
+        buttons = []
+        
         for color, name in zip(colors, names):
             button_frame = tk.Frame(palette_frame)
             PixelWindow.deselect(button_frame)
@@ -183,16 +188,11 @@ class PixelWindow(abc.ABC):
             name_label = tk.Label(button_frame, text=name, font=("Arial", 8))
             name_label.pack()
 
-            # TODO: make this functional. Pull up a color picker, set the color in Design,
-            # refresh the view
-            def pick_color(_, color=color, name=name):
-                print(f"You clicked {name} {color.hex()}!")
+            buttons.append((color, name, (button_frame, color_button, name_label)))
+                
 
-            for bindable in [button_frame, color_button, name_label]:
-                bindable.bind("<Button-1>", pick_color)
-                pass
             pass
-        pass
+        return buttons
     
     def _init_history(self, undo_listener: Callable, redo_listener: Callable) -> None:
         # initialize buttons that deal with the history manipulation -- i.e., undo, redo
@@ -273,26 +273,23 @@ class PixelWindow(abc.ABC):
         self.grid(b, self.height(), at_index)
         pass
     
-    @abc.abstractmethod
     def _undo_enabled(self) -> bool:
-        pass
+        return self._undo_button["state"] == "normal"
 
-    @abc.abstractmethod
     def _redo_enabled(self) -> bool:
-        pass
-    
-    @abc.abstractmethod
+        return self._undo_button["state"] == "normal"
+
     def _disable_undo(self) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def _disable_redo(self) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def _enable_redo(self) -> None:
+        self._undo_button["state"] = "disabled"
         pass
 
-    @abc.abstractmethod
-    def _enable_undo(self) -> None:
+    def _disable_redo(self) -> None:
+        self._redo_button["state"] = "disabled"
         pass
+
+    def _enable_redo(self) -> None:
+        self._redo_button["state"] = "normal"
+        pass
+
+    def _enable_undo(self) -> None:
+        self._undo_button["state"] = "normal"
