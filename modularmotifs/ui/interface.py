@@ -4,12 +4,14 @@ import tkinter as tk
 from typing import Any, List, Optional
 from PIL import ImageTk, Image
 
+import saved_motifs
 from modularmotifs.core.design import Design, MotifOverlapException
 from modularmotifs.core import RGBColor
 from modularmotifs.core.motif import Motif
 from modularmotifs.core.util import motif2png
 from modularmotifs.motiflibrary.examples import motifs
 
+from modularmotifs.ui.motif_saver import save_as_motif
 from modularmotifs.ui.grid_selection import GridSelection
 from modularmotifs.ui.grid_labels import GridLabels
 
@@ -47,7 +49,7 @@ class KnitWindow(PixelWindow):
         super().__init__(MAX_WIDTH, MAX_HEIGHT, TKINTER_OFFSET, WINDOW_TITLE, self.__design)
         self._selected_motif: Optional[tuple[str, Motif]] = None
         self._selected_motif_button = None
-        
+
 
         self._program_builder: DesignProgramBuilder = DesignProgramBuilder(self.__design)
         self._program_builder.add_modularmotifs_motif_library()
@@ -65,19 +67,21 @@ class KnitWindow(PixelWindow):
 
         # History actions: undo and redo
         self._init_history()
-        
+
         # Add size increment entry
         self._init_sizes()
 
         # Add grid selection integration here:
-        grid_selector = GridSelection(self)
+        self.__grid_selector = GridSelection(self)
 
+        save_button = tk.Button(self._root, text="Save as Motif", command=lambda: save_as_motif(self))
+        save_button.pack(side="bottom", pady=5)
 
         # Starts the window
         self._root.mainloop()
-    
-                
-                
+
+
+
 
     def _init_pixels(self) -> None:
         """Initializes the array of visible pixels from the
@@ -101,7 +105,7 @@ class KnitWindow(PixelWindow):
                             self._enable_undo()
                             pass
 
-                        
+
                         # self.__design.add_motif(self._selected_motif, col, row)
                         self._refresh_pixels()
                     except MotifOverlapException:
@@ -125,7 +129,7 @@ class KnitWindow(PixelWindow):
             self.__design.invis_color,
         ]
         buttons = super()._init_colors(colors)
-        
+
 
         for color, name, parts in buttons:
             # TODO: make this functional. Pull up a color picker, set the color in Design,
@@ -195,12 +199,12 @@ class KnitWindow(PixelWindow):
 
     def _init_history(self) -> None:
         # initialize buttons that deal with the history manipulation -- i.e., undo, redo
-        
+
         def handle_size(action):
             w = int(self._width_var.get())
             h = int(self._height_var.get())
             print(action)
-            
+
             if isinstance(action, AddColumn):
                 self._add_column(self.width())
                 pass
@@ -212,7 +216,7 @@ class KnitWindow(PixelWindow):
                 pass
             elif isinstance(action, RemoveRow):
                 self._remove_row(h)
-            
+
             self._width_var.set(str(self.width()))
             self._height_var.set(str(self.height()))
 
@@ -248,27 +252,27 @@ class KnitWindow(PixelWindow):
                     pass
                 pass
             return handle
-        
+
         super()._init_history(undo_listener, redo_listener)
         pass
 
     def _init_sizes(self) -> None:
         sizes_frame = tk.Frame(self._root)
         sizes_frame.pack(side="left", padx=10, fill="y")
-        
+
         height_var = tk.StringVar()
         height_var.set(str(self.height()))
-        
+
         width_var = tk.StringVar()
         width_var.set(str(self.width()))
-        
-        
+
+
         height_frame = tk.Frame(sizes_frame)
         height_frame.pack()
-        
+
         width_frame = tk.Frame(sizes_frame)
         width_frame.pack()
-        
+
         def refresher():
             if self._redo_enabled():
                 self._disable_redo()
@@ -278,7 +282,7 @@ class KnitWindow(PixelWindow):
                 pass
             self._refresh_pixels()
             pass
-        
+
         def height_handler():
             print("Height: " + self._height_var.get())
             h = int(self._height_var.get())
@@ -300,14 +304,14 @@ class KnitWindow(PixelWindow):
                     self._interpreter.interpret(op)
                     self._add_row(i,
                                 remove_labels=self.height() == dheight + 1, add_labels=h == self.height())
-                    pass                
+                    pass
                 pass
             if h < dheight or h > dheight:
                 refresher()
                 pass
             pass
-        
-        
+
+
         def width_handler():
             print("Width: " + self._width_var.get())
             w = int(self._width_var.get())
@@ -339,30 +343,29 @@ class KnitWindow(PixelWindow):
         hspinbox = tk.Spinbox(height_frame, from_=1, to=MAX_HEIGHT, width=5, textvariable=height_var, command=height_handler)
         hlabel.pack()
         hspinbox.pack()
-        
+
         wlabel = tk.Label(width_frame, text="Width")
         wspinbox = tk.Spinbox(width_frame, from_=1, to=MAX_WIDTH, width=5, textvariable=width_var, command=width_handler)
         wlabel.pack()
         wspinbox.pack()
-        
+
         def height_entry_handler(e):
             self._root.focus()
             height_handler()
-        
+
         def width_entry_handler(e):
             self._root.focus()
             width_handler()
 
-        
-        
+
+
         hspinbox.bind("<Return>", height_entry_handler)
         wspinbox.bind("<Return>", width_entry_handler)
-        
+
         self._height_var = height_var
         self._width_var = width_var
-        
+
         # self._height_handler = height_handler
         # self._weight_handler = weight_handler
-        
+
         pass
-        
