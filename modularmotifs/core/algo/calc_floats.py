@@ -10,7 +10,7 @@ def calculate_float_lengths(
     selection: Selection = None,
     min_float_length: int = 1,
     in_the_round: bool = False,
-) -> Dict[int, int]:
+) -> list[FloatStrand]:
     """ """
 
     if not treat_invisible_as_bg:
