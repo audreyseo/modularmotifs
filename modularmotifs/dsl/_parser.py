@@ -5,110 +5,8 @@ from dataclasses import dataclass
 from typing import Optional, Union
 from enum import Enum
 import sys
+from modularmotifs.dsl._grammar import grammar
 
-grammar = r"""
-?statements : statement*
-
-?statement : design_op
-           | set_variable
-           | import
-           | from_import
-
-?set_variable : variable "=" expr
-
-?import : "import" module_access "as" IDENTIFIER
-        | "import" module_access
-
-?from_import : "from" module_access "import" IDENTIFIER ("," IDENTIFIER)*
-
-?module : IDENTIFIER
-
-?design_op : variable "=" variable "." ADD_MOTIF "(" expr "," expr "," expr ")"
-           | variable "." REMOVE_MOTIF "(" variable ")"
-           | size_op
-
-?size_op : variable "=" variable "." ADD_ROW "(" add_exprs? ")"
-         | variable "," variable "=" variable "." REMOVE_ROW "(" expr? ")"
-         | variable "=" variable "." ADD_COLUMN "(" add_exprs ")"
-         | variable "," variable "=" variable "." REMOVE_COLUMN "(" expr? ")"
-
-?add_exprs : expr "," expr
-           | expr
-
-
-?expr : literal
-      | variable
-      | object_init
-      | attr_access
-      | module_ref
-      | module_access
-      | object_access
-      | object_method_call
-      | keyword_arg
-
-?literal : int
-         | float
-         | str
-         | list
-
-?int : INT_NUMBER
-
-?float : FLOAT_NUMBER
-
-?str : STRING
-
-?list : "[" args_list "]"
-
-?variable : IDENTIFIER
-
-?object_init : class_name "(" args_list ")"
-
-?args_list : [expr ("," expr)*]
-
-?attr_access : expr "[" expr "]"
-
-?module_ref :  IDENTIFIER
-
-?module_access : module_access "." IDENTIFIER
-               | module_ref
-
-?object_access : expr "." IDENTIFIER
-
-?object_method_call : expr "." IDENTIFIER "(" args_list ")"
-
-?keyword_arg : IDENTIFIER "=" expr
-
-?class_name : CAPITAL_IDENTIFIER
-
-
-ADD_MOTIF : "add_motif"
-REMOVE_MOTIF : "remove_motif"
-ADD_ROW : "add_row"
-ADD_COLUMN : "add_column"
-REMOVE_ROW : "remove_row"
-REMOVE_COLUMN : "remove_column"
-
-IDENTIFIER : CNAME
-
-CAPITAL_IDENTIFIER : /[A-Z][a-zA-Z0-9_]*/
-
-COMMENT: "#" /[^\n]*/ NEWLINE
-
-NEWLINE: /[\n]/
-INT_NUMBER : /-?\d+/
-FLOAT_NUMBER : /-?\d+\.\d+/
-
-%import common.ESCAPED_STRING   -> STRING
-
-
-%import common.CNAME
-%import common.WS
-
-%ignore WS
-%ignore COMMENT
-%ignore NEWLINE
-
-"""
 
 
 # following this tutorial https://github.com/lark-parser/lark/blob/master/examples/advanced/create_ast.py
@@ -165,6 +63,42 @@ class AddMotif(_DesignOp):
     y: _Expr
 
 @dataclass
+class RemoveMotif(_DesignOp):
+    d: str
+    pm: _Expr
+
+class _SizeOp(_DesignOp):
+    # skipped
+    pass
+    
+
+@dataclass
+class AddRow(_SizeOp):
+    v: str
+    d: str
+    at_index: Optional[_Expr]
+    contents: Optional[_Expr]
+    
+@dataclass
+class AddColumn(_SizeOp):
+    v: str
+    d: str
+    at_index: Optional[_Expr]
+    contents: Optional[_Expr]
+
+@dataclass
+class RemoveRow(_SizeOp):
+    i: str
+    r: str
+    at_index: Optional[_Expr]
+
+@dataclass
+class RemoveColumn(_SizeOp):
+    i: str
+    r: str
+    at_index: Optional[_Expr]
+
+@dataclass
 class Literal(_Expr):
     c: Union[int, float, str, list]
 
@@ -179,6 +113,10 @@ class AttrAccess(_Expr):
     key: _Expr
 # class 
 
+@dataclass
+class KeywordArg(_Expr):
+    key: str 
+    e: _Expr
 
 class Ops(Enum):
     ADD_MOTIF = 1
@@ -215,23 +153,77 @@ class ToAst(Transformer):
         return str(x)
     
     def INT_NUMBER(self, d):
-        return int(d)
+        return Literal(int(d))
     
     def FLOAT_NUMBER(self, f):
-        return float(f)
+        return Literal(float(f))
     
     def STRING(self, s):
-        return s[1:-1]
+        return Literal(s[1:-1])
     
-    def args_list(self, *args):
+    def literal_list(self, l):
+        return Literal(l)
+    
+    def args_list(self, args):
         return args
     
+    def add_exprs(self, args):
+        return args
     
-    def design_op(self, *args):
+    def design_op(self, args):
         print(repr(args))
+        # print(len(args))
+        print(Ops.ADD_MOTIF in args)
         if Ops.ADD_MOTIF in args:
             assert len(args) == 6
             return AddMotif(args[0], args[1], args[3], args[4], args[5])
+        elif Ops.REMOVE_MOTIF in args:
+            # assert len(args) == 
+            pass
+        return args
+    
+    def size_op(self, args):
+        def deal_with_optionals(args):
+            if len(args) == 3:
+                return None, None
+            optional_args = args[3]
+            
+            if not isinstance(optional_args, list):
+                optional_args = [optional_args]
+            def get_first(listy):
+                if listy:
+                    return listy[0]
+                return None
+            if not optional_args:
+                return None, None
+            
+            assert all(isinstance(n, KeywordArg) for n in optional_args)
+            
+            at_index = get_first(list(filter(lambda n: n.key == "at_index", optional_args)))
+            contents = get_first(list(filter(lambda n: n.key == "column_contents" or n.key == "row_contents", optional_args)))
+            return at_index, contents
+        
+        print(repr(args))
+        print(Ops.ADD_ROW in args)
+        if Ops.ADD_ROW in args:
+            assert len(args) >= 3
+            at_index, contents = deal_with_optionals(args)
+            return AddRow(args[0], args[1], at_index, contents)
+        elif Ops.ADD_COLUMN in args:
+            assert len(args) >= 3
+            at_index, contents = deal_with_optionals(args)
+            
+            return AddColumn(args[0], args[1], at_index, contents)
+        elif Ops.REMOVE_ROW in args:
+            assert len(args) >= 4
+            at_index, _ = deal_with_optionals(args[1:])
+            return RemoveRow(args[0], args[1], at_index)
+            pass
+        elif Ops.REMOVE_COLUMN in args:
+            assert len(args) >= 4
+            at_index, _ = deal_with_optionals(args[1:])
+            return RemoveColumn(args[0], args[1], at_index)
+            pass
         return args
     
     def from_imports(self, module, *imports):
@@ -254,7 +246,8 @@ if __name__ == "__main__":
     ap.add_argument("file", type=str, help="A file name to parse")
     args = ap.parse_args()
     if not os.path.exists(args.file):
-        print(f"Could not find file {args.file}", file=sys.stderr)
+        print(f"Could not find file \"{args.file}\"", file=sys.stderr)
+        exit(1)
         pass
     with open(args.file, "r") as f:
         text = f.read()

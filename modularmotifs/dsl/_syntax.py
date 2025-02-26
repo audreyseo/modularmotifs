@@ -296,7 +296,7 @@ class SizeOp(DesignOp):
         pass
     
     def get_at_index(self) -> str:
-        return "" if not self.at_index else self.at_index.to_python()
+        return "" if not self.at_index else f"at_index={self.at_index.to_python()}"
 
 class AddRow(SizeOp):
     def __init__(self, v: Variable, d: Variable, at_index: Optional[Expr], fresh: FreshVar, contents: Optional[Expr] = None):
@@ -314,7 +314,7 @@ class AddRow(SizeOp):
     def to_python(self) -> str:
         at_index = self.get_at_index()
         contents = f", row_contents={self.contents.to_python()}" if self.contents else ""
-        return f"{self.v} = {self.d}.{self.op_name}(at_index={at_index}{contents})"
+        return f"{self.v} = {self.d}.{self.op_name}({at_index}{contents})"
     pass
 
 class RemoveRow(SizeOp):
@@ -350,7 +350,7 @@ class AddColumn(SizeOp):
     def to_python(self) -> str:
         at_index = self.get_at_index()
         contents = f", column_contents={self.contents.to_python()}" if self.contents else ""
-        return f"{self.v} = {self.d}.{self.op_name}(at_index={at_index}{contents})"
+        return f"{self.v} = {self.d}.{self.op_name}({at_index}{contents})"
     pass
 
 class RemoveColumn(SizeOp):
@@ -389,6 +389,7 @@ class DesignInterpreter:
         self._placed_motifs = dict()
         self._builder = builder
         self._vars_to_vals = dict()
+        
         pass
 
     def eval(self, e: Expr):
@@ -483,6 +484,8 @@ class DesignProgramBuilder:
     # TODO: actually use
     _motif_creations: list[SetVariable]
     _expr_to_motif_name: dict[Expr, str]
+    _original_size: tuple[int, int]
+    
 
     def __init__(self, base_design: Design):
         self._imports = list()
@@ -496,6 +499,7 @@ class DesignProgramBuilder:
         self._motif_name_to_expr = dict()
         self._expr_to_motif_name = dict()
         self._motif_creations = list()
+        self._original_size = (self.base_design.width(), self.base_design.height())
         pass
 
     def load_motif(self, name: str, m: Motif, e: Optional[Expr] = None) -> Self:
@@ -523,7 +527,7 @@ class DesignProgramBuilder:
         def map_to_python(l: list[Syntax]) -> list[str]:
             return list(map(lambda x: x.to_python(), l))
         imports = "\n".join(map_to_python(self._imports))
-        design_statement = SetVariable(self._design_var, ObjectInit("Design", Literal(self.base_design.width()), Literal(self.base_design.height()))).to_python()
+        design_statement = SetVariable(self._design_var, ObjectInit("Design", Literal(self._original_size[0]), Literal(self._original_size[1]))).to_python()
         ops = "\n".join(map_to_python(self._actions[:self._index + 1]))
         return "\n\n".join([imports, design_statement, ops])
 
