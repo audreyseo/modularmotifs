@@ -186,6 +186,24 @@ class GridSelection:
                         cell.config(bg=cell._orig_bg)
                         del cell._orig_bg
         print("Selected grids:", sorted(list(self.selected_coords)))
+
+        #--- New Functionality: Capture color and motif information ---
+        #Access the design instance from the KnitWindow.
+        design = self.knit_window._KnitWindow__design
+        selected_details = []
+        for (col, row) in sorted(list(self.selected_coords)):
+            # Get the effective RGB color at this grid cell.
+            cell_rgb = design.get_rgb(col, row)
+            # Get the motif (if any) associated with this grid cell.
+            cell_motif = design.get_motif(col, row)
+            selected_details.append({
+                "coords": (col, row),
+                "color": cell_rgb.hex(),
+                "motif": repr(cell_motif) if cell_motif is not None else None
+            })
+        print("Selected grid details:", selected_details)
+        #--- End New Functionality ---
+
         self.start_cell = None
         return "break"
 
@@ -216,6 +234,9 @@ class GridSelection:
                         cell.config(bg=cell._orig_bg)
                         del cell._orig_bg
 
+    def get_selected_coords(self):
+        return self.selected_coords
+
 #If desired, you can add a simple test routine here.
 if __name__ == "__main__":
     # For testing outside of the main interface, you might create a dummy window
@@ -241,8 +262,8 @@ if __name__ == "__main__":
         pass
 
     dummy = DummyKnitWindow()
-    dummy._KnitWindow__root = root
-    dummy._KnitWindow__cells = cells
+    dummy._root = root
+    dummy._cells = cells
 
     # Activate grid selection.
     gs = GridSelection(dummy)
