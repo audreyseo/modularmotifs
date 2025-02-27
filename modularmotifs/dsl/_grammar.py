@@ -53,7 +53,7 @@ grammar = r"""
 
 ?literal_list : [ expr ("," expr)*]
 
-?variable : IDENTIFIER
+variable : IDENTIFIER
 
 ?object_init : class_name "(" args_list ")"
 
@@ -61,7 +61,7 @@ grammar = r"""
 
 ?attr_access : expr "[" expr "]"
 
-?module_ref :  IDENTIFIER
+module_ref :  IDENTIFIER
 
 ?module_access : module_access "." IDENTIFIER
                | module_ref
@@ -73,6 +73,7 @@ grammar = r"""
 ?keyword_arg : IDENTIFIER "=" expr
 
 ?class_name : CAPITAL_IDENTIFIER
+
 
 
 ADD_MOTIF : "add_motif"

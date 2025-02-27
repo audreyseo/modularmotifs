@@ -1,6 +1,6 @@
 import abc
 # TODO: I think we would want to replace TypeGuard with TypeIs if we were all using Python 3.13...
-from typing import Union, TypeGuard, Self, Optional, Type, Any
+from typing import Union, TypeGuard, Self, Optional, Type, Any, List
 from types import ModuleType
 from modularmotifs.core import Motif, Design
 from modularmotifs.core.design import PlacedMotif
@@ -95,15 +95,15 @@ primitive = Union[int, float, str]
 
 class Literal(Expr):
     # cn = __qualname__
-    def __init__(self, const: Union[primitive, list[primitive]]):
+    def __init__(self, const: Union[primitive, list[Expr]]):
         super().__init__()
         self.const = const
-        if isinstance(const, primitive):
-            print("primitive")
-            pass
-        else:
-            print("list")
-            pass
+        # if isinstance(const, primitive):
+        #     print("primitive")
+        #     pass
+        # else:
+        #     print("list")
+        #     pass
         pass
 
     def is_int(self) -> TypeGuard[int]:
@@ -115,8 +115,8 @@ class Literal(Expr):
     def is_float(self) -> TypeGuard[float]:
         return isinstance(self.const, float)
 
-    def is_list(self) -> TypeGuard[list[primitive]]:
-        return isinstance(self.const, list[primitive])
+    def is_list(self) -> TypeGuard[list]:
+        return isinstance(self.const, List)
 
 
     def __repr__(self) -> str:
@@ -125,6 +125,9 @@ class Literal(Expr):
     def to_python(self) -> str:
         if self.is_str():
             return "\"" + self.const + "\""
+        if self.is_list():
+            print(self.const)
+            return f"[{", ".join(list(map(lambda x: x.to_python(), self.const)))}]"
         return str(self.const)
     pass
 
@@ -182,7 +185,7 @@ class ModuleAccess(Expr):
         pass
 
     def to_python(self) -> str:
-        return f"{self.module}.{self.attr}"
+        return f"{self.module.to_python()}.{self.attr}"
 
 class ObjectAccess(Expr):
     def __init__(self, v: Variable, prop: str):
@@ -289,18 +292,28 @@ class RemoveMotif(DesignOp):
     pass
 
 class SizeOp(DesignOp):
-    def __init__(self, d: Variable, op_name: str, at_index: Optional[Expr], fresh: FreshVar, contents: Optional[Expr] = None):
+    def __init__(self, d: Variable, op_name: str, fresh: FreshVar, at_index: Optional[Expr] = None, contents: Optional[Expr] = None):
         super().__init__(d, op_name, fresh)
         self.at_index = at_index
         self.contents = contents
         pass
     
     def get_at_index(self) -> str:
-        return "" if not self.at_index else f"at_index={self.at_index.to_python()}"
+        return "" if not self.at_index else (f"at_index={self.at_index.to_python()}" if not isinstance(self.at_index, KeywordArg) else self.at_index.to_python())
+    
+    def get_args_to_python(self) -> list[str]:
+        args = []
+        at_index = self.get_at_index()
+        if at_index:
+            args.append(at_index)
+        contents = self.contents.to_python() if self.contents else ""
+        if contents:
+            args.append(contents)
+        return args
 
 class AddRow(SizeOp):
-    def __init__(self, v: Variable, d: Variable, at_index: Optional[Expr], fresh: FreshVar, contents: Optional[Expr] = None):
-        super().__init__(d, "add_row", at_index, fresh, contents=contents)
+    def __init__(self, v: Variable, d: Variable, fresh: FreshVar, at_index: Optional[Expr] = None, contents: Optional[Expr] = None):
+        super().__init__(d, "add_row", fresh, at_index=at_index, contents=contents)
         self.v = v
         pass
     
@@ -312,14 +325,20 @@ class AddRow(SizeOp):
                          self.fresh)
         
     def to_python(self) -> str:
-        at_index = self.get_at_index()
-        contents = f", row_contents={self.contents.to_python()}" if self.contents else ""
-        return f"{self.v} = {self.d}.{self.op_name}({at_index}{contents})"
+        args = self.get_args_to_python()
+        # []
+        # at_index = self.get_at_index()
+        # if at_index:
+        #     args.append(at_index)
+        # contents = self.contents.to_python() if self.contents else ""
+        # if contents:
+        #     args.append(contents)
+        return f"{self.v} = {self.d}.{self.op_name}({", ".join(args)})"
     pass
 
 class RemoveRow(SizeOp):
-    def __init__(self, indexVar: Variable, removed: Variable, d: Variable, at_index: Optional[Expr], fresh: FreshVar):
-        super().__init__(d, "remove_row", at_index, fresh)
+    def __init__(self, indexVar: Variable, removed: Variable, d: Variable, fresh: FreshVar, at_index: Optional[Expr]=None):
+        super().__init__(d, "remove_row", fresh, at_index=at_index)
         self.indexVar = indexVar
         self.removed = removed
         pass
@@ -335,8 +354,8 @@ class RemoveRow(SizeOp):
     pass
 
 class AddColumn(SizeOp):
-    def __init__(self, v: Variable, d: Variable, at_index: Optional[Expr], fresh: FreshVar, contents: Optional[Expr] = None):
-        super().__init__(d, "add_column", at_index, fresh, contents=contents)
+    def __init__(self, v: Variable, d: Variable, fresh: FreshVar, at_index: Optional[Expr]=None, contents: Optional[Expr] = None):
+        super().__init__(d, "add_column", fresh, at_index=at_index, contents=contents)
         self.v = v
         pass
     
@@ -348,14 +367,15 @@ class AddColumn(SizeOp):
                          self.fresh)
         
     def to_python(self) -> str:
-        at_index = self.get_at_index()
-        contents = f", column_contents={self.contents.to_python()}" if self.contents else ""
-        return f"{self.v} = {self.d}.{self.op_name}({at_index}{contents})"
+        args = self.get_args_to_python()
+        # at_index = self.get_at_index()
+        # contents = f", column_contents={self.contents.to_python()}" if self.contents else ""
+        return f"{self.v} = {self.d}.{self.op_name}({", ".join(args)})"
     pass
 
 class RemoveColumn(SizeOp):
-    def __init__(self, indexVar: Variable, removed: Variable, d: Variable, at_index: Optional[Expr], fresh: FreshVar):
-        super().__init__(d, "remove_column", at_index, fresh)
+    def __init__(self, indexVar: Variable, removed: Variable, d: Variable, fresh: FreshVar, at_index: Optional[Expr]=None):
+        super().__init__(d, "remove_column", fresh, at_index=at_index)
         self.indexVar = indexVar
         self.removed = removed
         pass

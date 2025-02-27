@@ -6,13 +6,16 @@ from typing import Optional, Union
 from enum import Enum
 import sys
 from modularmotifs.dsl._grammar import grammar
-
+import modularmotifs.dsl._syntax as syn
 
 
 # following this tutorial https://github.com/lark-parser/lark/blob/master/examples/advanced/create_ast.py
 
 class _Ast(ast_utils.Ast):
     # skipped
+    
+    def to_syntax(self, fresh: syn.FreshVar) -> syn.Syntax:
+        pass
     pass
 
 
@@ -25,30 +28,66 @@ class _Expr(_Ast):
     pass
 
 @dataclass
+class Variable(_Expr):
+    name: str
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.Variable(self.name)
+    pass
+
+@dataclass
+class ModuleRef(_Expr):
+    name: str
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.ModuleRef(self.name)
+
+@dataclass
 class ModuleAccess(_Expr):
     ma: 'ModuleAccess'
     accessed: str
     
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.ModuleAccess(self.ma.to_syntax(fresh), self.accessed)
+    
 @dataclass
 class Statements(_Ast, ast_utils.AsList):
     statements: list[_Statement]
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return list(map(lambda x: x.to_syntax(fresh), self.statements))
     pass
 
 @dataclass
 class Import(_Statement):
     ma: ModuleAccess
-    as_clause: Optional[_Expr]
+    as_clause: Optional[str]
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.Import(self.ma.to_syntax(fresh),
+                          self.as_clause)
+    
 
 @dataclass
 class FromImport(_Statement):
     ma: ModuleAccess
     imports: list[str]
+    
+    def __init__(self, ma: ModuleAccess, *imports):
+        self.ma = ma
+        self.imports = imports
+        
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.FromImport(self.ma.to_syntax(fresh), *self.imports)
     pass
 
 @dataclass
 class SetVariable(_Statement):
-    v: str
+    v: Variable
     e: _Expr
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.SetVariable(self.v.to_syntax(fresh), self.e.to_syntax(fresh))
 
 class _DesignOp(_Statement):
     # skipped
@@ -56,16 +95,29 @@ class _DesignOp(_Statement):
 
 @dataclass
 class AddMotif(_DesignOp):
-    v: str
-    d: str
+    v: Variable
+    d: Variable
     m: _Expr
     x: _Expr
     y: _Expr
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.AddMotif(self.v.to_syntax(fresh),
+                            self.d.to_syntax(fresh),
+                            self.m.to_syntax(fresh),
+                            self.x.to_syntax(fresh),
+                            self.y.to_syntax(fresh),
+                            fresh)
 
 @dataclass
 class RemoveMotif(_DesignOp):
-    d: str
+    d: Variable
     pm: _Expr
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.RemoveMotif(self.d.to_syntax(fresh),
+                               self.pm.to_syntax(fresh),
+                               fresh)
 
 class _SizeOp(_DesignOp):
     # skipped
@@ -74,49 +126,124 @@ class _SizeOp(_DesignOp):
 
 @dataclass
 class AddRow(_SizeOp):
-    v: str
-    d: str
+    v: Variable
+    d: Variable
     at_index: Optional[_Expr]
     contents: Optional[_Expr]
     
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.AddRow(self.v.to_syntax(fresh),
+                          self.d.to_syntax(fresh),
+                          fresh,
+                          at_index=self.at_index.to_syntax(fresh) if self.at_index else None,
+                          contents=self.contents.to_syntax(fresh) if self.contents else None
+                          )
+    
 @dataclass
 class AddColumn(_SizeOp):
-    v: str
-    d: str
+    v: Variable
+    d: Variable
     at_index: Optional[_Expr]
     contents: Optional[_Expr]
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.AddColumn(self.v.to_syntax(fresh),
+                             self.d.to_syntax(fresh),
+                             fresh,
+                             at_index=self.at_index.to_syntax(fresh) if self.at_index else None,
+                             contents=self.contents.to_syntax(fresh) if self.contents else None
+                             )
 
 @dataclass
 class RemoveRow(_SizeOp):
-    i: str
-    r: str
+    i: Variable
+    r: Variable
+    d: Variable
     at_index: Optional[_Expr]
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.RemoveRow(self.i.to_syntax(fresh),
+                             self.r.to_syntax(fresh),
+                             self.d.to_syntax(fresh),
+                             fresh,
+                             at_index=self.at_index.to_syntax(fresh) if self.at_index else None
+                             )
 
 @dataclass
 class RemoveColumn(_SizeOp):
-    i: str
-    r: str
+    i: Variable
+    r: Variable
+    d: Variable
     at_index: Optional[_Expr]
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.RemoveColumn(self.i.to_syntax(fresh),
+                                self.r.to_syntax(fresh),
+                                self.d.to_syntax(fresh),
+                                fresh,
+                                at_index=self.at_index.to_syntax(fresh) if self.at_index else None
+                                )
 
 @dataclass
 class Literal(_Expr):
-    c: Union[int, float, str, list]
+    c: Union[int, float, str, list[_Expr]]
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        if isinstance(self.c, list):
+            return syn.Literal(list(map(lambda x: x.to_syntax(fresh), self.c)))
+        return syn.Literal(self.c)
 
 @dataclass
 class ObjectInit(_Expr):
     className: str
     args: list[_Expr]
     
+    def to_syntax(self, fresh: syn.FreshVar):
+        args = list(map(lambda x: x.to_syntax(fresh), self.args)) if isinstance(self.args, list) else self.args.to_syntax(fresh)
+        if isinstance(self.args, list):
+            return syn.ObjectInit(self.className, *args)
+        return syn.ObjectInit(self.className,
+                              args)
+        
+@dataclass
+class ObjectAccess(_Expr):
+    v: Variable
+    prop: str
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.ObjectAccess(self.v.to_syntax(fresh),
+                                self.prop)
+
+@dataclass
+class ObjectMethodCall(_Expr):
+    v: Variable
+    method: str
+    args: list[_Expr]
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.ObjectMethodCall(self.v.to_syntax(fresh),
+                                    self.method,
+                                    *list(map(lambda x: x.to_syntax(fresh),
+                                              self.args)))
+    
 @dataclass
 class AttrAccess(_Expr):
     obj: _Expr
     key: _Expr
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.AttrAccess(self.obj.to_syntax(fresh),
+                              self.key.to_syntax(fresh))
 # class 
 
 @dataclass
 class KeywordArg(_Expr):
     key: str 
     e: _Expr
+    
+    def to_syntax(self, fresh: syn.FreshVar):
+        return syn.KeywordArg(self.key,
+                              self.e.to_syntax(fresh))
 
 class Ops(Enum):
     ADD_MOTIF = 1
@@ -181,6 +308,9 @@ class ToAst(Transformer):
             # assert len(args) == 
             pass
         return args
+    # def variable(self, args):
+    #     print("Variable: ", args)
+    #     return Variable(args[0])
     
     def size_op(self, args):
         def deal_with_optionals(args):
@@ -217,16 +347,16 @@ class ToAst(Transformer):
         elif Ops.REMOVE_ROW in args:
             assert len(args) >= 4
             at_index, _ = deal_with_optionals(args[1:])
-            return RemoveRow(args[0], args[1], at_index)
+            return RemoveRow(args[0], args[1], args[2], at_index)
             pass
         elif Ops.REMOVE_COLUMN in args:
             assert len(args) >= 4
             at_index, _ = deal_with_optionals(args[1:])
-            return RemoveColumn(args[0], args[1], at_index)
+            return RemoveColumn(args[0], args[1], args[2], at_index)
             pass
         return args
     
-    def from_imports(self, module, *imports):
+    def from_import(self, module, *imports):
         return FromImport(module, imports)
     pass
 
@@ -236,7 +366,7 @@ this_module = sys.modules[__name__]
 transformer = ast_utils.create_transformer(this_module, ToAst())
 
 def parse(f: str):
-    return parser.parse(f)
+    return transformer.transform(parser.parse(f))
 
 if __name__ == "__main__":
     import argparse
@@ -253,5 +383,6 @@ if __name__ == "__main__":
         text = f.read()
         pass
     parsed = parse(text)
-    print(parsed.pretty())
-    print(transformer.transform(parsed))
+    print(parsed)
+    fresher = syn.FreshVar(base_name="z")
+    print("\n".join(list(map(lambda x: x.to_python(), parsed.to_syntax(fresher)))))
