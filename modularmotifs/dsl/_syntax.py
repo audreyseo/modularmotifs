@@ -2,7 +2,7 @@ import abc
 # TODO: I think we would want to replace TypeGuard with TypeIs if we were all using Python 3.13...
 from typing import Union, TypeGuard, Self, Optional, Type, Any, List
 from types import ModuleType
-from modularmotifs.core import Motif, Design
+from modularmotifs.core import Motif, Design, Color
 from modularmotifs.core.design import PlacedMotif
 import modularmotifs.motiflibrary.examples as libexamples
 # from pathlib import Path
@@ -10,14 +10,27 @@ import modularmotifs.motiflibrary.examples as libexamples
 class FreshVar:
     """A source of fresh variable names
     """
-    def __init__(self, base_name="x"):
+    def __init__(self, base_name="x", names_to_avoid: Optional[set[str]] = None):
+        """Initialize a new FreshVar instance
+
+        Args:
+            base_name (str, optional): the prefix for variable names. Defaults to "x".
+            names_to_avoid (Optional[set[str]], optional): a set of variable names to avoid (i.e., because it would result in overwriting a previously defined variable). Defaults to None.
+        """
         self.current = 0
         self.base_name = base_name
+        self.names_to_avoid = names_to_avoid
         pass
 
     def get_fresh(self) -> str:
         fresh = f"{self.base_name}{self.current}"
         self.current += 1
+        if self.names_to_avoid:
+            while fresh in self.names_to_avoid:
+                fresh = f"{self.base_name}{self.current}"
+                self.current += 1
+                pass
+            pass
         return fresh
         
 
@@ -369,7 +382,7 @@ class AddColumn(SizeOp):
     def to_python(self) -> str:
         args = self.get_args_to_python()
         # at_index = self.get_at_index()
-        # contents = f", column_contents={self.contents.to_python()}" if self.contents else ""
+        # contents = f", contents={self.contents.to_python()}" if self.contents else ""
         return f"{self.v} = {self.d}.{self.op_name}({", ".join(args)})"
     pass
 
@@ -416,6 +429,13 @@ class DesignInterpreter:
         def map_eval_over(itr: list[Expr]):
             return list(map(lambda x: self.eval(x), itr))
         
+        def get_args_keyword_args(exprs: list[Expr]):
+            args = map_eval_over(list(filter(lambda x: not isinstance(x, KeywordArg), exprs)))
+            keywordargs = list(filter(lambda x: isinstance(x, KeywordArg), exprs))
+            keywordargs = [(kwa.key, self.eval(kwa.e)) for k in keywordargs]
+            keywordargs = {k: e for k, e in keywordargs}
+            return args, keywordargs
+        
         if isinstance(e, Literal):
             return e.const
         if isinstance(e, Variable):
@@ -432,19 +452,21 @@ class DesignInterpreter:
             pass
         if isinstance(e, ObjectInit):
             assert e.className in self._classes, f"{self.cn}.eval: the class {e.className} is not supported for object initialization"
-            args = map_eval_over(e.args)
-            return eval(e.className)(*args)
+            args, keywordargs = get_args_keyword_args(e.args)
+            return eval(e.className)(*args, **keywordargs)
             pass
         if isinstance(e, ObjectAccess):
             return getattr(self.eval(e.v), e.prop)
         if isinstance(e, ObjectMethodCall):
-            args = map_eval_over(e.args)
-            return getattr(self.eval(e.v), method)(*args)
+            # args = map_eval_over(e.args)
+            args, keywordargs = get_args_keyword_args(e.args)
+            return getattr(self.eval(e.v), method)(*args, **keywordargs)
+        if isinstance(e, KeywordArg):
+            return self.eval(e.e)
         # Avoid unprincipled eval if we can...
         maybeMotif = self._builder._get_motif(e)
         if maybeMotif:
             return maybeMotif
-        
         if isinstance(e, ModuleRef) or isinstance(e, ModuleAccess):
             return eval(e.to_python())
         if isinstance(e, AttrAccess):
@@ -480,11 +502,11 @@ class DesignInterpreter:
             if isinstance(action, AddRow) or isinstance(action, AddColumn):
                 contents = self.eval(action.contents) if action.contents else None
                 if isinstance(action, AddRow):
-                    v = self.design.add_row(at_index=ind, row_contents=contents)
+                    v = self.design.add_row(at_index=ind, contents=contents)
                     self._vars_to_vals[action.v] = v
                     return
                 if isinstance(action, AddColumn):
-                    v = self.design.add_column(at_index=ind, column_contents=contents)
+                    v = self.design.add_column(at_index=ind, contents=contents)
                     self._vars_to_vals[action.v] = v
                     return
         pass
@@ -521,6 +543,56 @@ class DesignProgramBuilder:
         self._motif_creations = list()
         self._original_size = (self.base_design.width(), self.base_design.height())
         pass
+    
+    @classmethod
+    def init_list(cls, l: list[Syntax], fresh: FreshVar) -> Self:
+        # TODO: Account for when a design is actually imported from another file. This would amount to searching for a design variable that's being used and then searching for where that design variable comes from. What we have here though is a good enough first step
+        d = list(filter(lambda x: (isinstance(x, SetVariable) and
+                              isinstance(x.expr, ObjectInit) and
+                              x.expr.className == "Design"),
+                   l))
+        assert d, f"{cls.init_list.__qualname__}: found no Design variables set in list {l}"
+        # list is nonempty => get the first thing
+        d = d[0]
+        # this is technically unsafe, so TODO: FIX
+        base_design = eval(d.expr.to_python())
+        
+        dpb = DesignProgramBuilder(base_design)
+        dpb.add_modularmotifs_motif_library()
+        
+        imports = list(filter(lambda x: isinstance(x, Import), l))
+        for i in imports:
+            if i not in dpb._imports:
+                dpb._imports.append(i)
+                pass
+            pass
+        
+        dpb._fresh = fresh
+        dpb._design_var = d.x
+        
+        
+        motifs = list(filter(lambda x: (isinstance(x, SetVariable) and
+                                        isinstance(x.expr, ObjectInit) and
+                                        x.expr.className == "Motif"),
+                             l))
+        for m in motifs:
+            # TODO: FIX, also unsafe
+            m_eval = eval(m.expr.to_python())
+            dpb.load_motif(m.x.name, m_eval)
+            pass
+        dpb._motif_creations.extend(motifs)
+        
+        interp = dpb.get_interpreter()
+        actions = list(filter(lambda x: isinstance(x, DesignOp), l))
+        for a in actions:
+            dpb._actions.append(a)
+            interp.interpret(a)
+            dpb._index += 1
+        
+        return dpb, interp
+        
+        
+
 
     def load_motif(self, name: str, m: Motif, e: Optional[Expr] = None) -> Self:
         self._motifs[name] = m
@@ -548,8 +620,9 @@ class DesignProgramBuilder:
             return list(map(lambda x: x.to_python(), l))
         imports = "\n".join(map_to_python(self._imports))
         design_statement = SetVariable(self._design_var, ObjectInit("Design", Literal(self._original_size[0]), Literal(self._original_size[1]))).to_python()
+        motifs = "\n".join(map_to_python(self._motif_creations))
         ops = "\n".join(map_to_python(self._actions[:self._index + 1]))
-        return "\n\n".join([imports, design_statement, ops])
+        return "\n\n".join([imports, design_statement, motifs, ops])
 
     def add_modularmotifs_motif_library(self) -> Self:
         print(libexamples.__name__)
@@ -566,6 +639,9 @@ class DesignProgramBuilder:
 
     def _get_fresh_var(self):
         return Variable(self._fresh.get_fresh())
+    
+    def has_import(self, i: Import) -> bool:
+        return i in self._imports
 
     def add_import(self, m: ModuleType, _as: Optional[str] = None) -> Self:
         self._imports.append(Import(m.__name__, _as=_as))
@@ -608,12 +684,12 @@ class DesignProgramBuilder:
     def add_row(self, at_index: Optional[int] = None) -> DesignOp:
         at_index_arg = None if not at_index else Literal(at_index)
         
-        return self._add_action(AddRow(self._get_fresh_var(), self._design_var, at_index_arg, self._fresh))
+        return self._add_action(AddRow(self._get_fresh_var(), self._design_var, at_index=at_index_arg, fresh=self._fresh))
     
     def add_column(self, at_index: Optional[int] = None) -> DesignOp:
         at_index_arg = None if not at_index else Literal(at_index)
         
-        return self._add_action(AddColumn(self._get_fresh_var(), self._design_var, at_index_arg, self._fresh))
+        return self._add_action(AddColumn(self._get_fresh_var(), self._design_var, at_index=at_index_arg, fresh=self._fresh))
     
     def remove_row(self, at_index: Optional[int] = None) -> DesignOp:
         at_index_arg = None if not at_index else Literal(at_index)
@@ -621,8 +697,8 @@ class DesignProgramBuilder:
         return self._add_action(RemoveRow(self._get_fresh_var(),
                                        self._get_fresh_var(),
                                        self._design_var,
-                                       at_index_arg,
-                                       self._fresh))
+                                       at_index=at_index_arg,
+                                       fresh=self._fresh))
         
     def remove_column(self, at_index: Optional[int] = None) -> DesignOp:
         at_index_arg = None if not at_index else Literal(at_index)
@@ -630,8 +706,8 @@ class DesignProgramBuilder:
         return self._add_action(RemoveColumn(self._get_fresh_var(),
                                              self._get_fresh_var(),
                                              self._design_var,
-                                             at_index_arg,
-                                             self._fresh))
+                                             at_index=at_index_arg,
+                                             fresh=self._fresh))
     
     def remove_last_action(self) -> DesignOp:
         assert self.can_undo(), f"{self.remove_last_action.__qualname__}: No last action to remove"
