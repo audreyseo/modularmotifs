@@ -334,8 +334,8 @@ class AddRow(SizeOp):
         return RemoveRow(Variable(self.fresh.get_fresh()),
                          Variable(self.fresh.get_fresh()),
                          self.d,
-                         self.v,
-                         self.fresh)
+                         at_index=self.v,
+                         fresh=self.fresh)
         
     def to_python(self) -> str:
         args = self.get_args_to_python()
@@ -359,8 +359,8 @@ class RemoveRow(SizeOp):
     def inverse(self) -> DesignOp:
         return AddRow(Variable(self.fresh.get_fresh()),
                       self.d,
-                      self.indexVar,
-                      self.fresh,
+                      at_index=self.indexVar,
+                      fresh=self.fresh,
                       contents=self.removed)
     def to_python(self) -> str:
         return f"{self.indexVar}, {self.removed} = {self.d}.{self.op_name}({self.get_at_index()})"
@@ -376,8 +376,8 @@ class AddColumn(SizeOp):
         return RemoveColumn(Variable(self.fresh.get_fresh()),
                          Variable(self.fresh.get_fresh()),
                          self.d,
-                         self.v,
-                         self.fresh)
+                         at_index=self.v,
+                         fresh=self.fresh)
         
     def to_python(self) -> str:
         args = self.get_args_to_python()
@@ -396,8 +396,8 @@ class RemoveColumn(SizeOp):
     def inverse(self) -> DesignOp:
         return AddColumn(Variable(self.fresh.get_fresh()),
                       self.d,
-                      self.indexVar,
-                      self.fresh,
+                      at_index=self.indexVar,
+                      fresh=self.fresh,
                       contents=self.removed)
     def to_python(self) -> str:
         return f"{self.indexVar}, {self.removed} = {self.d}.{self.op_name}({self.get_at_index()})"
