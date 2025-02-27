@@ -6,7 +6,7 @@ from typing import Any, List, Optional
 from collections.abc import Callable
 from PIL import ImageTk, Image
 
-import saved_motifs
+# import saved_motifs
 from modularmotifs.core.design import Design, MotifOverlapException
 from modularmotifs.core import RGBColor
 from modularmotifs.core.motif import Motif
