@@ -11,10 +11,17 @@ import modularmotifs.dsl._syntax as syn
 
 # following this tutorial https://github.com/lark-parser/lark/blob/master/examples/advanced/create_ast.py
 
+def _set(s: str) -> set[str]:
+    # Just creates the singleton set
+    return set([s])
+
 class _Ast(ast_utils.Ast):
     # skipped
     
     def to_syntax(self, fresh: syn.FreshVar) -> syn.Syntax:
+        pass
+    
+    def get_idents(self) -> set[str]:
         pass
     pass
 
@@ -33,6 +40,9 @@ class Variable(_Expr):
     
     def to_syntax(self, fresh: syn.FreshVar):
         return syn.Variable(self.name)
+    
+    def get_idents(self) -> set[str]:
+        return _set(self.name)
     pass
 
 @dataclass
@@ -41,6 +51,9 @@ class ModuleRef(_Expr):
     
     def to_syntax(self, fresh: syn.FreshVar):
         return syn.ModuleRef(self.name)
+    
+    def get_idents(self) -> set[str]:
+        return _set(self.name)
 
 @dataclass
 class ModuleAccess(_Expr):
@@ -50,12 +63,22 @@ class ModuleAccess(_Expr):
     def to_syntax(self, fresh: syn.FreshVar):
         return syn.ModuleAccess(self.ma.to_syntax(fresh), self.accessed)
     
+    def get_idents(self) -> set[str]:
+        return self.ma.get_idents().union(_set(self.accessed))
+    
 @dataclass
 class Statements(_Ast, ast_utils.AsList):
     statements: list[_Statement]
     
     def to_syntax(self, fresh: syn.FreshVar):
         return list(map(lambda x: x.to_syntax(fresh), self.statements))
+    
+    def get_idents(self) -> set[str]:
+        idents = set()
+        for stmt in self.statements:
+            idents = idents.union(stmt.get_idents())
+            pass
+        return idents
     pass
 
 @dataclass
@@ -67,6 +90,8 @@ class Import(_Statement):
         return syn.Import(self.ma.to_syntax(fresh),
                           self.as_clause)
     
+    def get_idents(self) -> set[str]:
+        return self.ma.get_idents().union(_set(self.as_clause) if self.as_clause else set())
 
 @dataclass
 class FromImport(_Statement):
@@ -79,6 +104,9 @@ class FromImport(_Statement):
         
     def to_syntax(self, fresh: syn.FreshVar):
         return syn.FromImport(self.ma.to_syntax(fresh), *self.imports)
+    
+    def get_idents(self) -> set[str]:
+        return self.ma.get_idents().union(set(self.imports))
     pass
 
 @dataclass
@@ -88,6 +116,9 @@ class SetVariable(_Statement):
     
     def to_syntax(self, fresh: syn.FreshVar):
         return syn.SetVariable(self.v.to_syntax(fresh), self.e.to_syntax(fresh))
+    
+    def get_idents(self) -> set[str]:
+        return self.v.get_idents().union(self.e.get_idents())
 
 class _DesignOp(_Statement):
     # skipped
@@ -108,6 +139,12 @@ class AddMotif(_DesignOp):
                             self.x.to_syntax(fresh),
                             self.y.to_syntax(fresh),
                             fresh)
+        
+    def get_idents(self) -> set[str]:
+        return (self.v.get_idents().union(self.d.get_idents())
+                .union(self.m.get_idents())
+                .union(self.x.get_idents())
+                .union(self.y.get_idents()))
 
 @dataclass
 class RemoveMotif(_DesignOp):
@@ -118,6 +155,9 @@ class RemoveMotif(_DesignOp):
         return syn.RemoveMotif(self.d.to_syntax(fresh),
                                self.pm.to_syntax(fresh),
                                fresh)
+        
+    def get_idents(self) -> set[str]:
+        return self.d.get_idents().union(self.pm.get_idents())
 
 class _SizeOp(_DesignOp):
     # skipped
@@ -138,6 +178,16 @@ class AddRow(_SizeOp):
                           at_index=self.at_index.to_syntax(fresh) if self.at_index else None,
                           contents=self.contents.to_syntax(fresh) if self.contents else None
                           )
+    def get_idents(self) -> set[str]:
+        idents = (self.v.get_idents()
+                .union(self.d.get_idents()))
+        if self.at_index:
+            idents = idents.union(self.at_index.get_idents())
+            pass
+        if self.contents:
+            idents = idents.union(self.contents.get_idents())
+            pass
+        return idents
     
 @dataclass
 class AddColumn(_SizeOp):
@@ -154,6 +204,17 @@ class AddColumn(_SizeOp):
                              contents=self.contents.to_syntax(fresh) if self.contents else None
                              )
 
+    def get_idents(self) -> set[str]:
+        idents = (self.v.get_idents()
+                .union(self.d.get_idents()))
+        if self.at_index:
+            idents = idents.union(self.at_index.get_idents())
+            pass
+        if self.contents:
+            idents = idents.union(self.contents.get_idents())
+            pass
+        return idents
+
 @dataclass
 class RemoveRow(_SizeOp):
     i: Variable
@@ -168,7 +229,12 @@ class RemoveRow(_SizeOp):
                              fresh,
                              at_index=self.at_index.to_syntax(fresh) if self.at_index else None
                              )
-
+    def get_idents(self) -> set[str]:
+        idents = self.at_index.get_idents() if self.at_index else set()
+        return (idents.union(self.i.get_idents())
+                .union(self.r.get_idents())
+                .union(self.d.get_idents()))
+        
 @dataclass
 class RemoveColumn(_SizeOp):
     i: Variable
@@ -183,6 +249,22 @@ class RemoveColumn(_SizeOp):
                                 fresh,
                                 at_index=self.at_index.to_syntax(fresh) if self.at_index else None
                                 )
+    def get_idents(self) -> set[str]:
+        idents = self.at_index.get_idents() if self.at_index else set()
+        return (idents.union(self.i.get_idents())
+                .union(self.r.get_idents())
+                .union(self.d.get_idents()))
+
+def _expr_list_to_idents(exprs):
+    assert isinstance(exprs, list)
+    
+    idents = set()
+    for e in exprs:
+        if isinstance(e, _Expr):
+            idents = idents.union(e.get_idents())
+            pass
+        pass
+    return idents
 
 @dataclass
 class Literal(_Expr):
@@ -192,6 +274,11 @@ class Literal(_Expr):
         if isinstance(self.c, list):
             return syn.Literal(list(map(lambda x: x.to_syntax(fresh), self.c)))
         return syn.Literal(self.c)
+    
+    def get_idents(self) -> set[str]:
+        if isinstance(self.c, list):
+            return _expr_list_to_idents(self.c)
+        return set()
 
 @dataclass
 class ObjectInit(_Expr):
@@ -204,6 +291,9 @@ class ObjectInit(_Expr):
             return syn.ObjectInit(self.className, *args)
         return syn.ObjectInit(self.className,
                               args)
+    
+    def get_idents(self) -> set[str]:
+        return _set(self.className).union(_expr_list_to_idents(self.args))
         
 @dataclass
 class ObjectAccess(_Expr):
@@ -213,6 +303,9 @@ class ObjectAccess(_Expr):
     def to_syntax(self, fresh: syn.FreshVar):
         return syn.ObjectAccess(self.v.to_syntax(fresh),
                                 self.prop)
+        
+    def get_idents(self) -> set[str]:
+        return self.v.get_idents()
 
 @dataclass
 class ObjectMethodCall(_Expr):
@@ -225,6 +318,8 @@ class ObjectMethodCall(_Expr):
                                     self.method,
                                     *list(map(lambda x: x.to_syntax(fresh),
                                               self.args)))
+    def get_idents(self) -> set[str]:
+        return self.v.get_idents().union(_expr_list_to_idents(self.args))
     
 @dataclass
 class AttrAccess(_Expr):
@@ -234,6 +329,9 @@ class AttrAccess(_Expr):
     def to_syntax(self, fresh: syn.FreshVar):
         return syn.AttrAccess(self.obj.to_syntax(fresh),
                               self.key.to_syntax(fresh))
+    
+    def get_idents(self) -> set[str]:
+        return self.obj.get_idents().union(self.key.get_idents())
 # class 
 
 @dataclass
@@ -244,6 +342,9 @@ class KeywordArg(_Expr):
     def to_syntax(self, fresh: syn.FreshVar):
         return syn.KeywordArg(self.key,
                               self.e.to_syntax(fresh))
+    
+    def get_idents(self) -> set[str]:
+        return self.e.get_idents()
 
 class Ops(Enum):
     ADD_MOTIF = 1
@@ -330,7 +431,7 @@ class ToAst(Transformer):
             assert all(isinstance(n, KeywordArg) for n in optional_args)
             
             at_index = get_first(list(filter(lambda n: n.key == "at_index", optional_args)))
-            contents = get_first(list(filter(lambda n: n.key == "column_contents" or n.key == "row_contents", optional_args)))
+            contents = get_first(list(filter(lambda n: n.key == "contents" or n.key == "contents", optional_args)))
             return at_index, contents
         
         print(repr(args))
@@ -365,8 +466,12 @@ parser = lark.Lark(grammar, start="statements")
 this_module = sys.modules[__name__]
 transformer = ast_utils.create_transformer(this_module, ToAst())
 
-def parse(f: str):
-    return transformer.transform(parser.parse(f))
+def parse(f: str) -> tuple[syn.DesignProgramBuilder, syn.DesignInterpreter]:
+    ast = transformer.transform(parser.parse(f))
+    used_idents = ast.get_idents()
+    fresh = syn.FreshVar(names_to_avoid=used_idents)
+    syntax_list = ast.to_syntax(fresh)
+    return syn.DesignProgramBuilder.init_list(syntax_list, fresh)
 
 if __name__ == "__main__":
     import argparse
@@ -382,7 +487,12 @@ if __name__ == "__main__":
     with open(args.file, "r") as f:
         text = f.read()
         pass
-    parsed = parse(text)
+    parsed = transformer.transform(parser.parse(text))
+    
     print(parsed)
-    fresher = syn.FreshVar(base_name="z")
+    fresher = syn.FreshVar(base_name="z", names_to_avoid=parsed.get_idents())
     print("\n".join(list(map(lambda x: x.to_python(), parsed.to_syntax(fresher)))))
+    # print(parsed.get_idents())
+    dpb, interp = syn.DesignProgramBuilder.init_list(parsed.to_syntax(fresher), fresher)
+    print(dpb.to_python())
+    print(interp.design)

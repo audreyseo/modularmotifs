@@ -15,8 +15,9 @@ from modularmotifs.motiflibrary.examples import motifs
 from modularmotifs.ui.grid_selection import GridSelection
 from modularmotifs.ui.grid_labels import GridLabels
 
-from modularmotifs.dsl import DesignProgramBuilder, DesignInterpreter
+from modularmotifs.dsl import DesignProgramBuilder, DesignInterpreter, parse
 from modularmotifs.dsl._syntax import SizeOp, AddColumn, RemoveColumn, AddRow, RemoveRow
+
 
 from modularmotifs.ui.pixel_window import PixelWindow
 
@@ -79,6 +80,12 @@ class KnitWindow(PixelWindow):
 
         # Starts the window
         self._root.mainloop()
+        
+    def _init_underlying(self, dpb: DesignProgramBuilder, interp: DesignInterpreter):
+        self._program_builder = dpb
+        self._interpreter = interp
+        self.__design = interp.design
+        self._pixel_grid = self.__design
     
     def _init_save(self) -> Callable:
         def save_handler(e):
@@ -100,6 +107,42 @@ class KnitWindow(PixelWindow):
             pass
         return save_handler
     
+    
+    def _adjust_width_height(self):
+        w = int(self._width_var.get())
+        h = int(self._height_var.get())
+        
+        if w < self.width():
+            while w < self.width():
+                self._add_column(at_index=w)
+                w += 1
+                pass
+            pass
+        else:
+            while w > self.width():
+                self._remove_column(at_index=w)
+                w -= 1
+                pass
+            pass
+        
+        if h < self.height():
+            while h < self.height():
+                self._add_row(at_index=h)
+                h += 1
+                pass
+            pass
+        else:
+            while h > self.height():
+                self._remove_row(at_index=h)
+                h -= 1
+                pass
+            pass
+        
+        
+        self._width_var.set(str(self.width()))
+        self._height_var.set(str(self.height()))
+        
+        
     def _init_open(self) -> Callable:
         def open_handler(e):
             ftypes = [('Python files', '*.py'), ('All files', '*')]
@@ -113,6 +156,25 @@ class KnitWindow(PixelWindow):
             # TODO: Actually open the file
             print("Opened file:")
             print(text)
+            
+            try:
+                dpb, interp = parse(text)
+                self._init_underlying(dpb, interp)
+                # self._program_builder = dpb
+                # print(dpb.to_python())
+                # self._intepreter = interp
+                # self.__design = interp.design
+                # self._pixel_grid = self.__design
+                
+                # add rows and columns
+                self._adjust_width_height()
+                
+                # now refresh the display
+                self._refresh_pixels()
+                pass
+            except Exception as e:
+                print(e)
+                pass
             pass
         return open_handler
                 
@@ -344,7 +406,6 @@ class KnitWindow(PixelWindow):
                 refresher()
                 pass
             pass
-        
         
         def width_handler():
             print("Width: " + self._width_var.get())

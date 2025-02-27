@@ -57,7 +57,7 @@ variable : IDENTIFIER
 
 ?object_init : class_name "(" args_list ")"
 
-?args_list : [expr ("," expr)*]
+args_list : [expr ("," expr)*]
 
 ?attr_access : expr "[" expr "]"
 

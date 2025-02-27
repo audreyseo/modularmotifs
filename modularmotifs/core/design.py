@@ -152,7 +152,7 @@ class Design(PixelGrid):
         return PixelData(Color.INVIS, set())
     
     
-    def add_row(self, at_index: int = -1, row_contents: Optional[list[PixelData]] = None) -> int:
+    def add_row(self, at_index: int = -1, contents: Optional[list[PixelData]] = None) -> int:
         """Add a row to this design, optionally at the specified index.
         
         Args:
@@ -163,9 +163,9 @@ class Design(PixelGrid):
         Returns:
             int: the index of the row added
         """
-        content = row_contents
-        if row_contents:
-            assert len(row_contents) == self.width(), f"{self.add_row.__qualname__}: given row contents is the wrong length -- expected length {self.width()} but got {len(row_contents)}"
+        content = contents
+        if contents:
+            assert len(contents) == self.width(), f"{self.add_row.__qualname__}: given row contents is the wrong length -- expected length {self.width()} but got {len(contents)}"
             pass
         else:
             content = self.__new_row()
@@ -182,7 +182,7 @@ class Design(PixelGrid):
         self.__height += 1
         return at_index
     
-    def add_column(self, at_index: int = -1, column_contents: Optional[list[PixelData]] = None) -> int:
+    def add_column(self, at_index: int = -1, contents: Optional[list[PixelData]] = None) -> int:
         """Add a column to this design, optionally at the specified index.
 
         Args:
@@ -191,9 +191,9 @@ class Design(PixelGrid):
         Returns:
             int: the index of the column added
         """
-        content = column_contents
-        if column_contents:
-            assert len(column_contents) == self.height(), f"{self.add_column.__qualname__}: given column contents is the wrong length -- expected length {self.height()} but got {len(column_contents)}"
+        content = contents
+        if contents:
+            assert len(contents) == self.height(), f"{self.add_column.__qualname__}: given column contents is the wrong length -- expected length {self.height()} but got {len(contents)}"
             pass
         else:
             content = [Design.default_pixel_data() for i in range(self.__height)]
