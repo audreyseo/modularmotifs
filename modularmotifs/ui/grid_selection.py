@@ -60,8 +60,8 @@ class GridSelection:
 
     def create_ui_buttons(self):
         # Create a frame at the top to hold the new buttons.
-        self.selection_frame = tk.Frame(self.root)
-        self.selection_frame.pack(side="top", pady=5)
+        self.selection_frame = tk.Frame(self.knit_window._controls_frame)
+        self.selection_frame.pack(side="left", pady=5)
 
         # "Select Mode" button activates grid selection.
         self.select_mode_button = tk.Button(

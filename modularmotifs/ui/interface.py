@@ -79,8 +79,8 @@ class KnitWindow(PixelWindow):
         # Add grid selection integration here:
         self.__grid_selector = GridSelection(self)
 
-        save_button = tk.Button(self._root, text="Save as Motif", command=lambda: save_as_motif(self))
-        save_button.pack(side="bottom", pady=5)
+        save_button = tk.Button(self._controls_frame, text="Save as Motif", command=lambda: save_as_motif(self))
+        save_button.pack(side="left", padx=10)
 
         # Starts the window
         self._root.mainloop()
@@ -358,7 +358,7 @@ class KnitWindow(PixelWindow):
         pass
 
     def _init_sizes(self) -> None:
-        sizes_frame = tk.Frame(self._root)
+        sizes_frame = tk.Frame(self._controls_frame)
         sizes_frame.pack(side="left", padx=10, fill="y")
 
         height_var = tk.StringVar()
@@ -368,11 +368,11 @@ class KnitWindow(PixelWindow):
         width_var.set(str(self.width()))
 
 
-        height_frame = tk.Frame(sizes_frame)
-        height_frame.pack()
-
         width_frame = tk.Frame(sizes_frame)
-        width_frame.pack()
+        width_frame.pack(side="left", padx=10)
+        
+        height_frame = tk.Frame(sizes_frame)
+        height_frame.pack(side="left")
 
         def refresher():
             if self._redo_enabled():
@@ -440,14 +440,14 @@ class KnitWindow(PixelWindow):
                 pass
             pass
         hlabel = tk.Label(height_frame, text="Height")
-        hspinbox = tk.Spinbox(height_frame, from_=1, to=MAX_HEIGHT, width=5, textvariable=height_var, command=height_handler)
-        hlabel.pack()
-        hspinbox.pack()
+        hspinbox = tk.Spinbox(height_frame, from_=1, to=MAX_HEIGHT, width=3, textvariable=height_var, command=height_handler)
+        hlabel.pack(side="left")
+        hspinbox.pack(side="left")
 
         wlabel = tk.Label(width_frame, text="Width")
-        wspinbox = tk.Spinbox(width_frame, from_=1, to=MAX_WIDTH, width=5, textvariable=width_var, command=width_handler)
-        wlabel.pack()
-        wspinbox.pack()
+        wspinbox = tk.Spinbox(width_frame, from_=1, to=MAX_WIDTH, width=3, textvariable=width_var, command=width_handler)
+        wlabel.pack(side="left")
+        wspinbox.pack(side="left")
 
         def height_entry_handler(e):
             self._root.focus()

@@ -36,6 +36,9 @@ class PixelWindow(abc.ABC):
         self._root = tk.Tk()
         self._root.title(self._WINDOW_TITLE)
         
+        self._controls_frame = tk.Frame(self._root)
+        self._controls_frame.pack()
+        
         self._pixel_frame = tk.Frame(self._root)
         self._pixel_frame.pack()
         
@@ -237,7 +240,7 @@ class PixelWindow(abc.ABC):
     def _init_history(self, undo_listener: Callable, redo_listener: Callable) -> None:
         # initialize buttons that deal with the history manipulation -- i.e., undo, redo
 
-        history_frame = tk.Frame(self._root)
+        history_frame = tk.Frame(self._controls_frame)
         history_frame.pack(side="left", padx=10, fill="y")
 
         # Create the buttons. They start out as being disabled because you haven't done anything to the designs...yet
