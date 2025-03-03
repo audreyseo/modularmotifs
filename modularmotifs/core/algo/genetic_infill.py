@@ -12,15 +12,78 @@ The fitness of a candidate is determined solely by the float cost via calculate_
 
 import random
 import copy
-from typing import List, Any
+from typing import List, Any, Iterable, Tuple, Generator
 
-from modularmotifs.core.design import Design, PlacedMotif
-from modularmotifs.core.motif import Motif
+from modularmotifs.core.design import PlacedMotif
+from modularmotifs.core.pixel_grid import PixelGrid
+from modularmotifs.core.rgb_color import RGBColor
+from modularmotifs.core.motif import Motif, Color
 from modularmotifs.core.algo.calc_floats import calculate_float_lengths
 
-# Genetic Algorithm Infill Function
+DEFAULT_FORE: RGBColor = RGBColor.Fore() #RGBColor(0, 0, 0)
+DEFAULT_BACK: RGBColor = RGBColor.Back() #RGBColor(255, 255, 255)
+DEFAULT_INVIS: RGBColor = RGBColor.Invis() #RGBColor(128, 128, 128)
+
+class _Design(PixelGrid):
+    __height: int
+    __width: int
+    __canvas: list[list[Color]]
+
+    def __init__(self, height: int, width: int):
+        self.__height = height
+        self.__width = width
+        self.__canvas = [
+            self.__new_row()
+            for _ in range(self.__height)
+        ]
+        self.fore_color: RGBColor = DEFAULT_FORE
+        self.back_color: RGBColor = DEFAULT_BACK
+        self.invis_color: RGBColor = DEFAULT_INVIS
+
+    def __new_row(self) -> list[Color]:
+        return [_Design.default_pixel_data() for _ in range(self.__width)]
+    
+    @classmethod
+    def default_pixel_data(cls) -> Color:
+        return Color.INVIS
+
+    def width(self) -> int:
+        return self.__width
+    
+    def height(self) -> int:
+        return self.__height
+    
+    def get_rgb(self, x: int, y: int) -> RGBColor:
+        match self.get_color(x, y):
+            case Color.FORE:
+                return self.fore_color
+            case Color.BACK:
+                return self.back_color
+            case Color.INVIS:
+                return self.invis_color
+        raise ValueError("I don't know which color this is!")
+    
+    def add_motif(self, m: Motif, x: int, y: int):
+        for iy, row in enumerate(m):
+            for ix, col in enumerate(row):
+                self.__canvas[y + iy][x + ix] += col
+    
+    def complete(self) -> bool:
+        for row in self.__canvas:
+            for px in row:
+                if px.col == Color.INVIS:
+                    return False
+        return True
+
+    def get_color(self, x: int, y: int) -> Color:
+        return self.__canvas[y][x]
+    
+    def __iter__(self) -> Generator[Iterable[Tuple[Color, int, int]], None, None]:
+        for y in range(self.__height):
+            yield [(self.get_color(x, y), x, y) for x in range(self.__width)]
+
 def genetic_infill_region(
-    design: Design,
+    design: _Design,
     motifs_list: List[Motif],
     region_x: int,
     region_y: int,
@@ -78,6 +141,7 @@ def genetic_infill_region(
     # Candidate representation: dictionary with keys "offsets" and "grid".
     # "offsets": list of length num_rows, each in [0, max_offset].
     # "grid": list of lists with dimensions (num_rows x num_cols), each entry in [0, num_motifs-1].
+    # ""
     def random_candidate() -> dict:
         return {
             "offsets": [random.randint(0, max_offset) for _ in range(num_rows)],
@@ -86,7 +150,7 @@ def genetic_infill_region(
     
     def simulate(candidate: dict) -> Any:
         """Simulate candidate placement on a temporary design and return the float cost."""
-        temp_design = Design(region_height, region_width)
+        temp_design = _Design(region_height, region_width)
         try:
             for r in range(num_rows):
                 offset = candidate["offsets"][r]
@@ -99,17 +163,10 @@ def genetic_infill_region(
                         continue
                     temp_design.add_motif(motif_to_place, x, y)
             float_strands = calculate_float_lengths(temp_design, treat_invisible_as_bg=True)
-            cost = (sum(len(fs) ** 3 for fs in float_strands)) ** (1.0 / 3.0)
-            # cost = sum(len(fs) for fs in float_strands)
-            # color_grid = []
-            # for y in range(temp_design.height()):
-            #     row = []
-            #     for x in range(temp_design.width()):
-            #         row.append(temp_design.get_rgb(x, y))
-            #     color_grid.append(row)
-            # img = rgbcolors_to_image(color_grid, square_size=10)
-            # img.save(f"{id(candidate)}_test_genetic_infill_{cost}.png")
-        except Exception:
+            # We need an l_p norm for some p > 1 since sum of float lengths is "constant"
+            cost = (sum(len(fs) ** 5 for fs in float_strands)) ** (1.0 / 5.0)
+            # print(cost)
+        except Exception as e:
             cost = float("inf")
         return cost, temp_design
     
@@ -145,13 +202,13 @@ def genetic_infill_region(
     
     # Run genetic algorithm across generations.
     for g in range(generations):
-        print(g)
+        print(f"Generation {g}")
         scored = [(simulate(candidate)[0], candidate) for candidate in population]
         scored.sort(key=lambda x: x[0])
         if scored[0][0] < best_cost:
             best_cost = scored[0][0]
             best_candidate = copy.deepcopy(scored[0][1])
-        survivors = [ind for (_, ind) in scored[:pop_size // 2]]
+        survivors = [ind for (_, ind) in scored[:4]]
         new_population = []
         while len(new_population) < pop_size:
             parent1 = random.choice(survivors)
@@ -160,6 +217,7 @@ def genetic_infill_region(
             mutate(child)
             new_population.append(child)
         population = new_population
+        print(best_cost)
     
     if best_candidate is None:
         raise RuntimeError("No valid candidate found by the genetic algorithm.")
@@ -180,19 +238,18 @@ def genetic_infill_region(
 
 # region main
 if __name__ == "__main__":
-    from modularmotifs.motiflibrary.examples import motifs, bird_motifs
-    from modularmotifs.core.design import Design
+    from modularmotifs.motiflibrary.examples import bird_motifs, motifs
     from modularmotifs.core.util import rgbcolors_to_image
 
-    MOTIFS = bird_motifs
+    MOTIFS = motifs
 
     # Compile a list of motifs.
     motifs_list = list(MOTIFS.values())
     
     # Define design dimensions.
-    design_width = 80
-    design_height = 80
-    test_design = Design(design_height, design_width)
+    design_width = 24
+    design_height = 24
+    test_design = _Design(design_height, design_width)
     
     # Define the tiling region (entire design area).
     region_x = 0
@@ -204,7 +261,7 @@ if __name__ == "__main__":
     placed = genetic_infill_region(
         test_design, motifs_list,
         region_x, region_y, region_width, region_height,
-        pop_size=20, generations=10, mutation_rate=0.1
+        pop_size=100, generations=1, mutation_rate=0.05
     )
     
     # Convert design's color data to a 2D list of RGBColor objects.
@@ -220,3 +277,4 @@ if __name__ == "__main__":
     img.save("test_genetic_infill.png")
     print("Test genetic infill design saved to test_genetic_infill.png")
 
+# endregion
