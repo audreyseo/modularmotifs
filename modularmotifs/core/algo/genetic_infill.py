@@ -1,34 +1,33 @@
 """Genetic algorithm for infilling a rectangular region with motifs.
 
 We optimizes the placement of multiple motifs over a given region using GA. 
-We assumes that all motifs in the provided list have identical dimensions. 
 The region is divided into a grid where each cell hosts one full motif.
-Each candidate solution encodes two components:
-  - offsets: a list of horizontal shifts (one per grid row), and 
-  - grid: a 2D list (rows x columns) indicating which motif to place in each cell.
 
-The fitness of a candidate is determined solely by the float cost via calculate_float_lengths
+The fitness of a candidate is currently determined solely by the float cost via calculate_float_lengths
 """
 
 import random
 import copy
 from typing import List, Any, Iterable, Tuple, Generator
 
-from modularmotifs.core.design import PlacedMotif
+from modularmotifs.core.design import PlacedMotif, MotifOverlapException
+from modularmotifs.core.util import design2png, motif2png
 from modularmotifs.core.pixel_grid import PixelGrid
 from modularmotifs.core.rgb_color import RGBColor
-from modularmotifs.core.motif import Motif, Color
+from modularmotifs.core.motif import Motif, Color, ColorOverflowException
 from modularmotifs.core.algo.calc_floats import calculate_float_lengths
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 
 DEFAULT_FORE: RGBColor = RGBColor.Fore() #RGBColor(0, 0, 0)
 DEFAULT_BACK: RGBColor = RGBColor.Back() #RGBColor(255, 255, 255)
 DEFAULT_INVIS: RGBColor = RGBColor.Invis() #RGBColor(128, 128, 128)
 
-class _Design(PixelGrid):
-    __height: int
-    __width: int
-    __canvas: list[list[Color]]
 
+# region _Design class
+# Adding a knockoff Design class since the set() operations
+# in Design is massively impacting performance
+class _Design(PixelGrid):
     def __init__(self, height: int, width: int):
         self.__height = height
         self.__width = width
@@ -63,15 +62,34 @@ class _Design(PixelGrid):
                 return self.invis_color
         raise ValueError("I don't know which color this is!")
     
-    def add_motif(self, m: Motif, x: int, y: int):
-        for iy, row in enumerate(m):
-            for ix, col in enumerate(row):
-                self.__canvas[y + iy][x + ix] += col
+    def add_motif(self, m: Motif, x: int, y: int) -> PlacedMotif:
+        changed_pixels = []
+        try:
+            for iy, row in enumerate(m):
+                for ix, col in enumerate(row):
+                    pos = (y + iy, x + ix)
+                    orig = self.__canvas[y + iy][x + ix]
+                    changed_pixels.append((pos, orig))
+                    self.__canvas[y + iy][x + ix] += col
+            return PlacedMotif(x, y, m)
+        except ColorOverflowException:
+            for (j, i), orig in changed_pixels:
+                self.__canvas[j][i] = orig
+            raise MotifOverlapException
     
+    # def remove_motif(self, p: PlacedMotif) -> list[tuple[int, int]]:
+    #     removed_positions: list[tuple[int, int]] = []
+    #     for iy, row in enumerate(p.motif()):
+    #         for ix, col in enumerate(row):
+    #             print("Color: ", self.__canvas[p.y() + iy][p.x() + ix], col, "Pos: ",p.x() + ix ,p.y() + iy)
+    #             self.__canvas[p.y() + iy][p.x() + ix] -= col
+    #             removed_positions.append((p.y() + iy, p.x() + ix))
+    #     return removed_positions
+
     def complete(self) -> bool:
         for row in self.__canvas:
-            for px in row:
-                if px.col == Color.INVIS:
+            for col in row:
+                if col == Color.INVIS:
                     return False
         return True
 
@@ -82,6 +100,189 @@ class _Design(PixelGrid):
         for y in range(self.__height):
             yield [(self.get_color(x, y), x, y) for x in range(self.__width)]
 
+    def canvas(self):
+        return self.__canvas
+    
+# endregion
+
+# region Nonuniform infill
+def genetic_infill_region_nonuniform(
+    design: _Design,
+    motifs_list: List[Motif],
+    region_x: int,
+    region_y: int,
+    region_width: int,
+    region_height: int,
+    pop_size: int = 50,
+    generations: int = 100,
+    mutation_rate: float = 0.1
+) -> List[PlacedMotif]:
+    """
+    Infill a rectangular region in the design by selecting motifs from a provided list using a genetic algorithm, doesn't assume all motifs in the motifs_list have same dimensions, but nonetheless they
+    need to be square.
+    
+    The fitness is evaluated on a simulated design by placing the motifs as specified and computing
+    the float cost via calculate_float_lengths (sum of float strand lengths).
+    
+    Args:
+        design (Design): The Design object to update.
+        motifs_list (List[Motif]): List of available motifs.
+        region_x (int): x-coordinate of the region's top-left corner.
+        region_y (int): y-coordinate of the region's top-left corner.
+        region_width (int): Width of the region.
+        region_height (int): Height of the region.
+        pop_size (int): Population size for the genetic algorithm.
+        generations (int): Number of generations to run.
+        mutation_rate (float): Mutation probability.
+    
+    Returns:
+        List[PlacedMotif]: List of PlacedMotif instances added to the design for the best candidate.
+    
+    Raises:
+        ValueError: If the region is too small or no motifs are provided.
+    """
+    if not motifs_list:
+        raise ValueError("motifs_list is empty")
+
+    num_motifs = len(motifs_list)
+
+    # Candidate representation: A list of PlacedMotifwith random motif from motifs_list and xy position
+    # These isn't actually "placed", just using the PlacedMotif class as a container for (motif, x, y)
+    def random_candidate() -> tuple[list[PlacedMotif], _Design]:
+        temp_design = _Design(region_height, region_width)
+        candidate: list[PlacedMotif] = []
+        for y in range(region_height):
+            for x in range(region_width):
+                motifs_perm = random.sample(motifs_list, num_motifs)  # random order of motifs to try
+                for m in motifs_perm:
+                    if (
+                        x + m.width() > region_width
+                        or y + m.height() > region_height
+                    ):
+                        continue
+                    try:
+                        p = temp_design.add_motif(m, x, y)
+                    except MotifOverlapException:
+                        continue
+                    candidate.append(p)
+                    break
+        return candidate, temp_design
+    
+    def candidate2design(candidate: list[PlacedMotif]) -> _Design:
+        temp_design = _Design(region_height, region_width)
+        for m in candidate:
+            temp_design.add_motif(m.motif(), m.x(), m.y())
+        return temp_design
+    
+    def simulate(design: _Design) -> float:
+        float_strands = calculate_float_lengths(design, treat_invisible_as_bg=True)
+        # We need an l_p norm for some p > 1 since sum of float lengths is "constant"
+        cost = (sum(len(fs) ** 5 for fs in float_strands)) ** (1.0 / 5.0)
+        return cost
+    
+    def crossover(parent1: list[PlacedMotif], parent2: list[PlacedMotif]):
+        temp_design = _Design(region_height, region_width)
+        candidate: list[PlacedMotif] = []
+        for pm in random.sample(parent1 + parent2, len(parent1) + len(parent2)):
+            m = pm.motif()
+            x = pm.x()
+            y = pm.y()
+            try:
+                temp_design.add_motif(m, x, y)
+            except MotifOverlapException:
+                continue
+            candidate.append(PlacedMotif(x, y, m))
+        return candidate, temp_design
+
+    def mutate(candidate_design: tuple[list[PlacedMotif], _Design], mutation_rate: float = 0.1) -> tuple[list[PlacedMotif], _Design]:
+        # To mutate a candidate, loop through each PlacedMotif and roll a dice based
+        # on mutation_rate. If mutate, then remove the PlacedMotif from design
+        # and, loop through removed pixels to add random designs
+        new_placed_motifs: list[PlacedMotif] = []
+        temp_design = _Design(region_height, region_width)
+        for m in candidate_design[0]:
+            if random.random() > mutation_rate:  # don't mutate
+                try:
+                    temp_design.add_motif(m.motif(), m.x(), m.y())
+                except MotifOverlapException:
+                    continue
+                new_placed_motifs.append(m)
+                continue
+            else:
+                positions: list[tuple[int, int]] = []
+                for iy, row in enumerate(m.motif()):
+                    for ix, col in enumerate(row):
+                        positions.append((m.x() + ix, m.y() + iy))
+                for (x, y) in positions:
+                    motifs_perm = random.sample(motifs_list, num_motifs)
+                    for m_ in motifs_perm:
+                        if (
+                            x + m_.width() > region_width
+                            or y + m_.height() > region_height
+                        ):
+                            continue
+                        try: 
+                            p = temp_design.add_motif(m_, x, y)
+                        except MotifOverlapException:
+                            continue
+                        new_placed_motifs.append(p)
+                        break
+        return new_placed_motifs, temp_design
+    
+    population = [random_candidate() for _ in range(pop_size)]
+    best_candidate = None
+    best_cost = float("inf")
+
+    for g in range(generations):
+        print(f"Generation {g}")
+        scored = [(simulate(des), candidate, des) for candidate, des in population]
+        scored.sort(key=lambda x: x[0])
+        if scored[0][0] < best_cost:
+            best_cost = scored[0][0]
+            best_candidate = copy.deepcopy(scored[0][1])
+            best_design = copy.deepcopy(scored[0][2])
+        survivors = [ind for (_, ind, _) in scored[:25]]
+
+        # fig = Figure(figsize=(20, 50), layout="constrained")
+        # axs = fig.subplots(10, 4, squeeze=False)
+
+        i = 0
+        new_population: list[tuple[list[PlacedMotif], _Design]] = []
+        while len(new_population) < pop_size:
+            parent1 = random.choice(survivors)
+            parent2 = random.choice(survivors)
+            child = crossover(parent1, parent2)
+            mutated_child = mutate(child, mutation_rate=mutation_rate)
+            # if i < 10:
+            #     axs[i, 0].imshow(design2png(candidate2design(parent1)))
+            #     axs[i, 0].set_title("parent1")
+            #     axs[i, 0].axis("off")
+            #     axs[i, 1].imshow(design2png(candidate2design(parent2)))
+            #     axs[i, 1].axis("off")
+            #     axs[i, 1].set_title("parent2")
+            #     axs[i, 2].imshow(design2png(child[1]))
+            #     axs[i, 2].axis("off")
+            #     axs[i, 2].set_title("child")
+            #     axs[i, 3].imshow(design2png(mutated_child[1]))
+            #     axs[i, 3].axis("off")
+            #     axs[i, 3].set_title("monster")
+            i += 1
+            new_population.append(mutated_child)
+        population = new_population
+        # print(best_cost)
+        # fig.savefig(f"mating{g:04d}.png")
+        # plt.close()
+        # img = design2png(best_design)
+        # img.save(f"test_genetic_infill{g:04d}.png")
+    
+    if best_candidate is None:
+        raise RuntimeError("No valid candidate found by the genetic algorithm.")
+        
+    return best_candidate
+# endregion
+
+
+# region Uniform infill
 def genetic_infill_region(
     design: _Design,
     motifs_list: List[Motif],
@@ -106,7 +307,7 @@ def genetic_infill_region(
     the float cost via calculate_float_lengths (sum of float strand lengths).
     
     Args:
-        design (Design): The Design object to update.
+        design (Design): The _Design object to update.
         motifs_list (List[Motif]): List of available motifs.
         region_x (int): x-coordinate of the region's top-left corner.
         region_y (int): y-coordinate of the region's top-left corner.
@@ -235,9 +436,14 @@ def genetic_infill_region(
             placed_motifs.append(placed)
     
     return placed_motifs
+# endregion
+
+
+
 
 # region main
 if __name__ == "__main__":
+    # Test
     from modularmotifs.motiflibrary.examples import bird_motifs, motifs
     from modularmotifs.core.util import rgbcolors_to_image
 
@@ -258,22 +464,17 @@ if __name__ == "__main__":
     region_height = design_height
     
     # Run the genetic algorithm based infill.
-    placed = genetic_infill_region(
+    placed = genetic_infill_region_nonuniform(
         test_design, motifs_list,
         region_x, region_y, region_width, region_height,
-        pop_size=100, generations=1, mutation_rate=0.05
+        pop_size=100, generations=50, mutation_rate=0.05
     )
+
+    for i, pm in enumerate(placed):
+        test_design.add_motif(pm.motif(), region_x + pm.x(), region_y + pm.y())
     
-    # Convert design's color data to a 2D list of RGBColor objects.
-    color_grid = []
-    for y in range(test_design.height()):
-        row = []
-        for x in range(test_design.width()):
-            row.append(test_design.get_rgb(x, y))
-        color_grid.append(row)
     
-    # Export the design to a PNG image with each design "pixel" scaled up.
-    img = rgbcolors_to_image(color_grid, square_size=10)
+    img = design2png(test_design)
     img.save("test_genetic_infill.png")
     print("Test genetic infill design saved to test_genetic_infill.png")
 
