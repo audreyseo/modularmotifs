@@ -245,15 +245,22 @@ class KnitWindow(PixelWindow):
         pass
 
     def _init_motifs(self) -> None:
-        motifs_frame = tk.Frame(self._root)
-        motifs_frame.pack(side="right", padx=10, fill="y")
+        # motifs_frame = tk.Frame(self._root)
+        # motifs_frame.pack(side="right", padx=10, fill="y")
 
-        canvas = tk.Canvas(motifs_frame)
-        canvas.pack(side="left", fill="both", expand=True)
+        canvas = tk.Canvas(self._library_frame)
+        
+        # canvas.pack(side="left", fill="y")
+        canvas.grid(row=0, column=0, sticky=tk.N + tk.S + tk.E + tk.W)
+        # canvas.configure(borderwidth=3, relief="raised")
 
-        scrollbar = tk.Scrollbar(motifs_frame, orient="vertical", command=canvas.yview)
-        scrollbar.pack(side="right", fill="y")
+        scrollbar = tk.Scrollbar(self._library_frame, orient="vertical", command=canvas.yview)
+        # scrollbar.pack(side="left", fill="y")
+        scrollbar.grid(row=0, column=1, sticky=tk.N + tk.S)
+        # scrollbar.configure(borderwidth=4, relief="raised")
         canvas.configure(yscrollcommand=scrollbar.set)
+        print(canvas.grid_info())
+        print(scrollbar.grid_info())
 
         inner_frame = tk.Frame(canvas)
         canvas.create_window((0, 0), window=inner_frame, anchor="nw")
@@ -261,6 +268,8 @@ class KnitWindow(PixelWindow):
             "<Configure>",
             lambda event: canvas.configure(scrollregion=canvas.bbox("all")),
         )
+        canvas.configure(width=160)
+        # inner_frame.configure(borderwidth=4, relief="raised")
 
         self._motif_images = []
 
@@ -278,11 +287,13 @@ class KnitWindow(PixelWindow):
 
             return handle
 
+        row = 0
         for motif_name, motif in self._program_builder._motifs.items():
             pil_image = motif2png(motif)
-            scaling = 150 // pil_image.width
+            scaling = 150 / pil_image.width
+            newwidth = 150
             pil_image = pil_image.resize(
-                (pil_image.width * scaling, pil_image.height * scaling),
+                (newwidth, int(pil_image.height * scaling)),
                 resample=Image.NEAREST,
             )
             motif_thumbnail = ImageTk.PhotoImage(pil_image)
@@ -292,6 +303,8 @@ class KnitWindow(PixelWindow):
                 inner_frame, image=motif_thumbnail, borderwidth=1, relief="solid"
             )
             motif_label.pack(pady=5, padx=5)
+            # motif_label.grid(row=row, column=0)
+            row += 1
 
             motif_label.bind("<Button-1>", pick_motif_listener(motif_name, motif, motif_label))
 
