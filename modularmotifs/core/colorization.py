@@ -1,4 +1,4 @@
-from modularmotifs.core.design import RGBColor
+from modularmotifs.core.design import RGBAColor
 from modularmotifs.core.design import Design, Color, Motif
 from modularmotifs.core.util import rgbcolors_to_image
 import abc
@@ -11,9 +11,9 @@ class Colorization(abc.ABC):
     # the design that this colorization colorizes
     _d: Design
     # the colors that this colorization uses
-    _colors: list[RGBColor]
+    _colors: list[RGBAColor]
 
-    def __init__(self, d: Design, colors: list[RGBColor]):
+    def __init__(self, d: Design, colors: list[RGBAColor]):
         self._d = d
         self._colors = colors
         pass
@@ -24,7 +24,7 @@ class Colorization(abc.ABC):
     #     return self
 
     @abc.abstractmethod
-    def get_color(self, x: int, y: int) -> RGBColor:
+    def get_color(self, x: int, y: int) -> RGBAColor:
         assert self._d.in_range(x, y), f"{self.get_color.__qualname__}: coordinates ({x}, {y}) out of range of design {d}"
         pass
 
@@ -43,10 +43,10 @@ class TwoColorsPerRow(Colorization):
     """
     # print(__qualname__)
     # the colors for each row
-    _foreground: list[RGBColor]
-    _background: list[RGBColor]
+    _foreground: list[RGBAColor]
+    _background: list[RGBAColor]
 
-    def __init__(self, d: Design, colors: list[RGBColor]):
+    def __init__(self, d: Design, colors: list[RGBAColor]):
         super().__init__(d, colors)
         h = d.height()
         # Initialize the foreground and background lists to be length h, one fg/bg color per row
@@ -54,9 +54,9 @@ class TwoColorsPerRow(Colorization):
         self._background = [ None for _ in range(h) ]
         pass
 
-    def set_fg(self, row: int, c: Union[int, RGBColor]) -> Self:
+    def set_fg(self, row: int, c: Union[int, RGBAColor]) -> Self:
         assert 0 <= row < self._d.height(), f"{self.set_fg.__qualname__}: row {row} is out of range of design {d}"
-        assert isinstance(c, RGBColor) or 0 <= c < len(self._colors), f"{self.set_fg.__qualname__}: color index {c} is out of range of color list {self._colors}"
+        assert isinstance(c, RGBAColor) or 0 <= c < len(self._colors), f"{self.set_fg.__qualname__}: color index {c} is out of range of color list {self._colors}"
 
         if isinstance(c, int):
             self._foreground[row] = colors[c]
@@ -65,9 +65,9 @@ class TwoColorsPerRow(Colorization):
             self._foreground[row] = c
         return self
 
-    def set_bg(self, row: int, c: Union[int, RGBColor]) -> Self:
+    def set_bg(self, row: int, c: Union[int, RGBAColor]) -> Self:
         assert 0 <= row < self._d.height(), f"{self.set_bg.__qualname__}: row {row} is out of range of design {d}"
-        assert isinstance(c, RGBColor) or 0 <= c < len(self._colors), f"{self.set_bg.__qualname__}: color index {c} is out of range of color list {self._colors}"
+        assert isinstance(c, RGBAColor) or 0 <= c < len(self._colors), f"{self.set_bg.__qualname__}: color index {c} is out of range of color list {self._colors}"
 
         if isinstance(c, int):
             self._background[row] = colors[c]
@@ -77,7 +77,7 @@ class TwoColorsPerRow(Colorization):
             pass
         return self
 
-    def set(self, row: int, fg: Union[int, RGBColor], bg: Union[int, RGBColor]) -> Self:
+    def set(self, row: int, fg: Union[int, RGBAColor], bg: Union[int, RGBAColor]) -> Self:
         return self.set_fg(row, fg).set_bg(row, bg)
 
     
@@ -86,7 +86,7 @@ class TwoColorsPerRow(Colorization):
         # need two colors per row
         return len(self._foreground) == self._d.height() and len(self._background) == self._d.height() and all(fg is not None for fg in self._foreground) and all(bg is not None for bg in self._background)
 
-    def get_color(self, x: int, y: int) -> RGBColor:
+    def get_color(self, x: int, y: int) -> RGBAColor:
         super().get_color(x, y)
         
         c = self._d.get_color(x, y)
@@ -103,7 +103,7 @@ class TwoColorsPerRow(Colorization):
     #     img = Image.new
 
 
-    def __iter__(self) -> Generator[Tuple[RGBColor, RGBColor], None, None]:
+    def __iter__(self) -> Generator[Tuple[RGBAColor, RGBAColor], None, None]:
         assert len(self._foreground) == len(self._background), f"{self.__iter__.__qualname__}: foreground and background list lengths should be the same, but they differ: {len(self._foreground)} vs. {len(self._background)}"
         for i in range(len(self._foreground)):
             yield (self._foreground[i], self._background[i])

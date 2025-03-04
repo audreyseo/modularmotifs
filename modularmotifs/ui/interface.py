@@ -8,7 +8,7 @@ from PIL import ImageTk, Image
 
 # import saved_motifs
 from modularmotifs.core.design import Design, MotifOverlapException
-from modularmotifs.core import RGBColor
+from modularmotifs.core import RGBAColor
 from modularmotifs.core.motif import Motif
 from modularmotifs.core.util import motif2png
 from modularmotifs.motiflibrary.examples import motifs
@@ -224,7 +224,7 @@ class KnitWindow(PixelWindow):
 
     def _init_colors(self) -> None:
         """Initializes the color viewer and picker at the bottom"""
-        colors: list[RGBColor] = [
+        colors: list[RGBAColor] = [
             self.__design.fore_color,
             self.__design.back_color,
             self.__design.invis_color,

@@ -207,12 +207,12 @@ if __name__ == "__main__":
         pop_size=20, generations=10, mutation_rate=0.1
     )
     
-    # Convert design's color data to a 2D list of RGBColor objects.
+    # Convert design's color data to a 2D list of RGBAColor objects.
     color_grid = []
     for y in range(test_design.height()):
         row = []
         for x in range(test_design.width()):
-            row.append(test_design.get_rgb(x, y))
+            row.append(test_design.get_rgba(x, y))
         color_grid.append(row)
     
     # Export the design to a PNG image with each design "pixel" scaled up.
