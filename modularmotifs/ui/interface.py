@@ -4,7 +4,7 @@ import tkinter as tk
 from typing import Any, List, Optional
 from PIL import ImageTk, Image
 
-from modularmotifs.core.design import Design, MotifOverlapException, RGBColor
+from modularmotifs.core.design import Design, MotifOverlapException, RGBAColor
 from modularmotifs.core.motif import Motif
 from modularmotifs.core.util import motif2png
 from modularmotifs.motiflibrary.examples import motifs
@@ -120,7 +120,7 @@ class KnitWindow:
         """Queries the Design for new colors and displays them"""
         for y, row in enumerate(self.__cells):
             for x, cell in enumerate(row):
-                cell.config(bg=self.__design.get_rgb(x, y).hex())
+                cell.config(bg=self.__design.get_rgba(x, y).hex())
 
     def __init_pixels(self) -> None:
         """Initializes the array of visible pixels from the
@@ -178,7 +178,7 @@ class KnitWindow:
         palette_frame = tk.Frame(self.__root)
         palette_frame.pack(side="bottom", pady=10)
 
-        colors: list[RGBColor] = [
+        colors: list[RGBAColor] = [
             self.__design.fore_color,
             self.__design.back_color,
             self.__design.invis_color,

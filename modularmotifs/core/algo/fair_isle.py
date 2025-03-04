@@ -4,7 +4,7 @@ https://en.wikipedia.org/wiki/Fair_Isle_(technique)
 """
 
 from modularmotifs.core import Design, Color, Motif, Colorization, TwoColorsPerRow
-from modularmotifs.core.design import RGBColor
+from modularmotifs.core.design import RGBAColor
 import random
 
 
@@ -15,7 +15,7 @@ def rowizable(d: Design) -> bool:
 
 def fair_isle_colorization(
     d: Design,
-    colors: list[RGBColor],
+    colors: list[RGBAColor],
     max_colors_per_row: int = 2,
     random_seed: int = None,
 ) -> Colorization:

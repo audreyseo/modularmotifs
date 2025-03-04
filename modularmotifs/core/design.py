@@ -111,21 +111,22 @@ class PixelData:
         return next(iter(self.__motifs))
 
 
-class RGBColor:
-    """Simple RGB [0, 255] triple"""
+class RGBAColor:
+    """Simple RGBA [0, 255] 4-tuple"""
 
-    def __init__(self, red: int, green: int, blue: int):
-        if max(red, green, blue) > 255:
-            raise ValueError("RGB coordinates must be less than 255!")
-        if min(red, green, blue) < 0:
-            raise ValueError("RGB coordinates must be greater than 0!")
+    def __init__(self, red: int, green: int, blue: int, alpha: int):
+        if max(red, green, blue, alpha) > 255:
+            raise ValueError("RGBA coordinates must be less than 255!")
+        if min(red, green, blue, alpha) < 0:
+            raise ValueError("RGBA coordinates must be greater than 0!")
         self.__red = red
         self.__blue = blue
         self.__green = green
+        self.__alpha = alpha
 
     def hex(self) -> str:
         """Returns the hex representation
-        (e.g., "#3300f2") of the color
+        (e.g., "#3300f2ff") of the color
 
         Returns:
             String: hex representation
@@ -133,14 +134,22 @@ class RGBColor:
         return "#" + "".join(
             [
                 hex(p).lstrip("0x").zfill(2)
-                for p in [self.__red, self.__blue, self.__green]
+                for p in [self.__red, self.__blue, self.__green, self.__alpha]
             ]
         )
 
+    def to_tuple(self) -> Tuple[int, int, int, int]:
+        """Converts to an (R, G, B, A) [0, 255] tuple
 
-DEFAULT_FORE: RGBColor = RGBColor(0, 0, 0)
-DEFAULT_BACK: RGBColor = RGBColor(255, 255, 255)
-DEFAULT_INVIS: RGBColor = RGBColor(128, 128, 128)
+        Returns:
+            Tuple[int, int, int, int]: Tuple representation
+        """
+        return (self.__red, self.__green, self.__blue, self.__alpha)
+
+
+DEFAULT_FORE: RGBAColor = RGBAColor(0, 0, 0, 255)
+DEFAULT_BACK: RGBAColor = RGBAColor(255, 255, 255, 255)
+DEFAULT_INVIS: RGBAColor = RGBAColor(128, 128, 128, 0)
 
 
 class Design:
@@ -160,9 +169,9 @@ class Design:
         ]
         self.__motifs = set()
 
-        self.fore_color: RGBColor = DEFAULT_FORE
-        self.back_color: RGBColor = DEFAULT_BACK
-        self.invis_color: RGBColor = DEFAULT_INVIS
+        self.fore_color: RGBAColor = DEFAULT_FORE
+        self.back_color: RGBAColor = DEFAULT_BACK
+        self.invis_color: RGBAColor = DEFAULT_INVIS
 
     def width(self) -> int:
         """Getter
@@ -262,15 +271,15 @@ class Design:
         """
         return self.__canvas[y][x].col()
 
-    def get_rgb(self, x: int, y: int) -> RGBColor:
-        """Get the RGB color at some point.
+    def get_rgba(self, x: int, y: int) -> RGBAColor:
+        """Get the RGBA color at some point.
 
         Args:
             x (int): x coordinate, from left
             y (int): y coordinate, from top
 
         Returns:
-            RGBColor: RGB color at this point
+            RGBAColor: RGBA color at this point
         """
         match self.get_color(x, y):
             case Color.FORE:
