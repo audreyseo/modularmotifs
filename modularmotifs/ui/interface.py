@@ -48,15 +48,15 @@ DEFAULT_MOTIFS: list[Motif] = list(motifs.values())
 class KnitWindow(PixelWindow):
     """Main window to fill out a design"""
 
-    def __init__(self) -> None:
-        self.__design: Design = Design(GRID_HEIGHT, GRID_WIDTH)
+    def __init__(self, design=None, title=None, save_as_motif: bool = True, program_builder=None) -> None:
+        self._design: Design = design or Design(GRID_HEIGHT, GRID_WIDTH)
 
-        super().__init__(MAX_WIDTH, MAX_HEIGHT, TKINTER_OFFSET, WINDOW_TITLE, self.__design)
+        super().__init__(MAX_WIDTH, MAX_HEIGHT, TKINTER_OFFSET, title or WINDOW_TITLE, self._design)
         self._selected_motif: Optional[tuple[str, Motif]] = None
         self._selected_motif_button = None
 
 
-        self._program_builder: DesignProgramBuilder = DesignProgramBuilder(self.__design)
+        self._program_builder: DesignProgramBuilder = program_builder or DesignProgramBuilder(self._design)
         self._program_builder.add_modularmotifs_motif_library()
         self._motifs: dict[Motif] = motifs
         self._interpreter: DesignInterpreter = self._program_builder.get_interpreter()
@@ -78,9 +78,10 @@ class KnitWindow(PixelWindow):
 
         # Add grid selection integration here:
         self.__grid_selector = GridSelection(self)
-
-        save_button = tk.Button(self._controls_frame, text="Save as Motif", command=lambda: save_as_motif(self))
-        save_button.pack(side="left", padx=10)
+        if save_as_motif:
+            save_button = tk.Button(self._controls_frame, text="Save as Motif", command=lambda: save_as_motif(self))
+            save_button.pack(side="left", padx=10)
+            pass
 
         # Starts the window
         self._root.mainloop()
@@ -88,8 +89,8 @@ class KnitWindow(PixelWindow):
     def _init_underlying(self, dpb: DesignProgramBuilder, interp: DesignInterpreter):
         self._program_builder = dpb
         self._interpreter = interp
-        self.__design = interp.design
-        self._pixel_grid = self.__design
+        self._design = interp.design
+        self._pixel_grid = self._design
     
     def _init_save(self) -> Callable:
         def save_handler(e):
@@ -167,8 +168,8 @@ class KnitWindow(PixelWindow):
                 # self._program_builder = dpb
                 # print(dpb.to_python())
                 # self._intepreter = interp
-                # self.__design = interp.design
-                # self._pixel_grid = self.__design
+                # self._design = interp.design
+                # self._pixel_grid = self._design
                 
                 # add rows and columns
                 self._adjust_width_height()
@@ -207,7 +208,7 @@ class KnitWindow(PixelWindow):
                             pass
 
 
-                        # self.__design.add_motif(self._selected_motif, col, row)
+                        # self._design.add_motif(self._selected_motif, col, row)
                         self._refresh_pixels()
                     except MotifOverlapException:
                         self.error("Placed motif overlaps with something else!")
@@ -225,9 +226,9 @@ class KnitWindow(PixelWindow):
     def _init_colors(self) -> None:
         """Initializes the color viewer and picker at the bottom"""
         colors: list[RGBColor] = [
-            self.__design.fore_color,
-            self.__design.back_color,
-            self.__design.invis_color,
+            self._design.fore_color,
+            self._design.back_color,
+            self._design.invis_color,
         ]
         buttons = super()._init_colors(colors)
 
@@ -405,7 +406,7 @@ class KnitWindow(PixelWindow):
                 for i in range(dheight - 1, h-1, -1):
                     op = self._program_builder.remove_row(i)
                     self._interpreter.interpret(op)
-                    # self.__design.remove_row()
+                    # self._design.remove_row()
                     self._remove_row(i,
                                     remove_labels=self.height() == dheight - 1,
                                     add_labels=h == self.height())
@@ -413,7 +414,7 @@ class KnitWindow(PixelWindow):
                 pass
             elif h > dheight:
                 for i in range(dheight, h):
-                    # self.__design.add_row()
+                    # self._design.add_row()
                     op = self._program_builder.add_row()
                     self._interpreter.interpret(op)
                     self._add_row(i,
@@ -428,10 +429,10 @@ class KnitWindow(PixelWindow):
         def width_handler():
             print("Width: " + self._width_var.get())
             w = int(self._width_var.get())
-            dwidth = self.__design.width()
+            dwidth = self._design.width()
             if w < dwidth:
                 for i in range(dwidth - 1, w-1, -1):
-                    # self.__design.remove_column()
+                    # self._design.remove_column()
                     op = self._program_builder.remove_column(i)
                     print(op)
                     self._interpreter.interpret(op)
@@ -441,7 +442,7 @@ class KnitWindow(PixelWindow):
                 pass
             elif w > dwidth:
                 for i in range(dwidth, w):
-                    # self.__design.add_column()
+                    # self._design.add_column()
                     op = self._program_builder.add_column()
                     print(op)
                     self._interpreter.interpret(op)
