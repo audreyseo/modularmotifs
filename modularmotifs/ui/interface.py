@@ -11,14 +11,15 @@ from modularmotifs.core.design import Design, MotifOverlapException
 from modularmotifs.core import RGBColor
 from modularmotifs.core.motif import Motif
 from modularmotifs.core.util import motif2png
-from modularmotifs.motiflibrary.examples import motifs
+from modularmotifs.motiflibrary.examples import motifs, int_lol_to_motif
+from modularmotifs.motiflibrary.saved_motifs import saved_motifs
 
 from modularmotifs.ui.motif_saver import save_as_motif
 from modularmotifs.ui.grid_selection import GridSelection
 from modularmotifs.ui.grid_labels import GridLabels
 
 from modularmotifs.dsl import DesignProgramBuilder, DesignInterpreter, parse
-from modularmotifs.dsl._syntax import SizeOp, AddColumn, RemoveColumn, AddRow, RemoveRow
+from modularmotifs.dsl._syntax import SizeOp, AddColumn, RemoveColumn, AddRow, RemoveRow, Literal
 
 
 from modularmotifs.ui.pixel_window import PixelWindow
@@ -44,11 +45,57 @@ CELL_SIZE: int = 20
 
 DEFAULT_MOTIFS: list[Motif] = list(motifs.values())
 
+def trim_empty_rows_both(motif_data: list[list[int]]) -> list[list[int]]:
+    """
+    Remove any rows at the top or bottom that are entirely 'invisible' (all values equal to 3).
+    """
+    if not motif_data:
+        return motif_data
+    first = None
+    last = None
+    for i, row in enumerate(motif_data):
+        if any(val != 3 for val in row):
+            if first is None:
+                first = i
+            last = i
+    if first is None:
+        return []  # All rows are empty
+    return motif_data[first:last+1]
+
+
+def trim_empty_columns_both(motif_data: list[list[int]]) -> list[list[int]]:
+    """
+    Remove any columns at the left or right that are entirely 'invisible' (all values equal to 3).
+    """
+    if not motif_data or not motif_data[0]:
+        return motif_data
+    first = None
+    last = None
+    num_cols = len(motif_data[0])
+    for j in range(num_cols):
+        if any(row[j] != 3 for row in motif_data):
+            if first is None:
+                first = j
+            last = j
+    if first is None:
+        return motif_data
+    return [row[first:last+1] for row in motif_data]
+
+
+def clean_motif_data(motif_data: list[list[int]]) -> list[list[int]]:
+    """
+    Cleans the motif data by trimming any leading and trailing rows and columns that are entirely invisible.
+    """
+    data = trim_empty_rows_both(motif_data)
+    data = trim_empty_columns_both(data)
+    return data
+
 
 class KnitWindow(PixelWindow):
     """Main window to fill out a design"""
 
     def __init__(self) -> None:
+        self._motif_images = []  # Initialize the attribute here
         self.__design: Design = Design(GRID_HEIGHT, GRID_WIDTH)
 
         super().__init__(MAX_WIDTH, MAX_HEIGHT, TKINTER_OFFSET, WINDOW_TITLE, self.__design)
@@ -58,6 +105,16 @@ class KnitWindow(PixelWindow):
 
         self._program_builder: DesignProgramBuilder = DesignProgramBuilder(self.__design)
         self._program_builder.add_modularmotifs_motif_library()
+
+        # --- New code: Load saved motifs into the design program builder ---
+        # For each saved motif, clean and convert it, then register it as a DSL literal.
+        for saved_name, saved_data in saved_motifs.items():
+            cleaned_data = clean_motif_data(saved_data)
+            motif_obj = int_lol_to_motif(cleaned_data)
+            # Wrap the motif in a Literal so that the DSL interpreter can evaluate it.
+            self._program_builder._motif_name_to_expr[saved_name] = Literal(motif_obj)
+        # ---------------------------------------------------------------------
+
         self._motifs: dict[Motif] = motifs
         self._interpreter: DesignInterpreter = self._program_builder.get_interpreter()
 
@@ -79,18 +136,55 @@ class KnitWindow(PixelWindow):
         # Add grid selection integration here:
         self.__grid_selector = GridSelection(self)
 
-        save_button = tk.Button(self._controls_frame, text="Save as Motif", command=lambda: save_as_motif(self))
+        save_button = tk.Button(self._root, text="Save as Motif", command=lambda: save_as_motif(self, self._refresh_motif_library))
+
         save_button.pack(side="left", padx=10)
 
         # Starts the window
         self._root.mainloop()
-        
+
+    def _populate_motif_buttons(self, parent_frame):
+        """Populate the motif buttons inside the given frame without affecting the window location."""
+        def pick_motif_listener(motif_name: str, motif: Motif, motif_button):
+            def handle(_):
+                if self._selected_motif_button is not None:
+                    KnitWindow.deselect(self._selected_motif_button)
+                if self._selected_motif == motif:
+                    self._selected_motif = None
+                    self._selected_motif_button = None
+                else:
+                    self._selected_motif_button = motif_button
+                    self._selected_motif = (motif_name, motif)
+                    KnitWindow.select(self._selected_motif_button)
+            return handle
+
+        merged_motifs = self._program_builder._motifs.copy()
+
+        for motif_name, motif_data in merged_motifs.items():
+            if isinstance(motif_data, list):
+                cleaned_data = clean_motif_data(motif_data)
+                motif_obj = int_lol_to_motif(cleaned_data)
+            else:
+                motif_obj = motif_data
+
+            pil_image = motif2png(motif_obj)
+            scaling = 150 // pil_image.width
+            pil_image = pil_image.resize((pil_image.width * scaling, pil_image.height * scaling), resample=Image.NEAREST)
+            motif_thumbnail = ImageTk.PhotoImage(pil_image)
+            self._motif_images.append(motif_thumbnail)
+
+            motif_label = tk.Label(parent_frame, image=motif_thumbnail, borderwidth=1, relief="solid")
+            motif_label.pack(pady=5, padx=5)
+            motif_label.bind("<Button-1>", pick_motif_listener(motif_name, motif_obj, motif_label))
+
+
+
     def _init_underlying(self, dpb: DesignProgramBuilder, interp: DesignInterpreter):
         self._program_builder = dpb
         self._interpreter = interp
         self.__design = interp.design
         self._pixel_grid = self.__design
-    
+
     def _init_save(self) -> Callable:
         def save_handler(e):
             if not self._current_file_name:
@@ -110,12 +204,12 @@ class KnitWindow(PixelWindow):
                 pass
             pass
         return save_handler
-    
-    
+
+
     def _adjust_width_height(self):
         w = int(self._width_var.get())
         h = int(self._height_var.get())
-        
+
         if w < self.width():
             while w < self.width():
                 self._add_column(at_index=w)
@@ -128,7 +222,7 @@ class KnitWindow(PixelWindow):
                 w -= 1
                 pass
             pass
-        
+
         if h < self.height():
             while h < self.height():
                 self._add_row(at_index=h)
@@ -141,12 +235,12 @@ class KnitWindow(PixelWindow):
                 h -= 1
                 pass
             pass
-        
-        
+
+
         self._width_var.set(str(self.width()))
         self._height_var.set(str(self.height()))
-        
-        
+
+
     def _init_open(self) -> Callable:
         def open_handler(e):
             ftypes = [('Python files', '*.py'), ('All files', '*')]
@@ -156,11 +250,11 @@ class KnitWindow(PixelWindow):
                 self._current_file_name = os.path.abspath(str(f.name))
                 pass
             f.close()
-            
+
             # TODO: Actually open the file
             print("Opened file:")
             print(text)
-            
+
             try:
                 dpb, interp = parse(text)
                 self._init_underlying(dpb, interp)
@@ -169,10 +263,10 @@ class KnitWindow(PixelWindow):
                 # self._intepreter = interp
                 # self.__design = interp.design
                 # self._pixel_grid = self.__design
-                
+
                 # add rows and columns
                 self._adjust_width_height()
-                
+
                 # now refresh the display
                 self._refresh_pixels()
                 pass
@@ -181,7 +275,7 @@ class KnitWindow(PixelWindow):
                 pass
             pass
         return open_handler
-                
+
 
 
     def _init_pixels(self) -> None:
@@ -245,33 +339,25 @@ class KnitWindow(PixelWindow):
         pass
 
     def _init_motifs(self) -> None:
-        # motifs_frame = tk.Frame(self._root)
-        # motifs_frame.pack(side="right", padx=10, fill="y")
+        """Initialize the motif selection panel."""
+        self._motifs_frame = tk.Frame(self._root)
+        self._motifs_frame.pack(side="right", padx=10, fill="y")
 
-        canvas = tk.Canvas(self._library_frame)
-        
-        # canvas.pack(side="left", fill="y")
-        canvas.grid(row=0, column=0, sticky=tk.N + tk.S + tk.E + tk.W)
-        # canvas.configure(borderwidth=3, relief="raised")
+        self._motif_canvas = tk.Canvas(self._motifs_frame)
+        self._motif_canvas.pack(side="left", fill="both", expand=True)
 
-        scrollbar = tk.Scrollbar(self._library_frame, orient="vertical", command=canvas.yview)
-        # scrollbar.pack(side="left", fill="y")
-        scrollbar.grid(row=0, column=1, sticky=tk.N + tk.S)
-        # scrollbar.configure(borderwidth=4, relief="raised")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        print(canvas.grid_info())
-        print(scrollbar.grid_info())
+        scrollbar = tk.Scrollbar(self._motifs_frame, orient="vertical", command=self._motif_canvas.yview)
+        scrollbar.pack(side="right", fill="y")
+        self._motif_canvas.configure(yscrollcommand=scrollbar.set)
 
-        inner_frame = tk.Frame(canvas)
-        canvas.create_window((0, 0), window=inner_frame, anchor="nw")
-        inner_frame.bind(
-            "<Configure>",
-            lambda event: canvas.configure(scrollregion=canvas.bbox("all")),
-        )
-        canvas.configure(width=160)
-        # inner_frame.configure(borderwidth=4, relief="raised")
+        self._motif_inner_frame = tk.Frame(self._motif_canvas)
+        self._motif_canvas.create_window((0, 0), window=self._motif_inner_frame, anchor="nw")
 
-        self._motif_images = []
+        # Populate motif buttons using the new helper method.
+        self._populate_motif_buttons(self._motif_inner_frame)
+
+        self._motif_inner_frame.bind("<Configure>", lambda event: self._motif_canvas.configure(scrollregion=self._motif_canvas.bbox("all")))
+
 
         def pick_motif_listener(motif_name: str, motif: Motif, motif_button):
             def handle(_):
@@ -287,29 +373,66 @@ class KnitWindow(PixelWindow):
 
             return handle
 
-        row = 0
-        for motif_name, motif in self._program_builder._motifs.items():
-            pil_image = motif2png(motif)
-            scaling = 150 / pil_image.width
-            newwidth = 150
-            pil_image = pil_image.resize(
-                (newwidth, int(pil_image.height * scaling)),
-                resample=Image.NEAREST,
-            )
+        # Merge predefined motifs with saved motifs.
+        merged_motifs = self._program_builder._motifs.copy()
+
+        for motif_name, motif_data in merged_motifs.items():
+            if isinstance(motif_data, list):
+                cleaned_data = clean_motif_data(motif_data)
+                motif_obj = int_lol_to_motif(cleaned_data)
+            else:
+                motif_obj = motif_data
+            pil_image = motif2png(motif_obj)
+            scaling = 150 // pil_image.width
+            pil_image = pil_image.resize((pil_image.width * scaling, pil_image.height * scaling), resample=Image.NEAREST)
             motif_thumbnail = ImageTk.PhotoImage(pil_image)
             self._motif_images.append(motif_thumbnail)
 
-            motif_label = tk.Label(
-                inner_frame, image=motif_thumbnail, borderwidth=1, relief="solid"
-            )
+            motif_label = tk.Label(self._motif_inner_frame, image=motif_thumbnail, borderwidth=1, relief="solid")
+
             motif_label.pack(pady=5, padx=5)
-            # motif_label.grid(row=row, column=0)
-            row += 1
-
-            motif_label.bind("<Button-1>", pick_motif_listener(motif_name, motif, motif_label))
-
-            pass
+            motif_label.bind("<Button-1>", pick_motif_listener(motif_name, motif_obj, motif_label))
         pass
+
+    def _refresh_motif_library(self):
+        """Refresh the motif library to include newly saved motifs without changing window location."""
+        from importlib import reload
+        import modularmotifs.motiflibrary.saved_motifs as saved_motifs_module
+        reload(saved_motifs_module)
+        new_saved_motifs = saved_motifs_module.saved_motifs
+
+        # Update the motif dictionary
+        self._program_builder._motifs.update(new_saved_motifs)
+
+        # *** NEW CODE: Update the DSL mapping for saved motifs ***
+        for saved_name, saved_data in new_saved_motifs.items():
+            cleaned_data = clean_motif_data(saved_data)
+            motif_obj = int_lol_to_motif(cleaned_data)
+            self._program_builder._motif_name_to_expr[saved_name] = Literal(motif_obj)
+        # *** End of new code ***
+
+        # Find the canvas inside the motifs frame and its inner frame
+        for widget in self._motifs_frame.winfo_children():
+            if isinstance(widget, tk.Canvas):
+                canvas = widget
+                break
+        else:
+            return  # Exit if no canvas found
+
+        inner_frame = canvas.winfo_children()[0]
+
+        # Remove existing motif labels
+        for widget in inner_frame.winfo_children():
+            widget.destroy()
+
+        # Clear selected motif references
+        self._selected_motif = None
+        self._selected_motif_button = None
+
+        # Re-add motif buttons using the helper method
+        self._populate_motif_buttons(inner_frame)
+
+
 
     def _init_history(self) -> None:
         # initialize buttons that deal with the history manipulation -- i.e., undo, redo
@@ -383,7 +506,7 @@ class KnitWindow(PixelWindow):
 
         width_frame = tk.Frame(sizes_frame)
         width_frame.pack(side="left", padx=10)
-        
+
         height_frame = tk.Frame(sizes_frame)
         height_frame.pack(side="left")
 

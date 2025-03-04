@@ -1,7 +1,9 @@
 import os
 import datetime
 
-def save_as_motif(knit_window):
+from modularmotifs.motiflibrary.examples import int_lol_to_motif
+
+def save_as_motif(knit_window, callback=None):
     """
     Converts the currently selected grids into a motif and stores it in a Python file.
     The motifs are saved in a file named 'saved_motifs.py' as a dictionary variable
@@ -62,3 +64,6 @@ def save_as_motif(knit_window):
         f.write(repr(saved))
         f.write("\n")
     print(f"Saved motif '{motif_name}' to {saved_file}")
+        # New: Trigger UI refresh after saving
+    if callback:
+        callback()
