@@ -384,7 +384,7 @@ class Design(PixelGrid):
         return 0 <= x < self.__width and 0 <= y < self.__height
 
     def __repr__(self) -> str:
-        return f"Design({self.__width}, {self.__height})"
+        return f"{self.__class__.__name__}({self.__width}, {self.__height})"
 
     def __iter__(self) -> Generator[Iterable[Tuple[Color, int, int]], None, None]:
         """Iterate over the design in row-major order

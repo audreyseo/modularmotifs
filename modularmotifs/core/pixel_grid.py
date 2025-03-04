@@ -30,3 +30,7 @@ class PixelGrid(abc.ABC):
     @abc.abstractmethod
     def get_rgb(self, x: int, y: int) -> RGBColor:
         pass
+    pass
+
+# class EditablePixelGrid(PixelGrid):
+    # def set_pixel(self, )

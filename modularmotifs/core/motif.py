@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Iterable
 from modularmotifs.core.pixel_grid import PixelGrid
 from modularmotifs.core.rgb_color import RGBColor
+import abc
 
 class Color(Enum):
     """Colors are either foreground (black?),
@@ -109,6 +110,9 @@ def empty(lst: Iterable[Color]) -> bool:
     except ColorOverflowException:
         return False
 
+
+# class AbstractMotif(PixelGrid):
+#     pass
 
 class Motif(PixelGrid):
     """A motif is an immutable rectangle of Color.
