@@ -193,7 +193,7 @@ class GridSelection:
         selected_details = []
         for (col, row) in sorted(list(self.selected_coords)):
             # Get the effective RGB color at this grid cell.
-            cell_rgb = design.get_rgb(col, row)
+            cell_rgb = design.get_rgba(col, row)
             # Get the motif (if any) associated with this grid cell.
             cell_motif = design.get_motif(col, row)
             selected_details.append({

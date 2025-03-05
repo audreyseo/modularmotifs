@@ -1,6 +1,6 @@
 import abc
 from typing import Optional, Self
-from modularmotifs.core.rgb_color import RGBColor
+from modularmotifs.core.rgb_color import RGBAColor
 
 
 class PixelGrid(abc.ABC):
@@ -28,7 +28,7 @@ class PixelGrid(abc.ABC):
         return 0 <= x < self.width() and 0 <= y < self.height()
     
     @abc.abstractmethod
-    def get_rgb(self, x: int, y: int) -> RGBColor:
+    def get_rgba(self, x: int, y: int) -> RGBAColor:
         pass
     pass
 

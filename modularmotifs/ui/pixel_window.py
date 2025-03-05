@@ -1,7 +1,7 @@
 """Superclass of windows that support any kind of pixel editing"""
 import abc
 from modularmotifs.core.pixel_grid import PixelGrid
-from modularmotifs.core.rgb_color import RGBColor
+from modularmotifs.core.rgb_color import RGBAColor
 import tkinter as tk
 from typing import Any, Optional
 from collections.abc import Callable
@@ -163,7 +163,7 @@ class PixelWindow(abc.ABC):
         for y, row in enumerate(self._cells):
             for x, cell in enumerate(row):
                 if self._pixel_grid.in_range(x, y):
-                    cell.config(bg=self._pixel_grid.get_rgb(x, y).hex())
+                    cell.config(bg=self._pixel_grid.get_rgba(x, y).hex())
                     pass
                 pass
             pass
@@ -218,7 +218,7 @@ class PixelWindow(abc.ABC):
             pass
         pass
     
-    def _init_colors(self, colors: list[RGBColor]) -> list:
+    def _init_colors(self, colors: list[RGBAColor]) -> list:
         """Initializes the color viewer and picker at the bottom"""
         palette_frame = tk.Frame(self._root)
         palette_frame.pack(side="bottom", pady=10)

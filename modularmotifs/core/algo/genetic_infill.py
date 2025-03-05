@@ -472,8 +472,7 @@ if __name__ == "__main__":
 
     for i, pm in enumerate(placed):
         test_design.add_motif(pm.motif(), region_x + pm.x(), region_y + pm.y())
-    
-    
+
     img = design2png(test_design)
     img.save("test_genetic_infill.png")
     print("Test genetic infill design saved to test_genetic_infill.png")

@@ -1,14 +1,16 @@
 """User interface that uses Designs to model pixels"""
 
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import Image, filedialog
 from typing import Any, List, Optional
 from collections.abc import Callable
+import numpy as np
+
 from PIL import ImageTk, Image
 
 # import saved_motifs
 from modularmotifs.core.design import Design, MotifOverlapException
-from modularmotifs.core import RGBColor
+from modularmotifs.core import RGBAColor
 from modularmotifs.core.motif import Motif
 from modularmotifs.core.util import motif2png
 from modularmotifs.motiflibrary.examples import motifs
@@ -24,6 +26,8 @@ from modularmotifs.dsl._syntax import SizeOp, AddColumn, RemoveColumn, AddRow, R
 from modularmotifs.ui.pixel_window import PixelWindow
 
 import os
+
+from modularmotifs.ui.viz.viz import export_heart, show_design
 
 # Default grid dimensions
 # GRID_HEIGHT: int = 25
@@ -83,9 +87,16 @@ class KnitWindow(PixelWindow):
             save_button.pack(side="left", padx=10)
             pass
 
+        view_button = tk.Button(self._controls_frame, text="View knitted object", command=lambda: self.show())
+        view_button.pack(side="left", padx=10)
+
         # Starts the window
         self._root.mainloop()
-        
+
+    def show(self) -> None:
+        """Shows the knitted object in a new window"""
+        show_design(self.__design)
+
     def _init_underlying(self, dpb: DesignProgramBuilder, interp: DesignInterpreter):
         self._program_builder = dpb
         self._interpreter = interp
@@ -111,8 +122,8 @@ class KnitWindow(PixelWindow):
                 pass
             pass
         return save_handler
-    
-    
+
+
     def _adjust_width_height(self):
         w = int(self._width_var.get())
         h = int(self._height_var.get())
@@ -142,12 +153,12 @@ class KnitWindow(PixelWindow):
                 h -= 1
                 pass
             pass
-        
-        
+
+
         self._width_var.set(str(self.width()))
         self._height_var.set(str(self.height()))
-        
-        
+
+
     def _init_open(self) -> Callable:
         def open_handler(e):
             ftypes = [('Python files', '*.py'), ('All files', '*')]
@@ -225,10 +236,10 @@ class KnitWindow(PixelWindow):
 
     def _init_colors(self) -> None:
         """Initializes the color viewer and picker at the bottom"""
-        colors: list[RGBColor] = [
-            self._design.fore_color,
-            self._design.back_color,
-            self._design.invis_color,
+        colors: list[RGBAColor] = [
+            self.__design.fore_color,
+            self.__design.back_color,
+            self.__design.invis_color,
         ]
         buttons = super()._init_colors(colors)
 

@@ -6,7 +6,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Iterable
 from modularmotifs.core.pixel_grid import PixelGrid
-from modularmotifs.core.rgb_color import RGBColor
+from modularmotifs.core.rgb_color import RGBAColor
 import abc
 
 class Color(Enum):
@@ -199,15 +199,15 @@ class Motif(PixelGrid):
     def get_color(self, x: int, y: int) -> Color:
         return self.__data[y].get_color(x)
     
-    def get_rgb(self, x: int, y: int) -> RGBColor:
+    def get_rgba(self, x: int, y: int) -> RGBAColor:
         match self.get_color(x, y):
             case Color.FORE:
-                return RGBColor.Fore()
+                return RGBAColor.Fore()
             case Color.BACK:
-                return RGBColor.Back()
+                return RGBAColor.Back()
             case Color.INVIS:
-                return RGBColor.Invis()
-        assert False, f"{self.get_rgb.__qualname__}: Impossible case reached"
+                return RGBAColor.Invis()
+        assert False, f"{self.get_rgba.__qualname__}: Impossible case reached"
         pass
     
 
@@ -221,7 +221,7 @@ class MotifRow:
 
     def __init__(self, data: list[Color]):
         self.__data = data
-        
+
     def get_color(self, x: int) -> Color:
         return self.__data[x]
 

@@ -4,7 +4,7 @@ https://en.wikipedia.org/wiki/Fair_Isle_(technique)
 """
 
 from modularmotifs.core import Design, Color, Motif, Colorization, TwoColorsPerRow
-from modularmotifs.core.design import RGBColor
+from modularmotifs.core.design import RGBAColor
 import random
 
 
@@ -15,7 +15,7 @@ def rowizable(d: Design) -> bool:
 
 def fair_isle_colorization(
     d: Design,
-    colors: list[RGBColor],
+    colors: list[RGBAColor],
     max_colors_per_row: int = 2,
     random_seed: int = None,
 ) -> Colorization:
@@ -23,12 +23,12 @@ def fair_isle_colorization(
 
     Args:
         d (Design): the design to colorize
-        colors (list[RGBColor]): the colors to colorize the design with
+        colors (list[RGBAColor]): the colors to colorize the design with
         max_colors_per_row (int): the number of colors to use per row, at maximum. Defaults to 2. Currently this argument does nothing.
         random_seed (int): the random seed to use, if any. To be used for testing.
 
     Returns:
-        list[list[RGBColor]]: a list giving the colors to use for the [foreground, background] for each row. If more than two colors per row are permitted, then the return type would likely need to change (because more information would be needed to determine where to place the third color)
+        list[list[RGBAColor]]: a list giving the colors to use for the [foreground, background] for each row. If more than two colors per row are permitted, then the return type would likely need to change (because more information would be needed to determine where to place the third color)
     """
 
     if random_seed is not None:
@@ -79,11 +79,11 @@ if __name__ == "__main__":
         print(" ".join(list(map(str, r))))
         pass
 
-    colors = [RGBColor.from_hex("#320E3B"),
-              RGBColor.from_hex("#E56399"),
-              RGBColor.from_hex("#7F96FF"),
-              RGBColor.from_hex("#A6CFD5"),
-              RGBColor.from_hex("#DBFCFF")]
+    colors = [RGBAColor.from_hex("#320E3B"),
+              RGBAColor.from_hex("#E56399"),
+              RGBAColor.from_hex("#7F96FF"),
+              RGBAColor.from_hex("#A6CFD5"),
+              RGBAColor.from_hex("#DBFCFF")]
 
     seed = 1
 

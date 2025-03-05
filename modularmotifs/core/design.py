@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Optional, Generator, Tuple, Iterable, Set, Self
 from modularmotifs.core.motif import Color, ColorOverflowException, Motif
-from modularmotifs.core.rgb_color import RGBColor
+from modularmotifs.core.rgb_color import RGBAColor
 from modularmotifs.core.pixel_grid import PixelGrid
 
 class PlacedMotif:
@@ -114,9 +114,9 @@ class PixelData:
                                         
 
 
-DEFAULT_FORE: RGBColor = RGBColor.Fore() #RGBColor(0, 0, 0)
-DEFAULT_BACK: RGBColor = RGBColor.Back() #RGBColor(255, 255, 255)
-DEFAULT_INVIS: RGBColor = RGBColor.Invis() #RGBColor(128, 128, 128)
+DEFAULT_FORE: RGBAColor = RGBAColor.Fore()
+DEFAULT_BACK: RGBAColor = RGBAColor.Back()
+DEFAULT_INVIS: RGBAColor = RGBAColor.Invis()
 
 
 
@@ -139,9 +139,9 @@ class Design(PixelGrid):
         ]
         self.__motifs = set()
 
-        self.fore_color: RGBColor = DEFAULT_FORE
-        self.back_color: RGBColor = DEFAULT_BACK
-        self.invis_color: RGBColor = DEFAULT_INVIS
+        self.fore_color: RGBAColor = DEFAULT_FORE
+        self.back_color: RGBAColor = DEFAULT_BACK
+        self.invis_color: RGBAColor = DEFAULT_INVIS
         pass
     
     def __new_row(self) -> list[PixelData]:
@@ -346,15 +346,15 @@ class Design(PixelGrid):
         """
         return self.__canvas[y][x].col()
 
-    def get_rgb(self, x: int, y: int) -> RGBColor:
-        """Get the RGB color at some point.
+    def get_rgba(self, x: int, y: int) -> RGBAColor:
+        """Get the RGBA color at some point.
 
         Args:
             x (int): x coordinate, from left
             y (int): y coordinate, from top
 
         Returns:
-            RGBColor: RGB color at this point
+            RGBAColor: RGBA color at this point
         """
         match self.get_color(x, y):
             case Color.FORE:
