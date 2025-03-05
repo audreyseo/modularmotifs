@@ -186,7 +186,7 @@ motifs = {
         ]
     )
 }
-print(PATH / "bird")
+
 bird_motifs = {str(png) : png2motif(str(png)) for png in (PATH / "bird").glob("*.png")}
 
 def fg_square(w: int) -> Motif:

@@ -66,8 +66,16 @@ def rgbcolors_to_image(lol: list[list[RGBAColor]], square_size=1, mode="RGB") ->
         pass
     return img
             
-    
-    
+
+def design2png(design: Design, square_size: int = 10) -> Image.Image:
+    color_grid = []
+    for y in range(design.height()):
+        row = []
+        for x in range(design.width()):
+            row.append(design.get_rgb(x, y))
+        color_grid.append(row)
+    img = rgbcolors_to_image(color_grid, square_size=square_size)
+    return img
 
 def motif2png(motif: Motif) -> Image.Image:
     w, h = motif.width(), motif.height()
