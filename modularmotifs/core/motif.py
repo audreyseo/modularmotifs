@@ -207,7 +207,7 @@ class Motif(PixelGrid):
                 return RGBAColor.Back()
             case Color.INVIS:
                 return RGBAColor.Invis()
-        assert False, f"{self.get_rgb.__qualname__}: Impossible case reached"
+        assert False, f"{self.get_rgba.__qualname__}: Impossible case reached"
         pass
     
 
@@ -221,7 +221,7 @@ class MotifRow:
 
     def __init__(self, data: list[Color]):
         self.__data = data
-        
+
     def get_color(self, x: int) -> Color:
         return self.__data[x]
 

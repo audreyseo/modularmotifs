@@ -1,5 +1,7 @@
 """Supports exporting designs to PNGs and viewing them"""
 
+import matplotlib.pyplot as plt
+import numpy as np
 from PIL import Image
 from modularmotifs.core.design import Design
 
@@ -61,3 +63,59 @@ def export_heart(d: Design, res: int = 27) -> Image:
                             pass # TODO: this is not exactly a heart
                     img.putpixel((x*res + xi, y*res + yi), rgba)
     return img
+
+def show_design(d: Design) -> None:
+    bg_color = (128, 128, 128)
+    img = export_heart(d)
+
+    img = img.convert("RGBA")  # Ensure image has an alpha channel
+
+    # Create a solid background image
+    print(img.size)
+    print(bg_color)
+    # bg = Image.new("RGBA", img.size, bg_color + (255,))  # Solid gray background
+
+    # # Composite the image onto the background
+    # img = Image.alpha_composite(bg, img)
+
+    # # Convert back to RGB (to avoid issues with alpha in matplotlib)
+    # img = img.convert("RGB")
+
+    # Display the image
+    plt.imshow(img)
+    plt.axis("off")  # Remove axes
+    plt.show()
+
+    plt.show()
+    
+    wrap_image_around_cylinder(img)
+
+def wrap_image_around_cylinder(img, radius=1, height=2):
+    """Wrap an RGBA image around a 3D cylinder."""
+    img = img.convert("RGBA")  # Ensure image has alpha channel
+    img_array = np.array(img) / 255.0  # Normalize to [0,1] for Matplotlib
+
+    # Get image dimensions
+    img_h, img_w, _ = img_array.shape  # Height, Width, Channels
+
+    # Create cylinder mesh
+    theta = np.linspace(0, 2 * np.pi, img_w)  # Wrap full circle
+    z = np.linspace(-height / 2, height / 2, img_h)  # Height range
+    theta, z = np.meshgrid(theta, z)  # Create 2D meshgrid
+    x = radius * np.cos(theta)
+    y = radius * np.sin(theta)
+
+    # Create figure
+    fig = plt.figure(figsize=(6, 6))
+    ax = fig.add_subplot(111, projection="3d")
+
+    # Map the image texture onto the cylinder
+    ax.plot_surface(x, y, z, facecolors=img_array, rstride=1, cstride=1)
+
+    # Adjust view and remove axis for clean rendering
+    ax.set_xlim([-radius, radius])
+    ax.set_ylim([-radius, radius])
+    ax.set_zlim([-height / 2, height / 2])
+    ax.axis("off")
+
+    plt.show()
