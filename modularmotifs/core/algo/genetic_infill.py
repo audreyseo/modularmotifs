@@ -105,7 +105,7 @@ def genetic_infill_region(
             # for y in range(temp_design.height()):
             #     row = []
             #     for x in range(temp_design.width()):
-            #         row.append(temp_design.get_rgb(x, y))
+            #         row.append(temp_design.get_rgba(x, y))
             #     color_grid.append(row)
             # img = rgbcolors_to_image(color_grid, square_size=10)
             # img.save(f"{id(candidate)}_test_genetic_infill_{cost}.png")

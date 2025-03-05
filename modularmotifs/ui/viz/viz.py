@@ -59,7 +59,5 @@ def export_heart(d: Design, res: int = 27) -> Image:
                             continue
                         else:
                             pass # TODO: this is not exactly a heart
-
-                    print(x, y, xi, yi)
                     img.putpixel((x*res + xi, y*res + yi), rgba)
     return img
