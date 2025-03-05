@@ -68,8 +68,6 @@ def show_design(d: Design) -> None:
     bg_color = (128, 128, 128)
     img = export_heart(d)
 
-    img = img.convert("RGBA")  # Ensure image has an alpha channel
-
     # Create a solid background image
     print(img.size)
     print(bg_color)
@@ -87,20 +85,27 @@ def show_design(d: Design) -> None:
     plt.show()
 
     plt.show()
-    
+
+    img = export_heart(d, res=9)
+
     wrap_image_around_cylinder(img)
 
-def wrap_image_around_cylinder(img, radius=1, height=2):
+def wrap_image_around_cylinder(img):
     """Wrap an RGBA image around a 3D cylinder."""
-    img = img.convert("RGBA")  # Ensure image has alpha channel
-    img_array = np.array(img) / 255.0  # Normalize to [0,1] for Matplotlib
+    img_array = np.array(img) / 255.0
 
     # Get image dimensions
-    img_h, img_w, _ = img_array.shape  # Height, Width, Channels
+    img_h, img_w, _ = img_array.shape
+
+    radius = img_w / (2 * np.pi)
+    height = img_h
+
+    gran_x = img_w
+    gran_y = img_h
 
     # Create cylinder mesh
-    theta = np.linspace(0, 2 * np.pi, img_w)  # Wrap full circle
-    z = np.linspace(-height / 2, height / 2, img_h)  # Height range
+    theta = np.linspace(0, 2 * np.pi, gran_x)  # Wrap full circle
+    z = np.linspace(-height / 2, height / 2, gran_y)  # Height range
     theta, z = np.meshgrid(theta, z)  # Create 2D meshgrid
     x = radius * np.cos(theta)
     y = radius * np.sin(theta)
@@ -111,6 +116,8 @@ def wrap_image_around_cylinder(img, radius=1, height=2):
 
     # Map the image texture onto the cylinder
     ax.plot_surface(x, y, z, facecolors=img_array, rstride=1, cstride=1)
+
+    ax.set_box_aspect([1, 1, height / (2 * radius)])
 
     # Adjust view and remove axis for clean rendering
     ax.set_xlim([-radius, radius])
