@@ -82,7 +82,9 @@ class RemoveColor(ColorOp):
 @dataclass
 class AddChanges(ColorOp):
     v: Variable
+    c: Variable
     change: Expr
+    fresh: FreshVar
     row: Optional[Expr]
     fg: Optional[Expr]
     bg: Optional[Expr]
@@ -90,6 +92,7 @@ class AddChanges(ColorOp):
     def __init__(self, v: Variable, c: Variable, change: Expr, fresh: FreshVar, row: Optional[Expr] = None, fg: Optional[Expr]=None, bg: Optional[Expr]=None):
         super().__init__(c, "add_changes", fresh)
         self.v = v
+        self.change = change
         self.row = row
         self.fg = fg
         self.bg = bg
@@ -128,6 +131,8 @@ class RemoveChanges(ColorOp):
     change: Variable
     fg: Variable
     bg: Variable
+    c: Variable
+    fresh: FreshVar
     row: Optional[Expr]
     
     def __init__(self, last: Variable, change: Variable, fg: Variable, bg: Variable, c: Variable, fresh: FreshVar, row: Optional[Expr] = None):
@@ -205,6 +210,7 @@ class ColorizationInterpreter(DesignInterpreter):
         else:
             if isinstance(e, ObjectInit):
                 return eval(e.to_python())
+            print(type(e), e)
             return super().eval(e)
         
     
@@ -218,6 +224,12 @@ class ColorizationInterpreter(DesignInterpreter):
                 self._vars_to_objs[old.name] = res
             case AddColor(v, c, color, _):
                 res = self.eval(c).add_color(self.eval(color))
+                self._vars_to_objs[v.name] = res
+            case AddChanges(v, c, change, _, row, fg, bg):
+                args = [change, row, fg, bg]
+                args = [a for a in args if a]
+                args = [self.eval(arg) for arg in args]
+                res = self.eval(c).add_changes(*args)
                 self._vars_to_objs[v.name] = res
 
 
@@ -264,7 +276,14 @@ class ColorizationProgramBuilder:
         self._index += 1
         return self._actions[self._index]
     
+    def _overwrite(self):
+        if self._index < self.num_actions() - 1:
+            self._actions = self._actions[:self._index + 1]
+            pass
+        pass
+    
     def _add_action(self, op: ColorOp):
+        self._overwrite()
         self._index += 1
         self._actions.append(op)
         pass
@@ -283,16 +302,32 @@ class ColorizationProgramBuilder:
         self._add_action(op)
         return op
     
-    def set_changes(self, c: Change, row: int) -> ColorOp:
-        op = SetChanges(self.get_fresh_var(),
-                        self._pretty_var,
-                        ObjectInit("Change", 
+    @classmethod
+    def change_to_syntax(cls, c: Change) -> Expr:
+        return ObjectInit("Change", 
                                    Literal(c.row),
                                    ObjectAccess(ObjectAccess(Variable("Change"), "Permissions"), c.perms.to_str()),
                                    ObjectAccess(ObjectAccess(Variable("Change"), "Necessity"), c.necc.to_str())
-                        ),
+                        )
+    
+    def set_changes(self, c: Change, row: int) -> ColorOp:
+        op = SetChanges(self.get_fresh_var(),
+                        self._pretty_var,
+                        ColorizationProgramBuilder.change_to_syntax(c),
                         Literal(row),
                         self._fresh)
+        self._add_action(op)
+        return op
+    
+    def add_changes(self, c: Change, row: Optional[int], fg: Optional[RGBAColor], bg: Optional[RGBAColor]) -> ColorOp:
+        op = AddChanges(self.get_fresh_var(),
+                        self._pretty_var,
+                        ColorizationProgramBuilder.change_to_syntax(c),
+                        self._fresh,
+                        row = Literal(row) if row else None,
+                        fg = ColorizationProgramBuilder.rgba_color_to_syntax(fg) if fg else None,
+                        bg = ColorizationProgramBuilder.rgba_color_to_syntax(bg) if bg else None
+                        )
         self._add_action(op)
         return op
     

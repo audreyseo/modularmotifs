@@ -220,6 +220,11 @@ class TwoColorsPerRow(Colorization):
 
 @dataclass
 class Change:
+    _perm_min = 1
+    _perm_max = 6
+    _necc_min = 1
+    _necc_max = 2
+    
     class Permissions(Enum):
         SAME = 1
         CHANGE_FG = 2
@@ -227,6 +232,7 @@ class Change:
         CHANGE_EITHER = 4
         CHANGE_OR = 5
         CHANGE_BOTH = 6
+        
         
         def to_str(self) -> str:
             match self:
@@ -260,7 +266,7 @@ class Change:
         
         @classmethod
         def from_int(cls, i: int):
-            assert 1 <= i <= 5, f"Cannot convert {i} to {cls.__qualname__}"
+            assert Change._perm_min <= i <= Change._perm_max, f"Cannot convert {i} to {cls.__qualname__}"
             match i:
                 case 1:
                     return cls.SAME
@@ -308,7 +314,7 @@ class Change:
         
         @classmethod
         def from_int(cls, i: int) -> Self:
-            assert 1 <= i <= 2, f"Cannot convert {i} to {cls.__qualname__}"
+            assert Change._necc_min <= i <= Change._necc_max, f"Cannot convert {i} to {cls.__qualname__}"
             match i:
                 case 1:
                     return cls.MUST
@@ -379,8 +385,10 @@ class Change:
                 
     
     @classmethod
-    def from_ints(self, r: int, p: int, n: int) -> 'Change':
-        return Change(r, self.Permissions.from_int(p), self.Necessity.from_int(n))
+    def from_ints(cls, r: int, p: int, n: int) -> 'Change':
+        n = ((n - 1) % cls._necc_max) + 1
+        p = ((p - 1) % cls._perm_max) + 1
+        return Change(r, cls.Permissions.from_int(p), cls.Necessity.from_int(n))
 
 class PrettierTwoColorRows(TwoColorsPerRow):
     

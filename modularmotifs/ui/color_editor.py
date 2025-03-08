@@ -7,8 +7,9 @@ import tkinter.font as font
 from modularmotifs.core.colorization import PrettierTwoColorRows, Change
 from modularmotifs.core.design import Design
 from modularmotifs.core.rgb_color import RGBAColor
-from modularmotifs.dsl._colorops import ColorizationProgramBuilder
+from modularmotifs.dsl._colorops import ColorOp, ColorizationProgramBuilder
 from modularmotifs.motiflibrary.examples import motifs
+from modularmotifs.ui.modes.color_editor_button_modes import ChangeButtonState
 
 class ColorEditor:
     
@@ -27,15 +28,15 @@ class ColorEditor:
         self._root.title("Fair Isle Color Editor")
         s = ttk.Style(self._root)
         s.configure("custom.TFrame", padding=5)
-        
         # bs = ttk.Style()
         s.configure("custom.TButton", font=('Helvetica', 5), padding=3)
         s.configure("TButton", font=('Helvetica', 10), padding=(0, 3, 0, 3))
-        s.configure("updown.TButton", font=('Helvetica', 30), padding=(0, 10, 0, 3))
+        s.configure("updown.TButton", font=('Helvetica', 10), padding=(0, 6, 0, 3))
+        
         
         self._updown_button_style = "updown.TButton"
         self._controls_frame = ttk.Frame(self._root, style=self._frame_style)
-        self._controls_frame.grid(row=0, column=0, columnspan=2)
+        self._controls_frame.grid(row=0, column=0, columnspan=2, sticky=tk.E + tk.W)
         
         self._colorgrid = ttk.Frame(self._root, style=self._frame_style)
         self._colorgrid.grid(row=1, column=0)
@@ -53,6 +54,7 @@ class ColorEditor:
         self._refresh_pixels()
         self._init_colors()
         self._init_add_color()
+        self._init_history()
         self._root.mainloop()
         pass
     
@@ -125,14 +127,16 @@ class ColorEditor:
                 c = RGBAColor.from_hex(color_code[1])
                 print(type(color_code))
                 
-                op = self._builder.add_color(c)
-                self._interpreter.interpret(op)
+                self._do_action(self._builder.add_color(c))
+                # op = self._builder.add_color(c)
+                # self._interpreter.interpret(op)
                 
                 self._init_colors()
                 pass
             return callback
         add_color_button = ttk.Button(self._controls_frame, text="Add Color", command=pick_color_callback(), style=self._default_button_style)
         add_color_button.grid(row=0, column=5)
+        # print(add_color_button.configure().keys())
     
     def _init_pixels(self):
         for row in range(self.height()):
@@ -151,11 +155,29 @@ class ColorEditor:
             self._pixels.append(row_cells)
             pass
         
+        def button_callback(row: int, s: ChangeButtonState):
+            def handler():
+                c = ChangeButtonState.toggle(s.change())
+                self._do_action(self._builder.set_changes(c, row))
+                # s._update_string()
+                pass
+            return handler
+
+        self._change_button_states = []
         col = self.width()
         for row in range(self.height()):
-            button = ttk.Button(self._colorgrid, text="+", style=self._button_style, padding=0)
+            buttonstring = tk.StringVar()
+            state = ChangeButtonState(buttonstring, row, self._pretty)
+            self._change_button_states.append(state)
+            button = ttk.Button(self._colorgrid, textvariable=buttonstring, style=self._button_style, padding=0, command=button_callback(row, state))
             button.grid(row=row, column=col, padx=0, pady=0)
         pass
+    
+    def _do_action(self, op: ColorOp):
+        print(op)
+        self._interpreter.interpret(op)
+        self._update_history()
+        self._refresh_pixels()
     
     def _refresh_pixels(self) -> None:
         for y, row in enumerate(self._pixels):
@@ -163,7 +185,44 @@ class ColorEditor:
                 pixel.config(bg=self._pretty.get_color(x, y).hex())
                 pass
             pass
+        
+        for y, s in enumerate(self._change_button_states):
+            print(y)
+            s._update_string()
         pass
+    
+    def _update_history(self) -> None:
+        if self._builder.can_undo():
+            self._undo_button["state"] = "normal"
+        else:
+            self._undo_button["state"] = "disabled"
+            pass
+        
+        if self._builder.can_redo():
+            self._redo_button["state"] = "normal"
+        else:
+            self._redo_button["state"] = "disabled"
+            pass
+        pass
+    
+    def _undo(self) -> None:
+        self._do_action(self._builder.undo())
+        
+        pass
+    
+    def _redo(self) -> None:
+        self._do_action(self._builder.redo())
+            
+    
+    def _init_history(self) -> None:
+        
+        
+        self._undo_button = ttk.Button(self._controls_frame, text="Undo", style=self._default_button_style, state="disabled", command=self._undo)
+        self._redo_button = ttk.Button(self._controls_frame, text="Redo", style=self._default_button_style, state="disabled", command=self._redo)
+        
+        self._undo_button.grid(row=0, column=0, padx=5, sticky=tk.W)
+        self._redo_button.grid(row=0, column=1, padx=5, sticky=tk.W)
+        
     pass
 
 if __name__ == "__main__":
@@ -179,9 +238,11 @@ if __name__ == "__main__":
               RGBAColor.from_hex("#A6CFD5"),
               RGBAColor.from_hex("#DBFCFF")]
     
-    changes = [Change.from_ints(2, 1, 1),
-               Change.from_ints(5, 3, 1),
-               Change.from_ints(8, 4, 1)]
+    changes = [Change.from_ints(row, 1, 1) for row in range(9)]
+    
+    # changes = [Change.from_ints(2, 1, 1),
+    #            Change.from_ints(5, 3, 1),
+    #            Change.from_ints(8, 4, 1)]
     pretty = PrettierTwoColorRows(design, colors, changes)
     
     ColorEditor(pretty)
