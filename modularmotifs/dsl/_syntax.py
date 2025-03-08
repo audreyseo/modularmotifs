@@ -156,6 +156,9 @@ class Variable(Expr):
     
     def to_python(self) -> str:
         return self.name
+    
+    def __str__(self) -> str:
+        return self.to_python()
 
 class ObjectInit(Expr):
     cn = __qualname__
@@ -201,14 +204,14 @@ class ModuleAccess(Expr):
         return f"{self.module.to_python()}.{self.attr}"
 
 class ObjectAccess(Expr):
-    def __init__(self, v: Variable, prop: str):
+    def __init__(self, e: Expr, prop: str):
         super().__init__()
-        self.v = v
+        self.e = e
         self.prop = prop
         pass
 
     def to_python(self) -> str:
-        return f"{self.v}.{self.prop}"
+        return f"{self.e}.{self.prop}"
     pass
 
 class ObjectMethodCall(Expr):

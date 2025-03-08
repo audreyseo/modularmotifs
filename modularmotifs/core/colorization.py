@@ -222,6 +222,21 @@ class Change:
         CHANGE_OR = 5
         CHANGE_BOTH = 6
         
+        def to_str(self) -> str:
+            match self:
+                case self.__class__.SAME:
+                    return "SAME"
+                case self.__class__.CHANGE_BG:
+                    return "CHANGE_BG"
+                case self.__class__.CHANGE_BOTH:
+                    return "CHANGE_BOTH"
+                case self.__class__.CHANGE_FG:
+                    return "CHANGE_FG"
+                case self.__class__.CHANGE_OR:
+                    return "CHANGE_OR"
+                case self.__class__.CHANGE_EITHER:
+                    return "CHANGE_EITHER"
+        
         def to_tuples(self) -> set[tuple[int, int]]:
             match self:
                 case self.__class__.SAME:
@@ -276,6 +291,14 @@ class Change:
     class Necessity(Enum):
         MUST = 1
         MAY = 2
+        
+        def to_str(self) -> str:
+            match self:
+                case self.__class__.MUST:
+                    return "MUST"
+                case self.__class__.MAY:
+                    return "MAY"
+                
         
         @classmethod
         def from_int(cls, i: int) -> Self:
@@ -382,6 +405,11 @@ class PrettierTwoColorRows(TwoColorsPerRow):
 
     def get_change(self, row: int) -> Change:
         return self._changes[row]
+    
+    def set_changes(self, c: Change, row: int) -> Optional[Change]:
+        old_change = self._changes[row]
+        self._changes[row] = c
+        return old_change
     
     def add_changes(self, c: Change, row: Optional[int] = None, fg: Optional[RGBAColor] = None, bg: Optional[RGBAColor] = None) -> int:
         last = row or len(self._changes)
