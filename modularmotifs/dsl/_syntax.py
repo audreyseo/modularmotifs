@@ -238,6 +238,21 @@ class KeywordArg(Expr):
 class Statement(Syntax):
     pass
     
+    
+class Operation(Statement):
+    fresh: FreshVar
+    op_name: str
+    
+    def __init__(self, op_name: str, fresh: FreshVar):
+        super().__init__()
+        self.op_name = op_name
+        self.fresh = fresh
+    
+    @abc.abstractmethod
+    def inverse(self) -> 'Operation':
+        pass
+    pass
+
 class DesignOp(Statement):
     cn = __qualname__
 
