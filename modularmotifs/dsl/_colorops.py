@@ -193,7 +193,25 @@ class SetChanges(ColorOp):
         
     def to_python(self) -> str:
         return f"{self.old_change} = {self.c}.{self.op_name}({self.new_change}, {self.row})"
+
+@dataclass
+class ColorOpBlock(ColorOp):
+    c: Variable
+    fresh: FreshVar
+    ops: list[ColorOp]
+    def __init__(self, c: Variable, fresh: FreshVar, *ops):
+        super().__init__(c, "dummy", fresh)
+        self.ops = list(ops)
+        pass
     
+    def inverse(self) -> Operation:
+        return self.__class__.__init__(self.c,
+                                       self.fresh,
+                                       *[op.inverse() for op in self.ops].reverse())
+    
+    def to_python(self) -> str:
+        ops = [op.to_python() for op in self.ops]
+        return "\n".join(ops)
 
 class ColorizationInterpreter(DesignInterpreter):
     _builder: 'ColorizationProgramBuilder'
@@ -247,8 +265,10 @@ class ColorizationProgramBuilder:
     _original_changes: list[Change]
     _index: int
     _fresh: FreshVar
+    _current_block: Optional[list[ColorOp]] = None
     
     def __init__(self, pretty: PrettierTwoColorRows):
+        self.cname = self.__class__.__qualname__
         self._pretty = pretty
         self._actions = list()
         self._original_changes = copy.deepcopy(self._pretty._changes)
@@ -256,6 +276,38 @@ class ColorizationProgramBuilder:
         self._fresh = FreshVar()
         self._pretty_var = Variable(self._fresh.get_fresh())
         pass
+    
+    def started_block(self):
+        return self._current_block is not None
+    
+    def start_block(self):
+        """Start a block of operations that can be added all at once.
+        
+        Subsequent calls that add actions will add the actions to this new block instead.
+        """
+        assert not self.started_block(), f"{self.cname}.start_block: operation block already started!"
+        self._current_block = []
+        pass
+    
+    def abort_block(self):
+        """Abort the block that is currently being worked on
+
+        This is unrecoverable! All actions in the currently working block will be lost.
+        """
+        assert self.started_block(), f"{self.cname}.abort_block: operation block never started!"
+        self._current_block = None
+        pass
+    
+    def end_block(self):
+        """End the block that is currently being worked on, and add it to the list of actions.
+        
+        Subsequent calls that add actions will add them to the actions list once more.
+        """
+        assert self.started_block(), f"{self.cname}.end_block: operation block never started!"
+        current_block = self._current_block
+        self._current_block = None
+        self._add_action(ColorOpBlock(self._pretty_var, self._fresh, *current_block))
+        
     
     def get_interpreter(self):
         return ColorizationInterpreter(self)
@@ -267,10 +319,10 @@ class ColorizationProgramBuilder:
         return len(self._actions)
     
     def can_undo(self) -> bool:
-        return self._index >= 0
+        return self._index >= 0 and not self.started_block()
     
     def can_redo(self) -> bool:
-        return self._index < self.num_actions() - 1
+        return self._index < self.num_actions() - 1 and not self.started_block()
     
     def undo(self) -> ColorOp:
         old_index = self._index
@@ -288,14 +340,24 @@ class ColorizationProgramBuilder:
         pass
     
     def _add_action(self, op: ColorOp):
-        self._overwrite()
-        self._index += 1
-        self._actions.append(op)
+        if self.started_block():
+            self._current_block.append(op)
+            pass
+        else:
+            self._overwrite()
+            self._index += 1
+            self._actions.append(op)
+            pass
         pass
     
     def _remove_last_action(self):
-        self._index -= 1
-        self._actions.pop(-1)
+        if self.started_block():
+            self._current_block.pop(-1)
+            pass
+        else:
+            self._index -= 1
+            self._actions.pop(-1)
+            pass
         pass
         
     
