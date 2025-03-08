@@ -286,6 +286,9 @@ class Design(PixelGrid):
                 if px.col == Color.INVIS:
                     return False
         return True
+    
+    def get_motifs(self, x: int, y: int) -> set[PlacedMotif]:
+        return self.__canvas[y][x].motifs()
 
     def add_motif(self, m: Motif, x: int, y: int) -> PlacedMotif:
         """Add a motif to this design. If an error is encountered,

@@ -5,7 +5,7 @@ https://en.wikipedia.org/wiki/Fair_Isle_(technique)
 
 import numpy as np
 from modularmotifs.core import Design, Color, Motif, Colorization, TwoColorsPerRow
-from modularmotifs.core.colorization import PrettierTwoColorRows
+from modularmotifs.core.colorization import Change, PrettierTwoColorRows
 from modularmotifs.core.design import RGBAColor
 import random
 
@@ -111,6 +111,23 @@ def fair_isle_colorization_new(p: PrettierTwoColorRows, random_seed: int = None)
                 subset = ncolors[(ncolors != lastfg) & (ncolors != lastbg)]
                 p.set(i, *[int(k) for k in rng.choice(subset, size=2, replace=False)])
                     
+def generate_changes(d: Design) -> list[Change]:
+    row_motifs = set()
+    changes = []
+    for row in d:
+        current_motifs = set()
+        for _, x, y in row:
+            current_motifs = current_motifs.union(d.get_motifs(x, y))
+            pass
+        if row_motifs != current_motifs:
+            row_motifs = current_motifs
+            changes.append(Change.from_ints(y, 5, 1))
+            pass
+        else:
+            changes.append(Change.from_ints(y, 1, 1))
+            pass
+        pass
+    return changes
         
 
 if __name__ == "__main__":

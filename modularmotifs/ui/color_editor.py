@@ -10,8 +10,7 @@ from modularmotifs.core.rgb_color import RGBAColor
 from modularmotifs.dsl._colorops import ColorOp, ColorizationProgramBuilder
 from modularmotifs.motiflibrary.examples import motifs
 from modularmotifs.ui.modes.color_editor_button_modes import ChangeButtonState
-from modularmotifs.core.algo.fair_isle import fair_isle_colorization_new
-
+from modularmotifs.core.algo.fair_isle import fair_isle_colorization_new, generate_changes
 import sys
 
 class ColorEditor:
@@ -137,8 +136,11 @@ class ColorEditor:
                 pass
             return handler
         
+        reset_constraints_button = ttk.Button(self._controls_frame, text="Reset Row Constraints", style=self._default_button_style)
+        reset_constraints_button.grid(row=0, column=3, padx=10)
+        
         fair_isle_button = ttk.Button(self._controls_frame, text="Generate Fair Isle", style=self._default_button_style, command=fair_isle_handler())
-        fair_isle_button.grid(row=0, column=3, sticky=tk.E + tk.W, columnspan=2, padx=10)
+        fair_isle_button.grid(row=0, column=4, sticky=tk.E + tk.W, columnspan=2, padx=10)
             
     def _init_add_color(self):
         def pick_color_callback():
@@ -160,7 +162,7 @@ class ColorEditor:
                 pass
             return callback
         add_color_button = ttk.Button(self._controls_frame, text="Add Color", command=pick_color_callback(), style=self._default_button_style)
-        add_color_button.grid(row=0, column=5, sticky=tk.E)
+        add_color_button.grid(row=0, column=6, sticky=tk.E)
         # print(add_color_button.configure().keys())
     
     def _init_pixels(self):
@@ -228,7 +230,7 @@ class ColorEditor:
             pass
         
         for y, s in enumerate(self._change_button_states):
-            print(y)
+            # print(y)
             s._update_string()
         pass
     
@@ -288,7 +290,8 @@ if __name__ == "__main__":
               RGBAColor.from_hex("#A6CFD5"),
               RGBAColor.from_hex("#DBFCFF")]
     
-    changes = [Change.from_ints(row, 1, 1) for row in range(9)]
+    # changes = [Change.from_ints(row, 1, 1) for row in range(9)]
+    changes = generate_changes(design)
     
     # changes = [Change.from_ints(2, 1, 1),
     #            Change.from_ints(5, 3, 1),
