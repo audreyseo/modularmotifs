@@ -39,7 +39,9 @@ class SwapColors(ColorOp):
 @dataclass
 class AddColor(ColorOp):
     v: Variable
+    c: Variable
     color: Expr
+    fresh: FreshVar
     
     def __init__(self, v: Variable, c: Variable, color: Expr, fresh: FreshVar):
         super().__init__(c, "add_color", fresh)
@@ -214,6 +216,9 @@ class ColorizationInterpreter(DesignInterpreter):
             case SetChanges(old, c, new, row, _):
                 res = self.eval(c).set_changes(self.eval(new), self.eval(row))
                 self._vars_to_objs[old.name] = res
+            case AddColor(v, c, color, _):
+                res = self.eval(c).add_color(self.eval(color))
+                self._vars_to_objs[v.name] = res
 
 
 class ColorizationProgramBuilder:
@@ -288,6 +293,20 @@ class ColorizationProgramBuilder:
                         ),
                         Literal(row),
                         self._fresh)
+        self._add_action(op)
+        return op
+    
+    @classmethod
+    def rgba_color_to_syntax(cls, color: RGBAColor) -> Expr:
+        r, g, b, alpha = color.rgba_tuple()
+        return ObjectInit("RGBAColor", Literal(r), Literal(g), Literal(b), Literal(alpha))
+    
+    def add_color(self, color: RGBAColor) -> ColorOp:
+        op = AddColor(self.get_fresh_var(),
+                      self._pretty_var,
+                      ColorizationProgramBuilder.rgba_color_to_syntax(color),
+                      self._fresh
+                      )
         self._add_action(op)
         return op
     

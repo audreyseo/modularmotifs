@@ -96,7 +96,7 @@ class KnitWindow(PixelWindow):
 
     def show(self) -> None:
         """Shows the knitted object in a new window"""
-        show_design(self.__design)
+        show_design(self._design)
 
     def _init_underlying(self, dpb: DesignProgramBuilder, interp: DesignInterpreter):
         self._program_builder = dpb
@@ -269,9 +269,9 @@ class KnitWindow(PixelWindow):
         
         """Initializes the color viewer and picker at the bottom"""
         colors: list[RGBAColor] = [
-            self.__design.fore_color,
-            self.__design.back_color,
-            self.__design.invis_color,
+            self._design.fore_color,
+            self._design.back_color,
+            self._design.invis_color,
         ]
         buttons = super()._init_colors(colors)
 

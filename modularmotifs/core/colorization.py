@@ -22,6 +22,8 @@ class Colorization(abc.ABC):
         self._colors = colors
         pass
 
+    def width(self) -> int:
+        return self._d.width()
 
     def height(self) -> int:
         return self._d.height()
@@ -164,9 +166,13 @@ class TwoColorsPerRow(Colorization):
     #     img = Image.new
 
     def get_fg(self, row: int) -> RGBAColor:
+        if not self._foreground[row]:
+            return self._d.fore_color
         return self._foreground[row]
     
     def get_bg(self, row: int) -> RGBAColor:
+        if not self._background[row]:
+            return self._d.back_color
         return self._background[row]
 
     def __iter__(self) -> Generator[Tuple[RGBAColor, RGBAColor], None, None]:
@@ -388,8 +394,12 @@ class PrettierTwoColorRows(TwoColorsPerRow):
         super()._init_lists(_h = h)
         pass
     
-    def height(self) -> int:
+    def change_height(self) -> int:
         return len(self._changes)
+    
+    def get_color(self, x: int, y: int) -> RGBAColor:
+        # TODO: FIX
+        return self._d.get_rgba(x, y)
     
     def _insert_fg_bg(self, index: int, fg: Optional[RGBAColor] = None, bg: Optional[RGBAColor] = None):
         fg_index = None if fg is None else self._colors.index(fg)
