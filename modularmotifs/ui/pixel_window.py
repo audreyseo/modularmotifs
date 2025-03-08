@@ -220,6 +220,7 @@ class PixelWindow(abc.ABC):
     
     def _init_colors(self, colors: list[RGBAColor]) -> list:
         """Initializes the color viewer and picker at the bottom"""
+        
         palette_frame = tk.Frame(self._root)
         palette_frame.pack(side="bottom", pady=10)
 

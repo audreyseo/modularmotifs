@@ -2,6 +2,7 @@
 
 import tkinter as tk
 from tkinter import Image, filedialog
+from tkinter import colorchooser
 from typing import Any, List, Optional
 from collections.abc import Callable
 import numpy as np
@@ -235,6 +236,37 @@ class KnitWindow(PixelWindow):
 
 
     def _init_colors(self) -> None:
+        
+        def pick_color_callback(color: RGBAColor, name: str, frame_color_label: tuple):
+            frame, color_button, name_label = frame_color_label
+            def callback(event):
+                print(f"You clicked {name} {color.hex()}")
+                color_code = colorchooser.askcolor(color=color.tuple(), title =f"Choose {name} color")
+                if isinstance(color_code, tuple) and color_code:
+                    if not color_code[0]:
+                        return
+                    pass
+                print(color_code)
+                c = RGBAColor.from_hex(color_code[1])
+                color_button.configure(bg=color_code[1])
+                print(type(color_code))
+                for bindable in frame_color_label:
+                    bindable.bind("<Button-1>", pick_color_callback(c, name, frame_color_label))
+                    pass
+                match name:
+                    case "Fore":
+                        self._design.set_fore_color(c)
+                        pass
+                    case "Back":
+                        self._design.set_back_color(c)
+                        pass
+                    case "Invis":
+                        self._design.set_invis_color(c)
+                        pass
+                self._refresh_pixels()
+                pass
+            return callback
+        
         """Initializes the color viewer and picker at the bottom"""
         colors: list[RGBAColor] = [
             self.__design.fore_color,
@@ -251,7 +283,7 @@ class KnitWindow(PixelWindow):
                 print(f"You clicked {name} {color.hex()}!")
                 pass
             for bindable in parts:
-                bindable.bind("<Button-1>", pick_color)
+                bindable.bind("<Button-1>", pick_color_callback(color, name, parts))
                 pass
             pass
         pass
