@@ -3,7 +3,9 @@
 https://en.wikipedia.org/wiki/Fair_Isle_(technique)
 """
 
+import numpy as np
 from modularmotifs.core import Design, Color, Motif, Colorization, TwoColorsPerRow
+from modularmotifs.core.colorization import PrettierTwoColorRows
 from modularmotifs.core.design import RGBAColor
 import random
 
@@ -50,6 +52,66 @@ def fair_isle_colorization(
             pass
         pass
     return assignments    # simplest form: for any given row,
+
+def fair_isle_colorization_new(p: PrettierTwoColorRows, random_seed: int = None):
+    
+    if random_seed is not None:
+        np.random.seed(seed=random_seed)
+        pass
+    
+    rng = np.random.default_rng()
+    
+    def choice(a: np.ndarray) -> int:
+        return int(rng.choice(a, size=1, replace=False))
+    
+    colors = p._colors
+    ncolors = np.arange(len(colors))
+    
+    sample = rng.choice(ncolors, size=2, replace=False)
+    
+    p.set(0, *[int(s) for s in sample])
+    
+    for i in range(1, p.height()):
+        change = p.get_change(i)
+        match change.perms.to_str():
+            case "SAME":
+                p.set(i, *p.last(i))
+            case "CHANGE_FG":
+                lastbg = p.last_bg(i)
+                p.set(i, choice(ncolors[ncolors != lastbg]), p.last_bg(i))
+            case "CHANGE_BG":
+                lastfg = p.last_fg(i)
+                p.set(i, lastfg, choice(ncolors[ncolors != lastfg]))
+            case "CHANGE_EITHER":
+                # xor
+                lastfg, lastbg = p.last(i)
+                c = choice(ncolors[(ncolors != lastbg) & (ncolors != lastfg)])
+                if random.randint(0, 1) == 0:
+                    # fg
+                    p.set(i, c, p.last_bg(i))
+                else:
+                    p.set(i, p.last_fg(i), c)
+            case "CHANGE_OR":
+                # inclusive or
+                r = random.randint(0, 2)
+                lastfg, lastbg = p.last(i)
+                subset = ncolors[(ncolors != lastfg) & (ncolors != lastbg)]
+                if r == 0 or r == 1:
+                    c = choice(subset)
+                    if r == 0:
+                        p.set(i, c, p.last_bg(i))
+                    else:
+                        p.set(i, p.last_fg(i), c)
+                else:
+                    p.set(i, *[int(k) for k in rng.choice(subset, size=2, replace=False)])
+                    pass
+            case "CHANGE_BOTH":
+                fg, bg = p.last(i)
+                lastfg, lastbg = p.last(i)
+                subset = ncolors[(ncolors != lastfg) & (ncolors != lastbg)]
+                p.set(i, *[int(k) for k in rng.choice(subset, size=2, replace=False)])
+                    
+        
 
 if __name__ == "__main__":
     # do some very basic testing out of stuff...

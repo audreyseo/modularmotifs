@@ -51,6 +51,9 @@ class Colorization(abc.ABC):
     @abc.abstractmethod
     def _reassign_colors_from_indices(self) -> Self:
         pass
+    
+    def row_colors(self, row: int) -> list[Color]:
+        return self._d.row_colors(row)
         
     def swap_colors(self, i: int, j: int) -> Self:
         assert self.in_color_range(i) and self.in_color_range(j), f"{self._cname}.swap_colors: color indices {i} and {j} may be out of range of colors {self._colors}"
@@ -402,12 +405,38 @@ class PrettierTwoColorRows(TwoColorsPerRow):
         super()._init_lists(_h = h)
         pass
     
+    def reset(self):
+        self._init_lists()
+    
     def change_height(self) -> int:
         return len(self._changes)
     
-    def get_color(self, x: int, y: int) -> RGBAColor:
-        # TODO: FIX
-        return self._d.get_rgba(x, y)
+    def recalculate(self) -> None:
+        for i in range(self.height()):
+            self._foreground[i] = self._colors[self._fg[i]]
+            self._background[i] = self._colors[self._bg[i]]
+            pass
+    
+    def last_fg(self, row: Optional[int] = None) -> int:
+        row = row or (self.height() - 1)
+        while self._fg[row] is None and row > 0:
+            row -= 1
+            pass
+        return self._fg[row]
+    
+    def last_bg(self, row: Optional[int] = None) -> int:
+        row = row or (self.height() - 1)
+        while self._bg[row] is None and row > 0:
+            row -= 1
+            pass
+        return self._bg[row]
+    
+    def last(self, row: Optional[int] = None) -> tuple[Optional[RGBAColor], Optional[RGBAColor]]:
+        return self.last_fg(row), self.last_bg(row)
+    
+    # def get_color(self, x: int, y: int) -> RGBAColor:
+    #     # TODO: FIX
+    #     return self._d.get_rgba(x, y)
     
     def _insert_fg_bg(self, index: int, fg: Optional[RGBAColor] = None, bg: Optional[RGBAColor] = None):
         fg_index = None if fg is None else self._colors.index(fg)

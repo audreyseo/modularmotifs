@@ -62,7 +62,9 @@ class AddColor(ColorOp):
 @dataclass
 class RemoveColor(ColorOp):
     color: Variable
+    c: Variable
     index: Expr
+    fresh: FreshVar
     
     def __init__(self, color: Variable, c: Variable, index: Expr, fresh: FreshVar):
         super().__init__(c, "remove_color", fresh)
@@ -225,6 +227,9 @@ class ColorizationInterpreter(DesignInterpreter):
             case AddColor(v, c, color, _):
                 res = self.eval(c).add_color(self.eval(color))
                 self._vars_to_objs[v.name] = res
+            case RemoveColor(color, c, index, _):
+                res = self.eval(c).remove_color(self.eval(index))
+                self._vars_to_objs[color.name] = res
             case AddChanges(v, c, change, _, row, fg, bg):
                 args = [change, row, fg, bg]
                 args = [a for a in args if a]
@@ -342,6 +347,14 @@ class ColorizationProgramBuilder:
                       ColorizationProgramBuilder.rgba_color_to_syntax(color),
                       self._fresh
                       )
+        self._add_action(op)
+        return op
+    
+    def remove_color(self, index: int) -> ColorOp:
+        op = RemoveColor(self.get_fresh_var(),
+                         self._pretty_var,
+                         Literal(index),
+                         self._fresh)
         self._add_action(op)
         return op
     

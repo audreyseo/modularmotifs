@@ -10,6 +10,9 @@ from modularmotifs.core.rgb_color import RGBAColor
 from modularmotifs.dsl._colorops import ColorOp, ColorizationProgramBuilder
 from modularmotifs.motiflibrary.examples import motifs
 from modularmotifs.ui.modes.color_editor_button_modes import ChangeButtonState
+from modularmotifs.core.algo.fair_isle import fair_isle_colorization_new
+
+import sys
 
 class ColorEditor:
     
@@ -36,10 +39,10 @@ class ColorEditor:
         
         self._updown_button_style = "updown.TButton"
         self._controls_frame = ttk.Frame(self._root, style=self._frame_style)
-        self._controls_frame.grid(row=0, column=0, columnspan=2, sticky=tk.E + tk.W)
+        self._controls_frame.grid(row=0, column=0, columnspan=2, sticky=tk.W + tk.E)
         
         self._colorgrid = ttk.Frame(self._root, style=self._frame_style)
-        self._colorgrid.grid(row=1, column=0)
+        self._colorgrid.grid(row=1, column=0, padx=20)
         self._pixels = list()
         
         self._colorframe = ttk.Frame(self._root, style=self._frame_style)
@@ -49,13 +52,14 @@ class ColorEditor:
         
         self._saved_designs = ttk.Frame(self._root, style=self._frame_style)
         self._saved_designs.grid(row=2, column=0, columnspan=2)
-        
+        self._init_fair_isle()
         self._init_pixels()
+        self._init_keyboard_shortcuts()
         self._refresh_pixels()
         self._init_colors()
         self._init_add_color()
         self._init_history()
-        self._root.mainloop()
+        # self._root.mainloop()
         pass
     
     def start_window(self) -> None:
@@ -91,9 +95,18 @@ class ColorEditor:
                 op = self._builder.swap_colors(color_index, color_index + diff)
                 self._interpreter.interpret(op)
                 self._init_colors()
+                self._pretty.recalculate()
+                self._refresh_pixels()
                 pass
             return handler
         
+        def remove_color_handler(color_index: int):
+            def handler():
+                canvas.grid_remove()
+                self._do_action(self._builder.remove_color(color_index))
+                self._init_colors()
+                pass
+            return handler
         ROW = 2
         COLS = 3
         MOVECOL = 2
@@ -109,11 +122,23 @@ class ColorEditor:
             moveup.grid(row=y * ROW, column=MOVECOL)
             movedown = ttk.Button(inner_frame, text="⬇️", command=move_color_handler(y, up=False), state="normal" if y < len(self.colors) - 1 else "disabled", style=self._updown_button_style)
             movedown.grid(row=y * ROW + 1, column=MOVECOL)
-            remove = ttk.Button(inner_frame, text="-")
+            remove = ttk.Button(inner_frame, text="-", command=remove_color_handler(y))
             remove.grid(row=y * ROW, column=REMOVECOL, rowspan=ROW)
             pass
         
         pass
+    
+    def _init_fair_isle(self):
+        def fair_isle_handler():
+            def handler():
+                self._pretty.reset()
+                fair_isle_colorization_new(self._pretty)
+                self._refresh_pixels()
+                pass
+            return handler
+        
+        fair_isle_button = ttk.Button(self._controls_frame, text="Generate Fair Isle", style=self._default_button_style, command=fair_isle_handler())
+        fair_isle_button.grid(row=0, column=3, sticky=tk.E + tk.W, columnspan=2, padx=10)
             
     def _init_add_color(self):
         def pick_color_callback():
@@ -135,7 +160,7 @@ class ColorEditor:
                 pass
             return callback
         add_color_button = ttk.Button(self._controls_frame, text="Add Color", command=pick_color_callback(), style=self._default_button_style)
-        add_color_button.grid(row=0, column=5)
+        add_color_button.grid(row=0, column=5, sticky=tk.E)
         # print(add_color_button.configure().keys())
     
     def _init_pixels(self):
@@ -173,11 +198,27 @@ class ColorEditor:
             button.grid(row=row, column=col, padx=0, pady=0)
         pass
     
+    def _init_keyboard_shortcuts(self):
+        # set up saving keyboard shortcut
+        is_mac = sys.platform == 'darwin'
+        
+        # Common metakeys
+        self._key_names = {
+            "Alt": "Option" if is_mac else "Alt",
+            "Ctrl": "Control",
+            "Meta": "Command" if is_mac else "Meta",
+            "Shift": "Shift"
+        }
+        
+        self.command_ctrl = self._key_names["Meta"] if is_mac else self._key_names["Ctrl"]
+        
+    
     def _do_action(self, op: ColorOp):
         print(op)
         self._interpreter.interpret(op)
         self._update_history()
         self._refresh_pixels()
+        self._init_colors()
     
     def _refresh_pixels(self) -> None:
         for y, row in enumerate(self._pixels):
@@ -206,12 +247,16 @@ class ColorEditor:
         pass
     
     def _undo(self) -> None:
-        self._do_action(self._builder.undo())
-        
+        if self._builder.can_undo():
+            self._do_action(self._builder.undo())
+            pass
         pass
     
     def _redo(self) -> None:
-        self._do_action(self._builder.redo())
+        if self._builder.can_redo():
+            self._do_action(self._builder.redo())
+            pass
+        pass
             
     
     def _init_history(self) -> None:
@@ -222,6 +267,11 @@ class ColorEditor:
         
         self._undo_button.grid(row=0, column=0, padx=5, sticky=tk.W)
         self._redo_button.grid(row=0, column=1, padx=5, sticky=tk.W)
+        
+        shift = self._key_names["Shift"]
+        ctrl = self._key_names["Ctrl"]
+        self._root.bind(f"<{self.command_ctrl}-z>", lambda e: self._undo())
+        self._root.bind(f"<{self.command_ctrl}-y>", lambda e: self._redo())
         
     pass
 
@@ -245,6 +295,6 @@ if __name__ == "__main__":
     #            Change.from_ints(8, 4, 1)]
     pretty = PrettierTwoColorRows(design, colors, changes)
     
-    ColorEditor(pretty)
+    editor = ColorEditor(pretty)
     
-    # editor.start_window()
+    editor.start_window()
