@@ -204,7 +204,7 @@ class ObjectAccess(Expr):
     def __init__(self, v: Variable, prop: str):
         super().__init__()
         self.v = v
-        self.prop = p
+        self.prop = prop
         pass
 
     def to_python(self) -> str:
@@ -432,7 +432,7 @@ class DesignInterpreter:
         def get_args_keyword_args(exprs: list[Expr]):
             args = map_eval_over(list(filter(lambda x: not isinstance(x, KeywordArg), exprs)))
             keywordargs = list(filter(lambda x: isinstance(x, KeywordArg), exprs))
-            keywordargs = [(kwa.key, self.eval(kwa.e)) for k in keywordargs]
+            keywordargs = [(kwa.key, self.eval(kwa.e)) for kwa in keywordargs]
             keywordargs = {k: e for k, e in keywordargs}
             return args, keywordargs
         
@@ -460,7 +460,7 @@ class DesignInterpreter:
         if isinstance(e, ObjectMethodCall):
             # args = map_eval_over(e.args)
             args, keywordargs = get_args_keyword_args(e.args)
-            return getattr(self.eval(e.v), method)(*args, **keywordargs)
+            return getattr(self.eval(e.v), e.method)(*args, **keywordargs)
         if isinstance(e, KeywordArg):
             return self.eval(e.e)
         # Avoid unprincipled eval if we can...

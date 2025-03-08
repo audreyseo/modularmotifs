@@ -144,15 +144,15 @@ class Design(PixelGrid):
         self.invis_color: RGBAColor = DEFAULT_INVIS
         pass
     
-    def set_fore_color(self, color: RGBColor):
+    def set_fore_color(self, color: RGBAColor):
         self.fore_color = color
         pass
     
-    def set_back_color(self, color: RGBColor):
+    def set_back_color(self, color: RGBAColor):
         self.back_color = color
         pass
     
-    def set_invis_color(self, color: RGBColor):
+    def set_invis_color(self, color: RGBAColor):
         self.invis_color = color
         pass
     

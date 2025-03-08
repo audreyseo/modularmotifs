@@ -5,7 +5,7 @@ from tkinter import Image, filedialog
 from tkinter import colorchooser
 from typing import Any, List, Optional
 from collections.abc import Callable
-import numpy as np
+# import numpy as np
 
 from PIL import ImageTk, Image
 
