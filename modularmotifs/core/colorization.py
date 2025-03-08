@@ -93,7 +93,7 @@ class TwoColorsPerRow(Colorization):
         pass
 
     def set_fg(self, row: int, c: Union[int, RGBAColor]) -> Self:
-        assert 0 <= row < self._d.height(), f"{self.set_fg.__qualname__}: row {row} is out of range of design {d}"
+        assert 0 <= row < self._d.height(), f"{self.set_fg.__qualname__}: row {row} is out of range of design {self._d}"
         assert isinstance(c, RGBAColor) or 0 <= c < len(self._colors), f"{self.set_fg.__qualname__}: color index {c} is out of range of color list {self._colors}"
 
         if isinstance(c, int):
@@ -106,7 +106,7 @@ class TwoColorsPerRow(Colorization):
         return self
 
     def set_bg(self, row: int, c: Union[int, RGBAColor]) -> Self:
-        assert 0 <= row < self._d.height(), f"{self.set_bg.__qualname__}: row {row} is out of range of design {d}"
+        assert 0 <= row < self._d.height(), f"{self.set_bg.__qualname__}: row {row} is out of range of design {self._d}"
         assert isinstance(c, RGBAColor) or 0 <= c < len(self._colors), f"{self.set_bg.__qualname__}: color index {c} is out of range of color list {self._colors}"
 
         if isinstance(c, int):
@@ -278,7 +278,7 @@ class Change:
         MAY = 2
         
         @classmethod
-        def from_int(cls, i: int) -> 'Necessity':
+        def from_int(cls, i: int) -> Self:
             assert 1 <= i <= 2, f"Cannot convert {i} to {cls.__qualname__}"
             match i:
                 case 1:
