@@ -144,6 +144,19 @@ class Design(PixelGrid):
         self.invis_color: RGBColor = DEFAULT_INVIS
         pass
     
+    def set_fore_color(self, color: RGBColor):
+        self.fore_color = color
+        pass
+    
+    def set_back_color(self, color: RGBColor):
+        self.back_color = color
+        pass
+    
+    def set_invis_color(self, color: RGBColor):
+        self.invis_color = color
+        pass
+    
+    
     def __new_row(self) -> list[PixelData]:
         return [Design.default_pixel_data() for _ in range(self.__width)]
     
@@ -319,6 +332,8 @@ class Design(PixelGrid):
                     successful_pixel_operations -= 1
             raise MotifOverlapException from exc
         return p
+    
+    
 
     def remove_motif(self, p: PlacedMotif):
         """Removes a motif from the design
