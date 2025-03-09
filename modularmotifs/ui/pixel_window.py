@@ -73,6 +73,10 @@ class PixelWindow(abc.ABC):
         
         self._root.bind(f"<{command_ctrl}-s>", self._init_save())
         self._root.bind(f"<{command_ctrl}-o>", self._init_open())
+        
+        save_as_handknit = tk.Button(self._controls_frame, text="Save as Hand Knit", command=self._init_handknit_output())
+        save_as_handknit.pack(side="right", padx=10)
+        
         pass
     
     @classmethod
@@ -81,6 +85,9 @@ class PixelWindow(abc.ABC):
     
     def get_root(self) -> tk.Tk:
         return self._root
+    
+    def _init_handknit_output(self) -> Callable:
+        pass
     
     @abc.abstractmethod
     def _init_save(self) -> Callable:

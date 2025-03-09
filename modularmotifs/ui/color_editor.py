@@ -283,10 +283,11 @@ class ColorEditor:
     def _init_save(self) -> None:
         def save():
             f = filedialog.asksaveasfile(mode="wb", defaultextension=".png")
+            if f is None:
+                print("Save aborted")
+                return
             filename = os.path.abspath(str(f.name))
             print(filename)
-            if f is None:
-                return
             img = handknitting_instructions(self._pretty, cell_size=40, thicker=4, thinner=2)
             img.save(f)
             f.close()

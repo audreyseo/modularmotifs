@@ -15,6 +15,7 @@ from modularmotifs.core.design import Design, MotifOverlapException
 from modularmotifs.core import RGBAColor
 from modularmotifs.core.motif import Motif
 from modularmotifs.core.util import motif2png
+from modularmotifs.handknit.generate import handknitting_instructions
 from modularmotifs.motiflibrary.examples import motifs
 
 from modularmotifs.ui.motif_saver import save_as_motif
@@ -98,6 +99,21 @@ class KnitWindow(PixelWindow):
     def show(self) -> None:
         """Shows the knitted object in a new window"""
         show_design(self._design)
+        pass
+    
+    def _init_handknit_output(self) -> Callable:
+        def handler():
+            f = filedialog.asksaveasfile(mode="wb", defaultextension=".png")
+            if f is None:
+                print("Handknit output aborted")
+                return
+            filename = os.path.abspath(str(f.name))
+            print(filename)
+            img = handknitting_instructions(self._design, cell_size=40, thicker=4, thinner=2)
+            img.save(f)
+            f.close()
+            pass
+        return handler
 
     def _init_underlying(self, dpb: DesignProgramBuilder, interp: DesignInterpreter):
         self._program_builder = dpb
