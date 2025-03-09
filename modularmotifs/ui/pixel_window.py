@@ -59,7 +59,7 @@ class PixelWindow(abc.ABC):
         self._pixel_grid = pixel_grid
         
         # set up saving keyboard shortcut
-        is_mac = sys.platform == 'darwin'
+        is_mac = PixelWindow.is_mac()
         
         # Common metakeys
         self._key_names = {
@@ -74,6 +74,10 @@ class PixelWindow(abc.ABC):
         self._root.bind(f"<{command_ctrl}-s>", self._init_save())
         self._root.bind(f"<{command_ctrl}-o>", self._init_open())
         pass
+    
+    @classmethod
+    def is_mac(cls) -> bool:
+        return sys.platform == 'darwin'
     
     def get_root(self) -> tk.Tk:
         return self._root
@@ -262,6 +266,10 @@ class PixelWindow(abc.ABC):
         
         redoer = tk.Button(history_frame, text="Redo", command=redo_listener())
         redoer.pack(side="left", padx=5)
+        
+        command_ctrl = self._key_names["Meta"] if PixelWindow.is_mac() else self._key_names["Ctrl"]
+        self._root.bind(f"<{command_ctrl}-z>", lambda e: undo_listener()())
+        self._root.bind(f"<{command_ctrl}-y>", lambda e: redo_listener()())
 
         self._undo_button = undoer
         self._redo_button = redoer
