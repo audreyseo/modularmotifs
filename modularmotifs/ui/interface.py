@@ -3,6 +3,7 @@
 import tkinter as tk
 from tkinter import Image, filedialog
 from tkinter import colorchooser
+from tktooltip import ToolTip
 from typing import Any, List, Optional
 from collections.abc import Callable
 # import numpy as np
@@ -347,6 +348,7 @@ class KnitWindow(PixelWindow):
                 inner_frame, image=motif_thumbnail, borderwidth=1, relief="solid"
             )
             motif_label.pack(pady=5, padx=5)
+            ToolTip(motif_label, msg=motif_name, delay=1.0)
             # motif_label.grid(row=row, column=0)
             row += 1
 
