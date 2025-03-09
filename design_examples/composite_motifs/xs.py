@@ -1,3 +1,4 @@
+# already imported
 from modularmotifs.core import Design
 from modularmotifs.core import CompositeMotif
 import modularmotifs.motiflibrary.examples as libexamples
