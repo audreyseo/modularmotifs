@@ -1,4 +1,6 @@
+import os
 import tkinter as tk
+from tkinter import filedialog
 import tkinter.ttk as ttk
 from tkinter import colorchooser
 from tktooltip import ToolTip
@@ -11,6 +13,7 @@ from modularmotifs.dsl._colorops import ColorOp, ColorizationProgramBuilder
 from modularmotifs.motiflibrary.examples import motifs
 from modularmotifs.ui.modes.color_editor_button_modes import ChangeButtonState
 from modularmotifs.core.algo.fair_isle import fair_isle_colorization_new, generate_changes
+from modularmotifs.handknit.generate import handknitting_instructions
 import sys
 
 class ColorEditor:
@@ -58,6 +61,7 @@ class ColorEditor:
         self._init_colors()
         self._init_add_color()
         self._init_history()
+        self._init_save()
         # self._root.mainloop()
         pass
     
@@ -274,7 +278,27 @@ class ColorEditor:
         ctrl = self._key_names["Ctrl"]
         self._root.bind(f"<{self.command_ctrl}-z>", lambda e: self._undo())
         self._root.bind(f"<{self.command_ctrl}-y>", lambda e: self._redo())
+        pass
+    
+    def _init_save(self) -> None:
+        def save():
+            f = filedialog.asksaveasfile(mode="wb", defaultextension=".png")
+            filename = os.path.abspath(str(f.name))
+            print(filename)
+            if f is None:
+                return
+            img = handknitting_instructions(self._pretty, cell_size=40, thicker=4, thinner=2)
+            img.save(f)
+            f.close()
+            pass
+            
         
+        self._save_button = ttk.Button(self._controls_frame, text="Save Image", style=self._default_button_style, command=save)
+        self._save_button.grid(row=0, column=7, padx=5, sticky=tk.E)
+        
+        self._root.bind(f"<{self.command_ctrl}-s>", lambda e: save())
+        
+        pass
     pass
 
 if __name__ == "__main__":
