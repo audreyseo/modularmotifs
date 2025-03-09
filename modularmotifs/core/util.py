@@ -110,3 +110,14 @@ def design_to_lol(d: Design, mapper = None) -> list[list[int]]:
         lol.append(newrow)
         pass
     return lol
+
+def motif_to_lol(m: Motif) -> list[list[RGBAColor]]:
+    lol = []
+    for i in range(m.height()):
+        newrow = []
+        for j in range(m.width()):
+            newrow.append(m.get_rgba(j, i))
+            pass
+        lol.append(newrow)
+        pass
+    return lol

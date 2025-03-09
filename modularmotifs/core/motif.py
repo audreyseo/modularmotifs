@@ -148,9 +148,9 @@ class Motif(PixelGrid):
         self.__width = len(bbox[0])
         if self.__width <= 0:
             raise ValueError("Motifs must have positive width!")
-        for row in bbox[1:]:
+        for y, row in enumerate(bbox[1:]):
             if len(row) != self.__width:
-                raise ValueError("Motifs must have rectangular bounding boxes!")
+                raise ValueError(f"Motifs must have rectangular bounding boxes! Row {y+1} has length {len(row)} versus {self.__width}")
 
         self.__data = [MotifRow(row) for row in bbox]
 
