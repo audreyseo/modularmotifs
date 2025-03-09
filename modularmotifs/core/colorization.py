@@ -1,13 +1,14 @@
 from enum import Enum
 from modularmotifs.core.design import RGBAColor
 from modularmotifs.core.design import Design, Color, Motif
+from modularmotifs.core.pixel_grid import PixelGrid
 from modularmotifs.core.util import rgbcolors_to_image
 import abc
 from typing import Generator, Optional, Tuple, Self, Union
 from PIL import Image
 from dataclasses import dataclass
 
-class Colorization(abc.ABC):
+class Colorization(PixelGrid):
     """ Class that contains the information for how to colorize a particular design
     """
     # the design that this colorization colorizes
@@ -40,6 +41,9 @@ class Colorization(abc.ABC):
     @abc.abstractmethod
     def complete(self) -> bool:
         pass
+    
+    def get_rgba(self, x, y):
+        return self.get_color(x, y)
 
     @abc.abstractmethod
     def to_image(self) -> Image.Image:
