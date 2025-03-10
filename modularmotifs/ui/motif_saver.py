@@ -16,7 +16,7 @@ def save_as_motif(knit_window, callback=None):
         print("No grids selected to save as motif!")
         return
 
-    design = knit_window._KnitWindow__design
+    design = knit_window._design
     # Compute the bounding box of the selection.
     cols = [col for (col, row) in coords]
     rows = [row for (col, row) in coords]

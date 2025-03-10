@@ -189,7 +189,7 @@ class GridSelection:
 
         #--- New Functionality: Capture color and motif information ---
         #Access the design instance from the KnitWindow.
-        design = self.knit_window._KnitWindow__design
+        design = self.knit_window._design
         selected_details = []
         for (col, row) in sorted(list(self.selected_coords)):
             # Get the effective RGB color at this grid cell.

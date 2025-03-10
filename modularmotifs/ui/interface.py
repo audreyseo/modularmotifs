@@ -103,7 +103,7 @@ class KnitWindow(PixelWindow):
     """Main window to fill out a design"""
 
 
-    def __init__(self, design=None, title=None, save_as_motif: bool = True, program_builder=None) -> None:
+    def __init__(self, design=None, title=None, save_motif: bool = True, program_builder=None) -> None:
         self._motif_images = []
         self._design: Design = design or Design(GRID_HEIGHT, GRID_WIDTH)
 
@@ -144,7 +144,7 @@ class KnitWindow(PixelWindow):
 
         # Add grid selection integration here:
         self.__grid_selector = GridSelection(self)
-        if save_as_motif:
+        if save_motif:
             save_button = tk.Button(self._controls_frame, text="Save as Motif", command=lambda: save_as_motif(self))
             save_button.pack(side="left", padx=10)
             pass
@@ -459,7 +459,7 @@ class KnitWindow(PixelWindow):
             motif_label.pack(pady=5, padx=5)
             ToolTip(motif_label, msg=motif_name, delay=1.0)
             # motif_label.grid(row=row, column=0)
-            row += 1
+            # row += 1
 
             motif_label.bind("<Button-1>", pick_motif_listener(motif_name, motif_obj, motif_label))
 
