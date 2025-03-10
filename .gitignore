@@ -176,3 +176,6 @@ settings.json
 
 # Knitout files
 *.k
+
+# Outputs by tests
+*convert.png

@@ -1,18 +1,24 @@
 """User interface that uses Designs to model pixels"""
 
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import Image, filedialog
+from tkinter import colorchooser
+from tktooltip import ToolTip
 from typing import Any, List, Optional
 from collections.abc import Callable
+# import numpy as np
+
 from PIL import ImageTk, Image
 
 # import saved_motifs
 from modularmotifs.core.design import Design, MotifOverlapException
-from modularmotifs.core import RGBColor
+from modularmotifs.core import RGBAColor
 from modularmotifs.core.motif import Motif
 from modularmotifs.core.util import motif2png
 from modularmotifs.motiflibrary.examples import motifs, int_lol_to_motif
 from modularmotifs.motiflibrary.saved_motifs import saved_motifs
+from modularmotifs.handknit.generate import handknitting_instructions
+
 
 from modularmotifs.ui.motif_saver import save_as_motif
 from modularmotifs.ui.grid_selection import GridSelection
@@ -25,6 +31,8 @@ from modularmotifs.dsl._syntax import SizeOp, AddColumn, RemoveColumn, AddRow, R
 from modularmotifs.ui.pixel_window import PixelWindow
 
 import os
+
+from modularmotifs.ui.viz.viz import export_heart, show_design
 
 # Default grid dimensions
 # GRID_HEIGHT: int = 25
@@ -94,16 +102,17 @@ def clean_motif_data(motif_data: list[list[int]]) -> list[list[int]]:
 class KnitWindow(PixelWindow):
     """Main window to fill out a design"""
 
-    def __init__(self) -> None:
-        self._motif_images = []  # Initialize the attribute here
-        self.__design: Design = Design(GRID_HEIGHT, GRID_WIDTH)
 
-        super().__init__(MAX_WIDTH, MAX_HEIGHT, TKINTER_OFFSET, WINDOW_TITLE, self.__design)
+    def __init__(self, design=None, title=None, save_as_motif: bool = True, program_builder=None) -> None:
+        self._motif_images = []
+        self._design: Design = design or Design(GRID_HEIGHT, GRID_WIDTH)
+
+        super().__init__(MAX_WIDTH, MAX_HEIGHT, TKINTER_OFFSET, title or WINDOW_TITLE, self._design)
         self._selected_motif: Optional[tuple[str, Motif]] = None
         self._selected_motif_button = None
 
 
-        self._program_builder: DesignProgramBuilder = DesignProgramBuilder(self.__design)
+        self._program_builder: DesignProgramBuilder = program_builder or DesignProgramBuilder(self._design)
         self._program_builder.add_modularmotifs_motif_library()
 
         # --- New code: Load saved motifs into the design program builder ---
@@ -135,13 +144,20 @@ class KnitWindow(PixelWindow):
 
         # Add grid selection integration here:
         self.__grid_selector = GridSelection(self)
+        if save_as_motif:
+            save_button = tk.Button(self._controls_frame, text="Save as Motif", command=lambda: save_as_motif(self))
+            save_button.pack(side="left", padx=10)
+            pass
 
-        save_button = tk.Button(self._root, text="Save as Motif", command=lambda: save_as_motif(self, self._refresh_motif_library))
+        save_button = tk.Button(self._controls_frame, text="Save as Motif", command=lambda: save_as_motif(self, self._refresh_motif_library))
 
         save_button.pack(side="left", padx=10)
+        view_button = tk.Button(self._controls_frame, text="View knitted object", command=lambda: self.show())
+        view_button.pack(side="left", padx=10)
 
         # Starts the window
         self._root.mainloop()
+
 
     def _populate_motif_buttons(self, parent_frame):
         """Populate the motif buttons inside the given frame without affecting the window location."""
@@ -178,12 +194,31 @@ class KnitWindow(PixelWindow):
             motif_label.bind("<Button-1>", pick_motif_listener(motif_name, motif_obj, motif_label))
 
 
+    def show(self) -> None:
+        """Shows the knitted object in a new window"""
+        show_design(self._design)
+        pass
+    
+    def _init_handknit_output(self) -> Callable:
+        def handler():
+            f = filedialog.asksaveasfile(mode="wb", defaultextension=".png")
+            if f is None:
+                print("Handknit output aborted")
+                return
+            filename = os.path.abspath(str(f.name))
+            print(filename)
+            img = handknitting_instructions(self._design, cell_size=40, thicker=4, thinner=2)
+            img.save(f)
+            f.close()
+            pass
+        return handler
 
     def _init_underlying(self, dpb: DesignProgramBuilder, interp: DesignInterpreter):
         self._program_builder = dpb
         self._interpreter = interp
-        self.__design = interp.design
-        self._pixel_grid = self.__design
+        self._design = interp.design
+        self._pixel_grid = self._design
+    
 
     def _init_save(self) -> Callable:
         def save_handler(e):
@@ -261,8 +296,8 @@ class KnitWindow(PixelWindow):
                 # self._program_builder = dpb
                 # print(dpb.to_python())
                 # self._intepreter = interp
-                # self.__design = interp.design
-                # self._pixel_grid = self.__design
+                # self._design = interp.design
+                # self._pixel_grid = self._design
 
                 # add rows and columns
                 self._adjust_width_height()
@@ -301,7 +336,7 @@ class KnitWindow(PixelWindow):
                             pass
 
 
-                        # self.__design.add_motif(self._selected_motif, col, row)
+                        # self._design.add_motif(self._selected_motif, col, row)
                         self._refresh_pixels()
                     except MotifOverlapException:
                         self.error("Placed motif overlaps with something else!")
@@ -317,11 +352,42 @@ class KnitWindow(PixelWindow):
 
 
     def _init_colors(self) -> None:
+        
+        def pick_color_callback(color: RGBAColor, name: str, frame_color_label: tuple):
+            frame, color_button, name_label = frame_color_label
+            def callback(event):
+                print(f"You clicked {name} {color.hex()}")
+                color_code = colorchooser.askcolor(color=color.tuple(), title =f"Choose {name} color")
+                if isinstance(color_code, tuple) and color_code:
+                    if not color_code[0]:
+                        return
+                    pass
+                print(color_code)
+                c = RGBAColor.from_hex(color_code[1])
+                color_button.configure(bg=color_code[1])
+                print(type(color_code))
+                for bindable in frame_color_label:
+                    bindable.bind("<Button-1>", pick_color_callback(c, name, frame_color_label))
+                    pass
+                match name:
+                    case "Fore":
+                        self._design.set_fore_color(c)
+                        pass
+                    case "Back":
+                        self._design.set_back_color(c)
+                        pass
+                    case "Invis":
+                        self._design.set_invis_color(c)
+                        pass
+                self._refresh_pixels()
+                pass
+            return callback
+        
         """Initializes the color viewer and picker at the bottom"""
-        colors: list[RGBColor] = [
-            self.__design.fore_color,
-            self.__design.back_color,
-            self.__design.invis_color,
+        colors: list[RGBAColor] = [
+            self._design.fore_color,
+            self._design.back_color,
+            self._design.invis_color,
         ]
         buttons = super()._init_colors(colors)
 
@@ -333,7 +399,7 @@ class KnitWindow(PixelWindow):
                 print(f"You clicked {name} {color.hex()}!")
                 pass
             for bindable in parts:
-                bindable.bind("<Button-1>", pick_color)
+                bindable.bind("<Button-1>", pick_color_callback(color, name, parts))
                 pass
             pass
         pass
@@ -391,7 +457,13 @@ class KnitWindow(PixelWindow):
             motif_label = tk.Label(self._motif_inner_frame, image=motif_thumbnail, borderwidth=1, relief="solid")
 
             motif_label.pack(pady=5, padx=5)
+            ToolTip(motif_label, msg=motif_name, delay=1.0)
+            # motif_label.grid(row=row, column=0)
+            row += 1
+
             motif_label.bind("<Button-1>", pick_motif_listener(motif_name, motif_obj, motif_label))
+
+            pass
         pass
 
     def _refresh_motif_library(self):
@@ -528,7 +600,7 @@ class KnitWindow(PixelWindow):
                 for i in range(dheight - 1, h-1, -1):
                     op = self._program_builder.remove_row(i)
                     self._interpreter.interpret(op)
-                    # self.__design.remove_row()
+                    # self._design.remove_row()
                     self._remove_row(i,
                                     remove_labels=self.height() == dheight - 1,
                                     add_labels=h == self.height())
@@ -536,7 +608,7 @@ class KnitWindow(PixelWindow):
                 pass
             elif h > dheight:
                 for i in range(dheight, h):
-                    # self.__design.add_row()
+                    # self._design.add_row()
                     op = self._program_builder.add_row()
                     self._interpreter.interpret(op)
                     self._add_row(i,
@@ -551,10 +623,10 @@ class KnitWindow(PixelWindow):
         def width_handler():
             print("Width: " + self._width_var.get())
             w = int(self._width_var.get())
-            dwidth = self.__design.width()
+            dwidth = self._design.width()
             if w < dwidth:
                 for i in range(dwidth - 1, w-1, -1):
-                    # self.__design.remove_column()
+                    # self._design.remove_column()
                     op = self._program_builder.remove_column(i)
                     print(op)
                     self._interpreter.interpret(op)
@@ -564,7 +636,7 @@ class KnitWindow(PixelWindow):
                 pass
             elif w > dwidth:
                 for i in range(dwidth, w):
-                    # self.__design.add_column()
+                    # self._design.add_column()
                     op = self._program_builder.add_column()
                     print(op)
                     self._interpreter.interpret(op)

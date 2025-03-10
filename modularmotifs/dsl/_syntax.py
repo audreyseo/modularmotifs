@@ -2,7 +2,7 @@ import abc
 # TODO: I think we would want to replace TypeGuard with TypeIs if we were all using Python 3.13...
 from typing import Union, TypeGuard, Self, Optional, Type, Any, List
 from types import ModuleType
-from modularmotifs.core import Motif, Design, Color
+from modularmotifs.core import Motif, Design, Color, CompositeMotif
 from modularmotifs.core.design import PlacedMotif
 import modularmotifs.motiflibrary.examples as libexamples
 # from pathlib import Path
@@ -156,6 +156,9 @@ class Variable(Expr):
     
     def to_python(self) -> str:
         return self.name
+    
+    def __str__(self) -> str:
+        return self.to_python()
 
 class ObjectInit(Expr):
     cn = __qualname__
@@ -201,14 +204,14 @@ class ModuleAccess(Expr):
         return f"{self.module.to_python()}.{self.attr}"
 
 class ObjectAccess(Expr):
-    def __init__(self, v: Variable, prop: str):
+    def __init__(self, e: Expr, prop: str):
         super().__init__()
-        self.v = v
-        self.prop = p
+        self.e = e
+        self.prop = prop
         pass
 
     def to_python(self) -> str:
-        return f"{self.v}.{self.prop}"
+        return f"{self.e}.{self.prop}"
     pass
 
 class ObjectMethodCall(Expr):
@@ -238,6 +241,21 @@ class KeywordArg(Expr):
 class Statement(Syntax):
     pass
     
+    
+class Operation(Statement):
+    fresh: FreshVar
+    op_name: str
+    
+    def __init__(self, op_name: str, fresh: FreshVar):
+        super().__init__()
+        self.op_name = op_name
+        self.fresh = fresh
+    
+    @abc.abstractmethod
+    def inverse(self) -> 'Operation':
+        pass
+    pass
+
 class DesignOp(Statement):
     cn = __qualname__
 
@@ -432,7 +450,7 @@ class DesignInterpreter:
         def get_args_keyword_args(exprs: list[Expr]):
             args = map_eval_over(list(filter(lambda x: not isinstance(x, KeywordArg), exprs)))
             keywordargs = list(filter(lambda x: isinstance(x, KeywordArg), exprs))
-            keywordargs = [(kwa.key, self.eval(kwa.e)) for k in keywordargs]
+            keywordargs = [(kwa.key, self.eval(kwa.e)) for kwa in keywordargs]
             keywordargs = {k: e for k, e in keywordargs}
             return args, keywordargs
         
@@ -460,7 +478,7 @@ class DesignInterpreter:
         if isinstance(e, ObjectMethodCall):
             # args = map_eval_over(e.args)
             args, keywordargs = get_args_keyword_args(e.args)
-            return getattr(self.eval(e.v), method)(*args, **keywordargs)
+            return getattr(self.eval(e.v), e.method)(*args, **keywordargs)
         if isinstance(e, KeywordArg):
             return self.eval(e.e)
         # Avoid unprincipled eval if we can...
@@ -614,15 +632,34 @@ class DesignProgramBuilder:
                 return self._motifs[mname]
             pass
         return None
+    
+    @classmethod
+    def map_to_python(cls, l: list[Syntax]) -> list[str]:
+        return list(map(lambda x: x.to_python(), l))
+    
+    def _imports_to_python(self) -> str:
+        return "\n".join(DesignProgramBuilder.map_to_python(self._imports))
+    
+    def _motifs_to_python(self) -> str:
+        return "\n".join(DesignProgramBuilder.map_to_python(self._motif_creations))
+    
+    def _design_statement(self) -> str:
+        design_statement = SetVariable(self._design_var, ObjectInit("Design", Literal(self._original_size[0]), Literal(self._original_size[1]))).to_python()
+        return design_statement
+    
+    def _ops_to_python(self) -> str:
+        return "\n".join(DesignProgramBuilder.map_to_python(self._actions[:self._index + 1]))
+    
+    @classmethod
+    def _format_to_python(cls, l: list[str]) -> str:
+        return "\n\n".join(l)
 
     def to_python(self) -> str:
-        def map_to_python(l: list[Syntax]) -> list[str]:
-            return list(map(lambda x: x.to_python(), l))
-        imports = "\n".join(map_to_python(self._imports))
-        design_statement = SetVariable(self._design_var, ObjectInit("Design", Literal(self._original_size[0]), Literal(self._original_size[1]))).to_python()
-        motifs = "\n".join(map_to_python(self._motif_creations))
-        ops = "\n".join(map_to_python(self._actions[:self._index + 1]))
-        return "\n\n".join([imports, design_statement, motifs, ops])
+        imports = self._imports_to_python()
+        design_statement = self._design_statement()
+        motifs = self._motifs_to_python()
+        ops = self._ops_to_python()
+        return DesignProgramBuilder._format_to_python([imports, design_statement, motifs, ops])
 
     def add_modularmotifs_motif_library(self) -> Self:
         print(libexamples.__name__)
@@ -739,6 +776,9 @@ class DesignProgramBuilder:
     # def load_base_design(self) -> Self:
     #     # TODO: complete
     #     return self
+    
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.base_design})"
     pass
 
 

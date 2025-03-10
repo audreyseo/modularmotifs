@@ -1,7 +1,7 @@
 """ Utilities """
 
 from modularmotifs.core.motif import Motif, Color
-from modularmotifs.core.design import Design, RGBColor
+from modularmotifs.core.design import Design, RGBAColor
 from typing import Optional
 from PIL import Image
 
@@ -27,18 +27,18 @@ def png2motif(png_path: str) -> Motif:
     return Motif(bbox)
 
 
-def rgbcolors_to_image(lol: list[list[RGBColor]], square_size=1, mode="RGB") -> Image.Image:
-    """Convert a list of list of RGBColors to an image
+def rgbcolors_to_image(lol: list[list[RGBAColor]], square_size=1, mode="RGB") -> Image.Image:
+    """Convert a list of list of RGBAColors to an image
 
     Arguments
-      lol (list[list[RGBColor]]): a list of lists of RGBColor objects - i.e., a 2d list representing the colors in the image.
+      lol (list[list[RGBAColor]]): a list of lists of RGBAColor objects - i.e., a 2d list representing the colors in the image.
       square_size (int): the default size (in pixels) of the square that represents each color. Defaults to 1
       mode (str): the image mode to use. Currently not implemented! Defaults to "RGB" -- the only option currently supported
 
     Returns:
       Image.Image, a PIL.Image.Image object where each "square" has the corresponding color from the input 2d list
     """
-    assert lol and lol[0], f"{rgbcolors_to_image.__qualname__}: 2d list of RGBColors must be non-empty -- {lol}"
+    assert lol and lol[0], f"{rgbcolors_to_image.__qualname__}: 2d list of RGBAColors must be non-empty -- {lol}"
     h = len(lol)
     w = len(lol[0])
     assert all(len(r) == w for r in lol), f"{rgbcolors_to_image.__qualname__}: each row must have the same length -- {lol}"
@@ -49,7 +49,7 @@ def rgbcolors_to_image(lol: list[list[RGBColor]], square_size=1, mode="RGB") -> 
     if square_size == 1:
         for y in range(h):
             for x in range(w):
-                pixels[x, y] = lol[y][x].tuple()
+                pixels[x, y] = lol[y][x].rgb_tuple()
                 pass
             pass
         return img
@@ -59,15 +59,23 @@ def rgbcolors_to_image(lol: list[list[RGBColor]], square_size=1, mode="RGB") -> 
             color = lol[y][x]
             for i in range(square_size):
                 for j in range(square_size):
-                    pixels[x * square_size + i, y * square_size + j] = color.tuple()
+                    pixels[x * square_size + i, y * square_size + j] = color.rgb_tuple()
                     pass
                 pass
             pass
         pass
     return img
             
-    
-    
+
+def design2png(design: Design, square_size: int = 10) -> Image.Image:
+    color_grid = []
+    for y in range(design.height()):
+        row = []
+        for x in range(design.width()):
+            row.append(design.get_rgb(x, y))
+        color_grid.append(row)
+    img = rgbcolors_to_image(color_grid, square_size=square_size)
+    return img
 
 def motif2png(motif: Motif) -> Image.Image:
     w, h = motif.width(), motif.height()
@@ -98,6 +106,17 @@ def design_to_lol(d: Design, mapper = None) -> list[list[int]]:
             else:
                 newrow.append(val)
                 pass
+            pass
+        lol.append(newrow)
+        pass
+    return lol
+
+def motif_to_lol(m: Motif) -> list[list[RGBAColor]]:
+    lol = []
+    for i in range(m.height()):
+        newrow = []
+        for j in range(m.width()):
+            newrow.append(m.get_rgba(j, i))
             pass
         lol.append(newrow)
         pass

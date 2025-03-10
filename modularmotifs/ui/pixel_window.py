@@ -1,7 +1,7 @@
 """Superclass of windows that support any kind of pixel editing"""
 import abc
 from modularmotifs.core.pixel_grid import PixelGrid
-from modularmotifs.core.rgb_color import RGBColor
+from modularmotifs.core.rgb_color import RGBAColor
 import tkinter as tk
 from typing import Any, Optional
 from collections.abc import Callable
@@ -59,7 +59,7 @@ class PixelWindow(abc.ABC):
         self._pixel_grid = pixel_grid
         
         # set up saving keyboard shortcut
-        is_mac = sys.platform == 'darwin'
+        is_mac = PixelWindow.is_mac()
         
         # Common metakeys
         self._key_names = {
@@ -73,10 +73,21 @@ class PixelWindow(abc.ABC):
         
         self._root.bind(f"<{command_ctrl}-s>", self._init_save())
         self._root.bind(f"<{command_ctrl}-o>", self._init_open())
+        
+        save_as_handknit = tk.Button(self._controls_frame, text="Save as Hand Knit", command=self._init_handknit_output())
+        save_as_handknit.pack(side="right", padx=10)
+        
         pass
+    
+    @classmethod
+    def is_mac(cls) -> bool:
+        return sys.platform == 'darwin'
     
     def get_root(self) -> tk.Tk:
         return self._root
+    
+    def _init_handknit_output(self) -> Callable:
+        pass
     
     @abc.abstractmethod
     def _init_save(self) -> Callable:
@@ -163,7 +174,7 @@ class PixelWindow(abc.ABC):
         for y, row in enumerate(self._cells):
             for x, cell in enumerate(row):
                 if self._pixel_grid.in_range(x, y):
-                    cell.config(bg=self._pixel_grid.get_rgb(x, y).hex())
+                    cell.config(bg=self._pixel_grid.get_rgba(x, y).hex())
                     pass
                 pass
             pass
@@ -218,8 +229,9 @@ class PixelWindow(abc.ABC):
             pass
         pass
     
-    def _init_colors(self, colors: list[RGBColor]) -> list:
+    def _init_colors(self, colors: list[RGBAColor]) -> list:
         """Initializes the color viewer and picker at the bottom"""
+        
         palette_frame = tk.Frame(self._root)
         palette_frame.pack(side="bottom", pady=10)
 
@@ -261,6 +273,10 @@ class PixelWindow(abc.ABC):
         
         redoer = tk.Button(history_frame, text="Redo", command=redo_listener())
         redoer.pack(side="left", padx=5)
+        
+        command_ctrl = self._key_names["Meta"] if PixelWindow.is_mac() else self._key_names["Ctrl"]
+        self._root.bind(f"<{command_ctrl}-z>", lambda e: undo_listener()())
+        self._root.bind(f"<{command_ctrl}-y>", lambda e: redo_listener()())
 
         self._undo_button = undoer
         self._redo_button = redoer
