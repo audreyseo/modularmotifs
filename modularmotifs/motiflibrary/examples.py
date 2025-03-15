@@ -29,6 +29,8 @@ def int_lol_to_motif(intss: list[list[int]]) -> Motif:
     """Turn an int list of lists (lol) to a Motif"""
     return Motif(int_lol_to_color_lol(intss))
 
+def int_lol_to_name(name_base: str, intss: list[list[int]]) -> str:
+    return f"{name_base}-{len(intss)}x{len(intss[0])}"
 
 # 1 = foreground
 # 2 = background
@@ -313,7 +315,7 @@ motifs = {
     ),
     "adults-28x32": int_lol_to_motif(big.adults),
     "children-14x16": int_lol_to_motif(big.children),
-    f"crosses-{len(big.crosses)}x{len(big.crosses[0])}": int_lol_to_motif(big.crosses)
+    f"crosses-{len(big.crosses)}x{len(big.crosses[0])}": int_lol_to_motif(big.crosses),
 }
 
 def __add_motif(descrip: str, lol: list[list[int]]) -> None:
@@ -331,6 +333,11 @@ __add_motif("sunrise", big.sunrise)
 __add_motif("xs", big.xs)
 __add_motif("bud-vine", big.bud_vine)
 __add_motif("butterfly", big.butterfly)
+__add_motif("xs-2", big.xs_2)
+__add_motif("dots", big.dots)
+__add_motif("arrow-left", [[2, 1, 2], [1, 2, 2], [2, 1, 2]])
+__add_motif("arrow-right", [[1, 2, 2], [2, 1, 2], [1, 2, 2]])
+
 
 
 

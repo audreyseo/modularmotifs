@@ -14,6 +14,7 @@ from modularmotifs.motiflibrary.examples import motifs
 from modularmotifs.ui.modes.color_editor_button_modes import ChangeButtonState
 from modularmotifs.core.algo.fair_isle import fair_isle_colorization_new, generate_changes
 from modularmotifs.handknit.generate import handknitting_instructions
+from design_examples.rubric_example import x0 as rubric_example
 import sys
 
 class ColorEditor:
@@ -62,8 +63,24 @@ class ColorEditor:
         self._init_add_color()
         self._init_history()
         self._init_save()
+        self._init_treat_invis_as_bg()
         # self._root.mainloop()
         pass
+    
+    def _init_treat_invis_as_bg(self):
+        def listener(buttonvar: tk.StringVar):
+            def handler():
+                self._pretty.set_treat_invis_as_bg(not self._pretty._treat_invis_as_bg)
+                buttonvar.set("Treating Invis as Background" if self._pretty._treat_invis_as_bg else "Not Treating Invis as Background"
+)
+                pass
+            return handler
+        
+        bv = tk.StringVar()
+        bv.set("Not Treating Invis as Background")
+        invis_as_bg_button = ttk.Button(self._controls_frame, textvariable=bv, command=listener(bv))
+        # invis_as_bg_button.grid(column=8, row=0)
+        
     
     def start_window(self) -> None:
         print("Starting window")
@@ -315,13 +332,18 @@ if __name__ == "__main__":
               RGBAColor.from_hex("#A6CFD5"),
               RGBAColor.from_hex("#DBFCFF")]
     
+    # take the rubric_example and fill out all the invisibles
+    
     # changes = [Change.from_ints(row, 1, 1) for row in range(9)]
     changes = generate_changes(design)
+    # changes = generate_changes(rubric_example)
     
     # changes = [Change.from_ints(2, 1, 1),
     #            Change.from_ints(5, 3, 1),
     #            Change.from_ints(8, 4, 1)]
     pretty = PrettierTwoColorRows(design, colors, changes)
+    # pretty = PrettierTwoColorRows(rubric_example, colors, changes)
+    # pretty.set_treat_invis_as_bg(True)
     
     editor = ColorEditor(pretty)
     

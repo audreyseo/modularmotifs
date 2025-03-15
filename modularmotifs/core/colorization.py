@@ -86,10 +86,16 @@ class TwoColorsPerRow(Colorization):
     _fg: list[int]
     _background: list[RGBAColor]
     _bg: list[int]
+    _treat_invis_as_bg: bool
 
     def __init__(self, d: Design, colors: list[RGBAColor]):
         super().__init__(d, colors)
         self._init_lists()
+        self._treat_invis_as_bg = False
+        pass
+    
+    def set_treat_invis_as_bg(self, b: bool) -> None:
+        self._treat_invis_as_bg = b
         pass
     
     def _init_lists(self, _h=None):
@@ -141,12 +147,15 @@ class TwoColorsPerRow(Colorization):
         super().get_color(x, y)
         
         c = self._d.get_color(x, y)
-
-        assert c != Color.INVIS, f"{self.get_color.__qualname__}: color of design {self._d} at ({x}, {y}) is invisible but should be either foreground or background"
+        if not self._treat_invis_as_bg:
+            assert c != Color.INVIS, f"{self.get_color.__qualname__}: color of design {self._d} at ({x}, {y}) is invisible but should be either foreground or background"
+            pass
         
         if c == Color.FORE:
             return self.get_fg(y)
         elif c == Color.BACK:
+            return self.get_bg(y)
+        elif c == Color.INVIS and self._treat_invis_as_bg:
             return self.get_bg(y)
         pass
 

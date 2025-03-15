@@ -312,7 +312,7 @@ class Design(PixelGrid):
             or m.width() + x > self.__width
             or min(x, y) < 0
         ):
-            raise IndexError("Motif is out of bounds!")
+            raise IndexError(f"Motif is out of bounds!: {m.height()} x {m.width()} vs ({x}, {y}) and {self.__height}, {self.__width}")
 
         p = PlacedMotif(x, y, m)
         if p in self.__motifs:

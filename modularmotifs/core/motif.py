@@ -199,6 +199,12 @@ class Motif(PixelGrid):
     def get_color(self, x: int, y: int) -> Color:
         return self.__data[y].get_color(x)
     
+    def to_lists_of_ints(self) -> list[list[int]]:
+        return [[self.get_color(x, y).value for x in range(self.width())] for y in range(self.height())]
+    
+    def dims(self) -> tuple[int, int]:
+        return self.width(), self.height()
+    
     def get_rgba(self, x: int, y: int) -> RGBAColor:
         match self.get_color(x, y):
             case Color.FORE:

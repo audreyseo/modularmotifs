@@ -18,7 +18,7 @@ from modularmotifs.core.util import motif2png
 from modularmotifs.handknit.generate import handknitting_instructions
 from modularmotifs.motiflibrary.examples import motifs
 
-from modularmotifs.ui.motif_saver import save_as_motif
+from modularmotifs.ui.motif_saver import save_as_motif as _save_as_motif
 from modularmotifs.ui.grid_selection import GridSelection
 from modularmotifs.ui.grid_labels import GridLabels
 
@@ -35,8 +35,8 @@ from modularmotifs.ui.viz.viz import export_heart, show_design
 # Default grid dimensions
 # GRID_HEIGHT: int = 25
 # GRID_WIDTH: int = 50
-GRID_HEIGHT = 10
-GRID_WIDTH = 10
+GRID_HEIGHT = 30
+GRID_WIDTH = 48
 
 # Maximum dimensions
 MAX_HEIGHT: int = 200
@@ -86,7 +86,7 @@ class KnitWindow(PixelWindow):
         # Add grid selection integration here:
         self.__grid_selector = GridSelection(self)
         if save_as_motif:
-            save_button = tk.Button(self._controls_frame, text="Save as Motif", command=lambda: save_as_motif(self))
+            save_button = tk.Button(self._controls_frame, text="Save as Motif", command=lambda: _save_as_motif(self))
             save_button.pack(side="left", padx=10)
             pass
 
