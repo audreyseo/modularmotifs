@@ -20,7 +20,7 @@ from modularmotifs.motiflibrary.saved_motifs import saved_motifs
 from modularmotifs.handknit.generate import handknitting_instructions
 
 
-from modularmotifs.ui.motif_saver import save_as_motif as _save_as_motif
+from modularmotifs.ui.motif_saver import save_as_motif
 from modularmotifs.ui.grid_selection import GridSelection
 from modularmotifs.ui.grid_labels import GridLabels
 
