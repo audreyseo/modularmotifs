@@ -10,7 +10,7 @@ class MotifWindow(KnitWindow):
     def __init__(self):
         self._design = CompositeMotif(GRID_WIDTH, GRID_HEIGHT)
         pb = MotifProgramBuilder(self._design)
-        super().__init__(design=self._design, title="Motif Canvas", save_as_motif=False, program_builder=pb)
+        super().__init__(design=self._design, title="Motif Canvas", save_motif=False, program_builder=pb)
         self._design = CompositeMotif(GRID_WIDTH, GRID_HEIGHT)
         
         # interp = pb.get_interpreter()
