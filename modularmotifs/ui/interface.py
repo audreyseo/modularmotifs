@@ -121,6 +121,7 @@ class KnitWindow(PixelWindow):
             cleaned_data = clean_motif_data(saved_data)
             motif_obj = int_lol_to_motif(cleaned_data)
             # Wrap the motif in a Literal so that the DSL interpreter can evaluate it.
+            # TODO: FIX, this is incorrect -- this should be an ObjectInit at the very least, not a Literal!
             self._program_builder._motif_name_to_expr[saved_name] = Literal(motif_obj)
         # ---------------------------------------------------------------------
 
