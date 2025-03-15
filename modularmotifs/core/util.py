@@ -27,7 +27,7 @@ def png2motif(png_path: str) -> Motif:
     return Motif(bbox)
 
 
-def rgbcolors_to_image(lol: list[list[RGBAColor]], square_size=1, mode="RGB") -> Image.Image:
+def rgbcolors_to_image(lol: list[list[RGBAColor]], square_size=1, mode="RGB", opacity=255) -> Image.Image:
     """Convert a list of list of RGBAColors to an image
 
     Arguments
@@ -42,14 +42,17 @@ def rgbcolors_to_image(lol: list[list[RGBAColor]], square_size=1, mode="RGB") ->
     h = len(lol)
     w = len(lol[0])
     assert all(len(r) == w for r in lol), f"{rgbcolors_to_image.__qualname__}: each row must have the same length -- {lol}"
-    if mode != "RGB":
+    if mode != "RGB" and mode != "RGBA":
         raise NotImplementedError(f"{rgbcolors_to_image.__qualname__}: modes other than RGB are not yet supported (mode: {mode})")
     img = Image.new(mode, (w * square_size, h * square_size))
     pixels = img.load()
     if square_size == 1:
         for y in range(h):
             for x in range(w):
-                pixels[x, y] = lol[y][x].rgb_tuple()
+                if mode == "RGB":
+                    pixels[x, y] = lol[y][x].rgb_tuple()
+                elif mode == "RGBA":
+                    pixels[x, y] = lol[y][x].rgba_tuple(opacity=opacity)
                 pass
             pass
         return img
@@ -59,7 +62,10 @@ def rgbcolors_to_image(lol: list[list[RGBAColor]], square_size=1, mode="RGB") ->
             color = lol[y][x]
             for i in range(square_size):
                 for j in range(square_size):
-                    pixels[x * square_size + i, y * square_size + j] = color.rgb_tuple()
+                    if mode == "RGB":
+                        pixels[x * square_size + i, y * square_size + j] = color.rgb_tuple()
+                    elif mode == "RGBA":
+                        pixels[x * square_size + i, y * square_size + j] = color.rgba_tuple(opacity=opacity)
                     pass
                 pass
             pass

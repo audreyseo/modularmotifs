@@ -59,7 +59,7 @@ class RGBAColor:
         """
         return (self.__red, self.__green, self.__blue)
 
-    def rgba_tuple(self) -> tuple[int, int, int, int]:
+    def rgba_tuple(self, opacity: int=255) -> tuple[int, int, int, int]:
         """ Returns a tuple of the red, green, blue, and alpha parts
         """
-        return (self.__red, self.__green, self.__blue, self.__alpha)
+        return (self.__red, self.__green, self.__blue, self.__alpha if opacity == 255 else opacity)
