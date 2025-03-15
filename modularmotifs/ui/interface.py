@@ -37,8 +37,8 @@ from modularmotifs.ui.viz.viz import export_heart, show_design
 # Default grid dimensions
 # GRID_HEIGHT: int = 25
 # GRID_WIDTH: int = 50
-GRID_HEIGHT = 30
-GRID_WIDTH = 48
+GRID_HEIGHT = 10
+GRID_WIDTH = 10
 
 # Maximum dimensions
 MAX_HEIGHT: int = 200
@@ -150,9 +150,6 @@ class KnitWindow(PixelWindow):
             save_button.pack(side="left", padx=10)
             pass
 
-        save_button = tk.Button(self._controls_frame, text="Save as Motif", command=lambda: save_as_motif(self, self._refresh_motif_library))
-
-        save_button.pack(side="left", padx=10)
         view_button = tk.Button(self._controls_frame, text="View knitted object", command=lambda: self.show())
         view_button.pack(side="left", padx=10)
 
@@ -407,23 +404,44 @@ class KnitWindow(PixelWindow):
 
     def _init_motifs(self) -> None:
         """Initialize the motif selection panel."""
-        self._motifs_frame = tk.Frame(self._root)
-        self._motifs_frame.pack(side="right", padx=10, fill="y")
+        # self._motifs_frame = tk.Frame(self._root)
+        # self._motifs_frame.pack(side="right", padx=10, fill="y")
 
-        self._motif_canvas = tk.Canvas(self._motifs_frame)
-        self._motif_canvas.pack(side="left", fill="both", expand=True)
+        # self._motif_canvas = tk.Canvas(self._motifs_frame)
+        # self._motif_canvas.pack(side="left", fill="both", expand=True)
 
-        scrollbar = tk.Scrollbar(self._motifs_frame, orient="vertical", command=self._motif_canvas.yview)
-        scrollbar.pack(side="right", fill="y")
-        self._motif_canvas.configure(yscrollcommand=scrollbar.set)
+        # scrollbar = tk.Scrollbar(self._motifs_frame, orient="vertical", command=self._motif_canvas.yview)
+        # scrollbar.pack(side="right", fill="y")
+        # self._motif_canvas.configure(yscrollcommand=scrollbar.set)
 
-        self._motif_inner_frame = tk.Frame(self._motif_canvas)
-        self._motif_canvas.create_window((0, 0), window=self._motif_inner_frame, anchor="nw")
+        # self._motif_inner_frame = tk.Frame(self._motif_canvas)
+        # self._motif_canvas.create_window((0, 0), window=self._motif_inner_frame, anchor="nw")
 
-        # Populate motif buttons using the new helper method.
-        self._populate_motif_buttons(self._motif_inner_frame)
+        # # Populate motif buttons using the new helper method.
+        # self._populate_motif_buttons(self._motif_inner_frame)
 
-        self._motif_inner_frame.bind("<Configure>", lambda event: self._motif_canvas.configure(scrollregion=self._motif_canvas.bbox("all")))
+        # self._motif_inner_frame.bind("<Configure>", lambda event: self._motif_canvas.configure(scrollregion=self._motif_canvas.bbox("all")))
+        canvas = tk.Canvas(self._library_frame)
+        
+        # canvas.pack(side="left", fill="y")
+        canvas.grid(row=0, column=0, sticky=tk.N + tk.S + tk.E + tk.W)
+        # canvas.configure(borderwidth=3, relief="raised")
+
+        scrollbar = tk.Scrollbar(self._library_frame, orient="vertical", command=canvas.yview)
+        # scrollbar.pack(side="left", fill="y")
+        scrollbar.grid(row=0, column=1, sticky=tk.N + tk.S)
+        # scrollbar.configure(borderwidth=4, relief="raised")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        print(canvas.grid_info())
+        print(scrollbar.grid_info())
+
+        inner_frame = tk.Frame(canvas)
+        canvas.create_window((0, 0), window=inner_frame, anchor="nw")
+        inner_frame.bind(
+            "<Configure>",
+            lambda event: canvas.configure(scrollregion=canvas.bbox("all")),
+        )
+        canvas.configure(width=160)
 
 
         def pick_motif_listener(motif_name: str, motif: Motif, motif_button):
@@ -455,7 +473,7 @@ class KnitWindow(PixelWindow):
             motif_thumbnail = ImageTk.PhotoImage(pil_image)
             self._motif_images.append(motif_thumbnail)
 
-            motif_label = tk.Label(self._motif_inner_frame, image=motif_thumbnail, borderwidth=1, relief="solid")
+            motif_label = tk.Label(inner_frame, image=motif_thumbnail, borderwidth=1, relief="solid")
 
             motif_label.pack(pady=5, padx=5)
             ToolTip(motif_label, msg=motif_name, delay=1.0)
