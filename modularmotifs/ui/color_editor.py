@@ -9,6 +9,7 @@ import tkinter.font as font
 from modularmotifs.core.colorization import PrettierTwoColorRows, Change
 from modularmotifs.core.design import Design
 from modularmotifs.core.rgb_color import RGBAColor
+from modularmotifs.dsl import parse
 from modularmotifs.dsl._colorops import ColorOp, ColorizationProgramBuilder
 from modularmotifs.motiflibrary.examples import motifs
 from modularmotifs.ui.modes.color_editor_button_modes import ChangeButtonState
@@ -332,6 +333,17 @@ if __name__ == "__main__":
               RGBAColor.from_hex("#A6CFD5"),
               RGBAColor.from_hex("#DBFCFF")]
     
+    f = filedialog.askopenfile(defaultextension=".py", title="Choose a design file to colorize.")
+    
+    if f:
+        text = f.read()
+        f.close()
+        dpb, interp = parse(text)
+        design = interp.design
+        pass
+    
+    
+    
     # take the rubric_example and fill out all the invisibles
     
     # changes = [Change.from_ints(row, 1, 1) for row in range(9)]
@@ -343,7 +355,7 @@ if __name__ == "__main__":
     #            Change.from_ints(8, 4, 1)]
     pretty = PrettierTwoColorRows(design, colors, changes)
     # pretty = PrettierTwoColorRows(rubric_example, colors, changes)
-    # pretty.set_treat_invis_as_bg(True)
+    pretty.set_treat_invis_as_bg(True)
     
     editor = ColorEditor(pretty)
     
