@@ -2,9 +2,14 @@
 
 **This is a class project and a work in progress.**
 
-Run with `python3 -m modularmotifs.main`
-
 Colorwork knitting design tool that allows modular editing, placement, tiling, etc. of motifs.
+
+Currently the UIs have not been integrated into a single UI, so we have different UIs for different purposes:
+
+- to do colorwork design editing, run `poetry run python -m modularmotifs.main`
+- for composite motif creation, run `poetry run python -m modularmotifs.ui.motif_editor`
+- to explore colorization of designs, run `poetry run python -m modularmotifs.ui.color_editor`
+
 
 
 # Dependencies
