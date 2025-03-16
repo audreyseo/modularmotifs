@@ -17,11 +17,12 @@ class PixelCanvas:
     __old_ids: list
     
     
-    def __init__(self, root: tk.Tk, d: PixelGrid, pixel_size: int = 10):
+    def __init__(self, root: tk.Tk, d: PixelGrid, pixel_size: int = 10, line_width: float=2.0):
         self.__root = root
         self.__d = d
         self.__toplevel = tk.Frame(self.__root)
         self.__pixel_size = pixel_size
+        self.__line_width = line_width
 
         
         self.__nums = GridNumbers(self.__toplevel, self.width(), self.height(), self.pixel_width(), self.pixel_height(), pixel_size, pixel_size)
@@ -53,12 +54,14 @@ class PixelCanvas:
         self.__canvas.bind("<Leave>", lambda _: self.__reset_hover())
         self.init_draw()
         
-        def add_motif(event):
-            x, y = self.event_to_coords(event)
-            self.__d.add_motif(self.__hover_motif, x, y)
-            self.refresh()
-        self.__canvas.bind("<Button-1>", add_motif)
+        # def add_motif(event):
+        #     x, y = self.event_to_coords(event)
+        #     self.__d.add_motif(self.__hover_motif, x, y)
+        #     self.refresh()
+        # self.__canvas.bind("<Button-1>", add_motif)
         pass
+    
+    
     
     def init_draw(self):
         
@@ -80,12 +83,12 @@ class PixelCanvas:
         self.__hor_lines = []
         for i in range(self.height() + 1):
             y = i * self.__pixel_size
-            self.__hor_lines.append(self.__canvas.create_line(0, y, self.pixel_width(), y, fill="black"))
+            self.__hor_lines.append(self.__canvas.create_line(0, y, self.pixel_width(), y, fill="#707070", width=self.__line_width))
             pass
         self.__ver_lines = []
         for i in range(self.width() + 1):
             x = i * self.__pixel_size
-            self.__ver_lines.append(self.__canvas.create_line(x, 0, x, self.pixel_height(), fill="black"))
+            self.__ver_lines.append(self.__canvas.create_line(x, 0, x, self.pixel_height(), fill="#707070", width=self.__line_width))
                 
     
     def __add_old_id(self, id):

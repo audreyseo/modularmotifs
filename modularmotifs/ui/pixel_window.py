@@ -50,7 +50,7 @@ class PixelWindow(abc.ABC):
         # self._library_frame.configure(borderwidth=5, relief="raised")
         self._library_frame.pack(side="left", padx=10, pady=10, fill="y")
         
-        self._pixel_canvas = PixelCanvas(self._lower_frame, pixel_grid, pixel_size=20)
+        self._pixel_canvas = PixelCanvas(self._lower_frame, pixel_grid, pixel_size=20, line_width=1.5)
         self._pixel_canvas.get_toplevel().pack(side="left", padx=10, pady=10, fill="both", expand=True)
         
         self._pixel_frame = tk.Frame(self._lower_frame)
@@ -295,63 +295,63 @@ class PixelWindow(abc.ABC):
     def _remove_row(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
         print(f"Remove row: {at_index}")
         self._pixel_canvas.remove_row()
-        if remove_labels:
-            self._grid_labels.grid_remove_bottom()
-        for i in range(self._MAX_WIDTH):
-            self._cells[at_index][i].grid_remove()
-            if add_labels and i < self.width():
-                self.grid(self._grid_labels.get_bottom_label(i), self.height(), i)
-                pass
-            pass
-        self._grid_labels.grid_remove_lr(at_index)
+        # if remove_labels:
+        #     self._grid_labels.grid_remove_bottom()
+        # for i in range(self._MAX_WIDTH):
+        #     self._cells[at_index][i].grid_remove()
+        #     if add_labels and i < self.width():
+        #         self.grid(self._grid_labels.get_bottom_label(i), self.height(), i)
+        #         pass
+        #     pass
+        # self._grid_labels.grid_remove_lr(at_index)
         pass
     
     def _remove_column(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
         print(f"Remove column: {at_index}")
         self._pixel_canvas.remove_column()
-        if remove_labels:
-            self._grid_labels.grid_remove_right()
-            pass
-        for i in range(self._MAX_HEIGHT):
-            if self._GLOBAL_GRID[i + self._TKINTER_OFFSET][at_index + self._TKINTER_OFFSET] is not None:
-                self._GLOBAL_GRID[i + self._TKINTER_OFFSET][at_index + self._TKINTER_OFFSET].grid_remove()
-            self._cells[i][at_index].grid_remove()
-            if add_labels and i < self.height():
-                self.grid(self._grid_labels.get_right_label(i), i, self.width())
-                pass
-            pass
-        self._grid_labels.grid_remove_tb(at_index)
+        # if remove_labels:
+        #     self._grid_labels.grid_remove_right()
+        #     pass
+        # for i in range(self._MAX_HEIGHT):
+        #     if self._GLOBAL_GRID[i + self._TKINTER_OFFSET][at_index + self._TKINTER_OFFSET] is not None:
+        #         self._GLOBAL_GRID[i + self._TKINTER_OFFSET][at_index + self._TKINTER_OFFSET].grid_remove()
+        #     self._cells[i][at_index].grid_remove()
+        #     if add_labels and i < self.height():
+        #         self.grid(self._grid_labels.get_right_label(i), i, self.width())
+        #         pass
+        #     pass
+        # self._grid_labels.grid_remove_tb(at_index)
         pass
     
     def _add_row(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
         self._pixel_canvas.add_row(at_index)
-        if remove_labels:
-            self._grid_labels.grid_remove_bottom()
-            pass
-        for i in range(self.width()):
-            self.grid(self._cells[at_index][i], at_index, i)
-            if add_labels:
-                self.grid(self._grid_labels.get_bottom_label(i), self.height(), i)
-            pass
-        l, r = self._grid_labels.get_lr_labels(at_index)
-        self.grid(l, at_index, -1)
-        self.grid(r, at_index, self.width())
+        # if remove_labels:
+        #     self._grid_labels.grid_remove_bottom()
+        #     pass
+        # for i in range(self.width()):
+        #     self.grid(self._cells[at_index][i], at_index, i)
+        #     if add_labels:
+        #         self.grid(self._grid_labels.get_bottom_label(i), self.height(), i)
+        #     pass
+        # l, r = self._grid_labels.get_lr_labels(at_index)
+        # self.grid(l, at_index, -1)
+        # self.grid(r, at_index, self.width())
         pass
     
     def _add_column(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
         self._pixel_canvas.add_column(at_index)
-        if remove_labels:
-            self._grid_labels.grid_remove_right()
-            pass
-        for i in range(self.height()):
-            self.grid(self._cells[i][at_index], i, at_index)
-            if add_labels:
-                self.grid(self._grid_labels.get_right_label(i), i, self.width())
-            pass
+        # if remove_labels:
+        #     self._grid_labels.grid_remove_right()
+        #     pass
+        # for i in range(self.height()):
+        #     self.grid(self._cells[i][at_index], i, at_index)
+        #     if add_labels:
+        #         self.grid(self._grid_labels.get_right_label(i), i, self.width())
+        #     pass
         
-        t, b = self._grid_labels.get_tb_labels(at_index)
-        self.grid(t, -1, at_index)
-        self.grid(b, self.height(), at_index)
+        # t, b = self._grid_labels.get_tb_labels(at_index)
+        # self.grid(t, -1, at_index)
+        # self.grid(b, self.height(), at_index)
         pass
     
     def _undo_enabled(self) -> bool:

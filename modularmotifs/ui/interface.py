@@ -28,6 +28,7 @@ from modularmotifs.dsl import DesignProgramBuilder, DesignInterpreter, parse
 from modularmotifs.dsl._syntax import SizeOp, AddColumn, RemoveColumn, AddRow, RemoveRow, Literal
 
 
+from modularmotifs.ui.pixel_canvas import PixelCanvas
 from modularmotifs.ui.pixel_window import PixelWindow
 
 import os
@@ -37,8 +38,8 @@ from modularmotifs.ui.viz.viz import export_heart, show_design
 # Default grid dimensions
 # GRID_HEIGHT: int = 25
 # GRID_WIDTH: int = 50
-GRID_HEIGHT = 10
-GRID_WIDTH = 10
+GRID_HEIGHT = 30
+GRID_WIDTH = 30
 
 # Maximum dimensions
 MAX_HEIGHT: int = 200
@@ -130,7 +131,7 @@ class KnitWindow(PixelWindow):
 
         self._init_pixels()
         self._refresh_pixels()
-        self._init_labels()
+        # self._init_labels()
 
         self._init_motifs()
 
@@ -216,6 +217,9 @@ class KnitWindow(PixelWindow):
         self._interpreter = interp
         self._design = interp.design
         self._pixel_grid = self._design
+        self._pixel_canvas.get_toplevel().pack_forget()
+        self._pixel_canvas = PixelCanvas(self._lower_frame, self._pixel_grid, pixel_size=20, line_width=1.5)
+        self._pixel_canvas.get_toplevel().pack(side="left", padx=10, pady=10, fill="both", expand=True)
     
 
     def _init_save(self) -> Callable:
@@ -314,39 +318,71 @@ class KnitWindow(PixelWindow):
     def _init_pixels(self) -> None:
         """Initializes the array of visible pixels from the
         current design's dimensions. Does not set colors"""
+        
+        def add_motif(event):
+            if self._selected_motif is not None:
+                try:
+                    x, y = self._pixel_canvas.event_to_coords(event)
+                    op = self._program_builder.add_motif(self._selected_motif[0], x, y)
+                    print(op)
+                    self._interpreter.interpret(op)
+                    if self._redo_enabled():
+                        self._disable_redo()
+                        pass
+                    
+                    if not self._undo_enabled():
+                        self._enable_undo()
+                        pass
+                    self._refresh_pixels()
+                    pass
+                except MotifOverlapException:
+                    self.error("Placed motif overlaps with something else!")
+                    self._program_builder.remove_last_action()
+                    pass
+                except IndexError:
+                    self.error("Placed motif would be out of bounds!")
+                    self._program_builder.remove_last_action()
+                    pass
+                pass
+            else:
+                self.error("No selected motif!")
+                pass
+            pass
+        self._pixel_canvas.get_canvas().bind("<Button-1>", add_motif)
+                
 
-        def click_color_listener(row: int, col: int):
-            def handle(_):
-                if self._selected_motif is not None:
-                    try:
-                        # add an op that builds the motif to the program currently being built
-                        op = self._program_builder.add_motif(self._selected_motif[0], col, row)
-                        print(op)
-                        # interpret the operation, which will have an effect on the design
-                        self._interpreter.interpret(op)
+        # def click_color_listener(row: int, col: int):
+        #     def handle(_):
+        #         if self._selected_motif is not None:
+        #             try:
+        #                 # add an op that builds the motif to the program currently being built
+        #                 op = self._program_builder.add_motif(self._selected_motif[0], col, row)
+        #                 print(op)
+        #                 # interpret the operation, which will have an effect on the design
+        #                 self._interpreter.interpret(op)
 
-                        if self._redo_enabled():
-                            self._disable_redo()
-                            pass
+        #                 if self._redo_enabled():
+        #                     self._disable_redo()
+        #                     pass
 
-                        if not self._undo_enabled():
-                            self._enable_undo()
-                            pass
+        #                 if not self._undo_enabled():
+        #                     self._enable_undo()
+        #                     pass
 
 
-                        # self._design.add_motif(self._selected_motif, col, row)
-                        self._refresh_pixels()
-                    except MotifOverlapException:
-                        self.error("Placed motif overlaps with something else!")
-                        self._program_builder.remove_last_action()
-                    except IndexError:
-                        self.error("Placed motif would be out of bounds!")
-                        self._program_builder.remove_last_action()
-                else:
-                    self.error("No selected motif!")
+        #                 # self._design.add_motif(self._selected_motif, col, row)
+        #                 self._refresh_pixels()
+        #             except MotifOverlapException:
+        #                 self.error("Placed motif overlaps with something else!")
+        #                 self._program_builder.remove_last_action()
+        #             except IndexError:
+        #                 self.error("Placed motif would be out of bounds!")
+        #                 self._program_builder.remove_last_action()
+        #         else:
+        #             self.error("No selected motif!")
 
-            return handle
-        super()._init_pixels(click_color_listener)
+        #     return handle
+        # super()._init_pixels(click_color_listener)
 
 
     def _init_colors(self) -> None:
@@ -536,10 +572,10 @@ class KnitWindow(PixelWindow):
             print(action)
 
             if isinstance(action, AddColumn):
-                self._add_column(self.width())
+                self._add_column(self.width() - 1)
                 pass
             elif isinstance(action, AddRow):
-                self._add_row(self.height())
+                self._add_row(self.height() - 1)
                 pass
             elif isinstance(action, RemoveColumn):
                 self._remove_column(w)
