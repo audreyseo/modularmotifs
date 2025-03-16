@@ -143,6 +143,7 @@ class KnitWindow(PixelWindow):
 
         # Add size increment entry
         self._init_sizes()
+        self._init_tools()
 
         # Add grid selection integration here:
         self.__grid_selector = GridSelection(self)

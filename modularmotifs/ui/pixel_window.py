@@ -8,6 +8,7 @@ from collections.abc import Callable
 from modularmotifs.ui.grid_labels import GridLabels
 import sys
 from modularmotifs.ui.pixel_canvas import PixelCanvas
+from PIL import Image, ImageTk
 
 class PixelWindow(abc.ABC):
     """A pixel display window"""
@@ -41,6 +42,9 @@ class PixelWindow(abc.ABC):
         
         self._controls_frame = tk.Frame(self._root)
         self._controls_frame.pack(side="top")
+        
+        self._tools_frame = tk.Frame(self._root)
+        self._tools_frame.pack(side="top")
         
         self._lower_frame = tk.Frame(self._root)
         self._lower_frame.pack(side="top", fill="x")
@@ -185,6 +189,35 @@ class PixelWindow(abc.ABC):
                 pass
             pass
         pass
+    
+    def _init_tools(self) -> None:
+        self._tool_images = []
+        self._tools = []
+        images = ["icons/lasso_tool.png", "icons/magic_wand.png", "icons/paint_select.png"]
+        
+        def handler(column: int):
+            def handle(event):
+                print(column)
+                for i in range(len(self._tools)):
+                    if i != column:
+                        self._tools[i].config(relief="raised", borderwidth=0)
+                        pass
+                    else:
+                        self._tools[i].config(relief="sunken", borderwidth=2)
+                pass
+            return handle
+        
+        for x, f in enumerate(images):
+            img = Image.open(f)
+            scale = 25.0 / img.height
+            img = img.resize((round(img.width * scale), round(img.height * scale)), resample=Image.LANCZOS)
+            thumb = ImageTk.PhotoImage(img)
+            self._tool_images.append(thumb)
+            lasso = tk.Label(self._tools_frame, image=thumb, borderwidth=0, relief="raised", padx=20, pady=20)
+            # print(lasso.config())
+            lasso.grid(row=0, column=x, padx=2)
+            lasso.bind("<Button-1>", handler(x))
+            self._tools.append(lasso)
     
     def _init_pixels(self, click_color_listener: Callable[[int, int], Callable[[Any], None]]) -> None:
         for row in range(self._MAX_HEIGHT):
