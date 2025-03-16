@@ -175,6 +175,7 @@ class PixelWindow(abc.ABC):
         pass
     
     def _refresh_pixels(self) -> None:
+        self._pixel_canvas.refresh()
         """Queries the underlying object for new colors and displays them"""
         for y, row in enumerate(self._cells):
             for x, cell in enumerate(row):
@@ -293,6 +294,7 @@ class PixelWindow(abc.ABC):
                 
     def _remove_row(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
         print(f"Remove row: {at_index}")
+        self._pixel_canvas.remove_row()
         if remove_labels:
             self._grid_labels.grid_remove_bottom()
         for i in range(self._MAX_WIDTH):
@@ -306,6 +308,7 @@ class PixelWindow(abc.ABC):
     
     def _remove_column(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
         print(f"Remove column: {at_index}")
+        self._pixel_canvas.remove_column()
         if remove_labels:
             self._grid_labels.grid_remove_right()
             pass
@@ -321,6 +324,7 @@ class PixelWindow(abc.ABC):
         pass
     
     def _add_row(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
+        self._pixel_canvas.add_row(at_index)
         if remove_labels:
             self._grid_labels.grid_remove_bottom()
             pass
@@ -335,6 +339,7 @@ class PixelWindow(abc.ABC):
         pass
     
     def _add_column(self, at_index: int, remove_labels: bool = True, add_labels: bool = True) -> None:
+        self._pixel_canvas.add_column(at_index)
         if remove_labels:
             self._grid_labels.grid_remove_right()
             pass

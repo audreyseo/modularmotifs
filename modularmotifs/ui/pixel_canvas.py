@@ -3,6 +3,7 @@ import tkinter as tk
 from design_examples.deer_scene import x0 as deer_scene
 from modularmotifs.core.design import Design
 from modularmotifs.core.motif import Motif
+from modularmotifs.core.pixel_grid import PixelGrid
 from modularmotifs.core.util import motif2png
 import modularmotifs.core.util as util
 from modularmotifs.motiflibrary.examples import motifs
@@ -16,7 +17,7 @@ class PixelCanvas:
     __old_ids: list
     
     
-    def __init__(self, root: tk.Tk, d: Design, pixel_size: int = 10):
+    def __init__(self, root: tk.Tk, d: PixelGrid, pixel_size: int = 10):
         self.__root = root
         self.__d = d
         self.__toplevel = tk.Frame(self.__root)
@@ -42,7 +43,8 @@ class PixelCanvas:
         self.__nums.get_right().grid(row=1, column=2)
         self.__nums.get_bottom().grid(row=2, column=1)
         
-        self.__hover_motif = motifs["x-3x3"]
+        self.__hover_motif = None
+        # motifs["x-3x3"]
         self.__old_hover = None
         self.__old_ids = []
         self.__motif_image = None
@@ -162,8 +164,14 @@ class PixelCanvas:
     
     def set_motif(self, m: Motif):
         self.__hover_motif = m
-        img = util.rgbcolors_to_image(util.motif_to_lol(self.__hover_motif), square_size = self.__pixel_size, mode="RGBA", opacity=127)
-        self.__motif_image = ImageTk.PhotoImage(img)
+        if m is not None:
+            img = util.rgbcolors_to_image(util.motif_to_lol(self.__hover_motif), square_size = self.__pixel_size, mode="RGBA", opacity=127)
+            self.__motif_image = ImageTk.PhotoImage(img)
+            # self.__reset_hover()
+            pass
+        else:
+            self.__motif_image = None
+            pass
         self.__reset_hover()
         pass
         
@@ -214,22 +222,22 @@ class PixelCanvas:
         pass
     
     def add_row(self, height: int) -> None:
-        self.__nums.add_horizontals()
+        self.__nums.add_verticals()
         self.__add_row(height)
         pass
     
     def add_column(self, width: int) -> None:
-        self.__nums.add_verticals()
+        self.__nums.add_horizontals()
         self.__add_column(width)
         pass
     
     def remove_row(self) -> None:
-        self.__nums.remove_horizontals()
+        self.__nums.remove_verticals()
         self.__remove_row()
         pass
     
     def remove_column(self) -> None:
-        self.__nums.remove_verticals()
+        self.__nums.remove_horizontals()
         self.__remove_column()
     
     def __remove_row(self) -> None:

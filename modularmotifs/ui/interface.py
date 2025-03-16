@@ -355,7 +355,7 @@ class KnitWindow(PixelWindow):
             frame, color_button, name_label = frame_color_label
             def callback(event):
                 print(f"You clicked {name} {color.hex()}")
-                color_code = colorchooser.askcolor(color=color.tuple(), title =f"Choose {name} color")
+                color_code = colorchooser.askcolor(color=color.rgb_tuple(), title =f"Choose {name} color")
                 if isinstance(color_code, tuple) and color_code:
                     if not color_code[0]:
                         return
@@ -449,11 +449,13 @@ class KnitWindow(PixelWindow):
                 if self._selected_motif_button is not None:
                     KnitWindow.deselect(self._selected_motif_button)
                 if self._selected_motif == motif:
+                    self._pixel_canvas.set_motif(None)
                     self._selected_motif = None
                     self._selected_motif_button = None
                 else:
                     self._selected_motif_button = motif_button
                     self._selected_motif = (motif_name, motif) # motif
+                    self._pixel_canvas.set_motif(motif)
                     KnitWindow.select(self._selected_motif_button)
 
             return handle
@@ -544,7 +546,7 @@ class KnitWindow(PixelWindow):
                 pass
             elif isinstance(action, RemoveRow):
                 self._remove_row(h)
-
+            self._pixel_canvas.refresh()
             self._width_var.set(str(self.width()))
             self._height_var.set(str(self.height()))
 
@@ -608,6 +610,7 @@ class KnitWindow(PixelWindow):
             if not self._undo_enabled():
                 self._enable_undo()
                 pass
+            self._pixel_canvas.refresh()
             self._refresh_pixels()
             pass
 
