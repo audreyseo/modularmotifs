@@ -7,6 +7,7 @@ from typing import Any, Optional
 from collections.abc import Callable
 from modularmotifs.ui.grid_labels import GridLabels
 import sys
+from modularmotifs.ui.pixel_canvas import PixelCanvas
 
 class PixelWindow(abc.ABC):
     """A pixel display window"""
@@ -49,7 +50,11 @@ class PixelWindow(abc.ABC):
         # self._library_frame.configure(borderwidth=5, relief="raised")
         self._library_frame.pack(side="left", padx=10, pady=10, fill="y")
         
+        self._pixel_canvas = PixelCanvas(self._lower_frame, pixel_grid, pixel_size=20)
+        self._pixel_canvas.get_toplevel().pack(side="left", padx=10, pady=10, fill="both", expand=True)
+        
         self._pixel_frame = tk.Frame(self._lower_frame)
+        
         # self._pixel_frame.grid(row=0, column=1, columnspan=20, sticky=tk.E + tk.W)
         # self._lower_frame.grid_columnconfigure(1, weight=2)
         self._pixel_frame.pack(side="left", padx=10, pady=10, fill="both", expand=True)
