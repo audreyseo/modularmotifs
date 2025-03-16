@@ -1,4 +1,6 @@
+from collections.abc import Callable
 import tkinter as tk
+from typing import Any, Optional
 
 from design_examples.deer_scene import x0 as deer_scene
 from modularmotifs.core.design import Design
@@ -44,13 +46,17 @@ class PixelCanvas:
         self.__nums.get_right().grid(row=1, column=2)
         self.__nums.get_bottom().grid(row=2, column=1)
         
+        self._should_reset_hover = True
         self.__hover_motif = None
         # motifs["x-3x3"]
         self.__old_hover = None
         self.__old_ids = []
         self.__motif_image = None
         
+        self.set_motif_hover()
+        
         self.__canvas.bind("<Motion>", self.hover)
+
         self.__canvas.bind("<Leave>", lambda _: self.__reset_hover())
         self.init_draw()
         
@@ -91,7 +97,7 @@ class PixelCanvas:
             self.__ver_lines.append(self.__canvas.create_line(x, 0, x, self.pixel_height(), fill="#707070", width=self.__line_width))
                 
     
-    def __add_old_id(self, id):
+    def _add_old_id(self, id):
         self.__old_ids.append(id)
     
     def __init_design(self):
@@ -127,18 +133,56 @@ class PixelCanvas:
         pass
     
     def __reset_hover(self):
+        if self._should_reset_hover:
+            self._end_hover()
+        pass
+    
+    def _end_hover(self):
         self.__old_hover = None
         self.__remove_old_ids()
+    
+    def _set_reset_hover(self, b: bool):
+        self._should_reset_hover = b
         pass
     
     def event_to_coords(self, event) -> tuple[int, int]:
-        simple_x = min(self.width() - self.__hover_motif.width(), event.x // self.__pixel_size)
-        simple_y = min(self.height() - self.__hover_motif.height(), event.y // self.__pixel_size)
+        if self.__hover_motif:
+            simple_x = min(self.width() - self.__hover_motif.width(), event.x // self.__pixel_size)
+            simple_y = min(self.height() - self.__hover_motif.height(), event.y // self.__pixel_size)
+            pass
+        else:
+            simple_x = event.x // self.__pixel_size
+            simple_y = event.y // self.__pixel_size
         return simple_x, simple_y
     
+    def _reset_motion(self):
+        self.__canvas.unbind("<Motion>")
+        self.__canvas.bind("<Motion>", self.hover)
+    
+    def set_hover_function(self, c: Callable[[int, int], Any], should_reset_hover: bool = True):
+        self._hover_function = c
+        self._set_reset_hover(should_reset_hover)
+        self._reset_motion()
+        pass
+    def set_motif_hover(self):
+        def motif_hover(simple_x: int, simple_y: int):
+            if not self.__hover_motif:
+                return
+            if not self.__motif_image:
+                img = util.rgbcolors_to_image(util.motif_to_lol(self.__hover_motif), square_size = self.__pixel_size, mode="RGBA", opacity=127)
+                self.__motif_image = ImageTk.PhotoImage(img)
+                pass
+            self._add_old_id(self.create_image(simple_x, simple_y, image=self.__motif_image, anchor="nw"))
+            self._lower_old_ids()
+            pass
+        self._hover_function = motif_hover
+        self._set_reset_hover(True)
+        self._reset_motion()
+        pass
+    
     def hover(self, event):
-        if not self.__hover_motif:
-            return
+        # if not self.__hover_motif:
+        #     return
         # print(event.x, event.y)
         simple_x, simple_y = self.event_to_coords(event)
         if self.__old_hover:
@@ -153,12 +197,12 @@ class PixelCanvas:
         if self.__old_ids:
             self.__remove_old_ids()
         
-        if not self.__motif_image:
-            img = util.rgbcolors_to_image(util.motif_to_lol(self.__hover_motif), square_size = self.__pixel_size, mode="RGBA", opacity=127)
-            self.__motif_image = ImageTk.PhotoImage(img)
-            pass
-        self.__add_old_id(self.__canvas.create_image(simple_x * self.__pixel_size, simple_y * self.__pixel_size, image=self.__motif_image, anchor="nw"))
+        self._hover_function(simple_x, simple_y)
         
+        
+        pass
+    
+    def _lower_old_ids(self):
         # put all added images below the horizontal lines
         for id in self.__old_ids:
             self.__canvas.tag_lower(id, self.__hor_lines[0])
@@ -177,6 +221,9 @@ class PixelCanvas:
             pass
         self.__reset_hover()
         pass
+    
+    def get_motif(self) -> Optional[Motif]:
+        return self.__hover_motif
         
     def height(self) -> int:
         return self.__d.height()
@@ -189,6 +236,9 @@ class PixelCanvas:
     
     def pixel_width(self) -> int:
         return self.width() * self.__pixel_size
+    
+    def pixel_size(self) -> int:
+        return self.__pixel_size
     
     def get_toplevel(self) -> tk.Frame:
         return self.__toplevel
@@ -206,6 +256,18 @@ class PixelCanvas:
             pass
         
         pass
+    
+    def create_image(self, x, y, image=None, anchor="nw", **kwargs) -> int:
+        ident = self.__canvas.create_image(x * self.__pixel_size, y * self.__pixel_size, image=image, anchor=anchor, **kwargs)
+        return ident
+    
+    def create_rectangle(self, x0: int, y0: int, x1: int, y1: int, **kwargs):
+        x0 *= self.pixel_size()
+        x1 *= self.pixel_size()
+        y0 *= self.pixel_size()
+        y1 *= self.pixel_size()
+        id = self.__canvas.create_rectangle(x0, y0, x1, y1, **kwargs)
+        return id
     
     def create_pixel(self, x0: int, y0: int, **kwargs):
         id = self.__canvas.create_rectangle(x0, y0, x0 + self.__pixel_size, y0 + self.__pixel_size, width=0, **kwargs)

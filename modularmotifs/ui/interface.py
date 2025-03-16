@@ -20,8 +20,10 @@ from modularmotifs.motiflibrary.saved_motifs import saved_motifs
 from modularmotifs.handknit.generate import handknitting_instructions
 
 
+from modularmotifs.ui.modes import UIMode
 from modularmotifs.ui.motif_saver import save_as_motif
-from modularmotifs.ui.grid_selection import GridSelection
+# from modularmotifs.ui.grid_selection import GridSelection
+from modularmotifs.ui.util.selection import GridSelection
 from modularmotifs.ui.grid_labels import GridLabels
 
 from modularmotifs.dsl import DesignProgramBuilder, DesignInterpreter, parse
@@ -144,9 +146,11 @@ class KnitWindow(PixelWindow):
         # Add size increment entry
         self._init_sizes()
         self._init_tools()
+        
+        self._selection = None
 
         # Add grid selection integration here:
-        self.__grid_selector = GridSelection(self)
+        # self.__grid_selector = GridSelection(self)
         if save_motif:
             save_button = tk.Button(self._controls_frame, text="Save as Motif", command=lambda: save_as_motif(self))
             save_button.pack(side="left", padx=10)
@@ -172,6 +176,8 @@ class KnitWindow(PixelWindow):
                     self._selected_motif_button = motif_button
                     self._selected_motif = (motif_name, motif)
                     KnitWindow.select(self._selected_motif_button)
+                if self._selected_motif:
+                    self._change_mode(UIMode.PLACE_MOTIF)
             return handle
 
         merged_motifs = self._program_builder._motifs.copy()
@@ -349,41 +355,33 @@ class KnitWindow(PixelWindow):
                 self.error("No selected motif!")
                 pass
             pass
-        self._pixel_canvas.get_canvas().bind("<Button-1>", add_motif)
-                
-
-        # def click_color_listener(row: int, col: int):
-        #     def handle(_):
-        #         if self._selected_motif is not None:
-        #             try:
-        #                 # add an op that builds the motif to the program currently being built
-        #                 op = self._program_builder.add_motif(self._selected_motif[0], col, row)
-        #                 print(op)
-        #                 # interpret the operation, which will have an effect on the design
-        #                 self._interpreter.interpret(op)
-
-        #                 if self._redo_enabled():
-        #                     self._disable_redo()
-        #                     pass
-
-        #                 if not self._undo_enabled():
-        #                     self._enable_undo()
-        #                     pass
-
-
-        #                 # self._design.add_motif(self._selected_motif, col, row)
-        #                 self._refresh_pixels()
-        #             except MotifOverlapException:
-        #                 self.error("Placed motif overlaps with something else!")
-        #                 self._program_builder.remove_last_action()
-        #             except IndexError:
-        #                 self.error("Placed motif would be out of bounds!")
-        #                 self._program_builder.remove_last_action()
-        #         else:
-        #             self.error("No selected motif!")
-
-        #     return handle
-        # super()._init_pixels(click_color_listener)
+        
+        def grid_selection(event):
+            cx, cy = self._pixel_canvas.event_to_coords(event)
+            if self._selection is None or self._selection.is_complete():
+                self._selection = GridSelection(cx, cy)
+                pass
+            else:
+                self._selection.complete(cx, cy)
+                pass
+            print(self._selection)
+            pass
+        
+        def handle(event):
+            print("Handling:", self._mode)
+            match self._mode:
+                case UIMode.NORMAL:
+                    pass
+                case UIMode.PLACE_MOTIF:
+                    add_motif(event)
+                    pass
+                case UIMode.RECT_SELECTION:
+                    grid_selection(event)
+                case _:
+                    pass
+            pass
+        
+        super()._init_pixels(handle)
 
 
     def _init_colors(self) -> None:
@@ -440,24 +438,6 @@ class KnitWindow(PixelWindow):
         pass
 
     def _init_motifs(self) -> None:
-        """Initialize the motif selection panel."""
-        # self._motifs_frame = tk.Frame(self._root)
-        # self._motifs_frame.pack(side="right", padx=10, fill="y")
-
-        # self._motif_canvas = tk.Canvas(self._motifs_frame)
-        # self._motif_canvas.pack(side="left", fill="both", expand=True)
-
-        # scrollbar = tk.Scrollbar(self._motifs_frame, orient="vertical", command=self._motif_canvas.yview)
-        # scrollbar.pack(side="right", fill="y")
-        # self._motif_canvas.configure(yscrollcommand=scrollbar.set)
-
-        # self._motif_inner_frame = tk.Frame(self._motif_canvas)
-        # self._motif_canvas.create_window((0, 0), window=self._motif_inner_frame, anchor="nw")
-
-        # # Populate motif buttons using the new helper method.
-        # self._populate_motif_buttons(self._motif_inner_frame)
-
-        # self._motif_inner_frame.bind("<Configure>", lambda event: self._motif_canvas.configure(scrollregion=self._motif_canvas.bbox("all")))
         canvas = tk.Canvas(self._library_frame)
         
         # canvas.pack(side="left", fill="y")
@@ -490,13 +470,19 @@ class KnitWindow(PixelWindow):
                     self._pixel_canvas.set_motif(None)
                     self._selected_motif = None
                     self._selected_motif_button = None
+                    if self._mode == UIMode.PLACE_MOTIF:
+                        self._pop_mode()
                 else:
                     print("Selecting Motif")
                     self._selected_motif_button = motif_button
                     self._selected_motif = (motif_name, motif) # motif
                     self._pixel_canvas.set_motif(motif)
+                    self._pixel_canvas.set_motif_hover()
                     KnitWindow.select(self._selected_motif_button)
-
+                    self._change_mode(UIMode.PLACE_MOTIF)
+                self._handle_hover_mode()
+                self._reset_tools()
+                self._pixel_canvas._end_hover()
             return handle
 
         # Merge predefined motifs with saved motifs.
@@ -525,6 +511,12 @@ class KnitWindow(PixelWindow):
 
             pass
         pass
+    
+    def set_pixel_canvas_motif(self):
+        if not self._selected_motif:
+            return
+        _, m = self._selected_motif
+        self._pixel_canvas.set_motif(m)
 
     def _refresh_motif_library(self):
         """Refresh the motif library to include newly saved motifs without changing window location."""

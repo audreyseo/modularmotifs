@@ -11,6 +11,7 @@ import sys
 from modularmotifs.ui.pixel_canvas import PixelCanvas
 from PIL import Image, ImageTk
 from modularmotifs.ui.modes import UIMode
+from modularmotifs.ui.util.selection import Selection, GridSelection
 
 class PixelWindow(abc.ABC):
     """A pixel display window"""
@@ -28,6 +29,8 @@ class PixelWindow(abc.ABC):
     _undo_button: tk.Button
     _redo_button: tk.Button
     _mode: UIMode
+    _modes: list[UIMode]
+    _selection: Selection
     
     def __init__(self, max_width: int, max_height: int, tkinter_offset: int, window_title: str, pixel_grid: PixelGrid):
         
@@ -49,6 +52,10 @@ class PixelWindow(abc.ABC):
         style.configure("selected.TLabel", padx=20, pady=20, relief="sunken", borderwidth=3)
         style.configure("unselected.TLabel", padx=20, pady=20, relief="flat", borderwidth=3)
         self._mode = UIMode.NORMAL
+        self._modes = []
+        
+        self._selection_img = Image.new(mode="RGBA", size=(100, 100), color=(0, 255, 255, 50))
+        # self._selection_img.save("blah.png")
         
         self._controls_frame = tk.Frame(self._root)
         self._controls_frame.pack(side="top")
@@ -190,6 +197,25 @@ class PixelWindow(abc.ABC):
     
     def _refresh_pixels(self) -> None:
         self._pixel_canvas.refresh()
+        
+        match self._mode:
+            case UIMode.RECT_SELECTION:
+                self._pixel_canvas.get_canvas().config(cursor="cross")
+                pass
+            case UIMode.PAINT_SELECTION:
+                self._pixel_canvas.get_canvas().config(cursor="pencil")
+                pass
+            case UIMode.WAND_SELECTION:
+                self._pixel_canvas.get_canvas().config(cursor="star")
+                pass
+            case UIMode.LASSO_SELECTION:
+                self._pixel_canvas.get_canvas().config(cursor="cross")
+                pass
+            case _:
+                self._pixel_canvas.get_canvas().config(cursor="arrow")
+                pass
+        
+        
         """Queries the underlying object for new colors and displays them"""
         # for y, row in enumerate(self._cells):
         #     for x, cell in enumerate(row):
@@ -201,21 +227,36 @@ class PixelWindow(abc.ABC):
         pass
     
     def _reset_tools(self) -> None:
-        for i in range(len(self._tool)):
-            self._tools[i].config(relief="raised", borderwidth=2)
+        for i in range(len(self._tools)):
+            self._tools[i].config(style="unselected.TLabel")
             pass
         pass
+    
+    def _change_mode(self, mode: UIMode) -> None:
+        self._modes.append(self._mode)
+        self._mode = mode
+        pass
+    
+    def _pop_mode(self) -> UIMode:
+        current_mode = self._mode
+        self._mode = self._modes.pop(-1)
+        self._handle_hover_mode()
+        return current_mode
     
     def _init_tools(self) -> None:
         self._tool_images = []
         self._tools = []
-        images = ["icons/lasso_tool.png", "icons/magic_wand.png", "icons/paint_select.png"]
-        modes = [UIMode.LASSO_SELECTION, UIMode.WAND_SELECTION, UIMode.PAINT_SELECTION]
+        images = ["icons/lasso_tool.png", "icons/select_rect.png", "icons/magic_wand.png", "icons/paint_select.png"]
+        modes = [UIMode.LASSO_SELECTION, UIMode.RECT_SELECTION, UIMode.WAND_SELECTION, UIMode.PAINT_SELECTION]
         unselected_relief = "groove"
+        
+        
         
         def handler(column: int):
             def handle(event):
+                old_mode = self._mode
                 # print(column)
+                new_mode = None
                 for i in range(len(self._tools)):
                     relief = self._tools[i].config()["style"][-1]
                     print(i, relief)
@@ -229,15 +270,20 @@ class PixelWindow(abc.ABC):
                             # self._tools[i].config(relief=unselected_relief, borderwidth=2)
                             self._tools[i].config(style="unselected.TLabel")
                             if self._mode == modes[i]:
-                                self._mode = UIMode.NORMAL
+                                self._pop_mode()
+                                # self._mode = UIMode.NORMAL
                             pass
                         else:
                             # self._tools[i].config(relief="sunken", borderwidth=2)
                             self._tools[i].config(style="selected.TLabel")
-                            self._mode = modes[i]
+                            new_mode = modes[i]
                             pass
                         pass
                     pass
+                if new_mode and old_mode != new_mode:
+                    self._change_mode(new_mode)
+                    self._handle_hover_mode()
+                self._refresh_pixels()
                 pass
             return handle
         
@@ -254,25 +300,79 @@ class PixelWindow(abc.ABC):
             lasso.bind("<Button-1>", handler(x))
             self._tools.append(lasso)
     
-    def _init_pixels(self, click_color_listener: Callable[[int, int], Callable[[Any], None]]) -> None:
-        for row in range(self._MAX_HEIGHT):
-            row_cells = []
-            for col in range(self._MAX_WIDTH):
-                cell = tk.Label(
-                    self._pixel_frame,
-                    width=2,
-                    height=1,
-                    relief="solid",
-                    borderwidth=1,
+    def _handle_hover_mode(self):
+        def handle_grid_selection(x: int, y: int):
+            if not self._selection:
+                return
+            assert isinstance(self._selection, GridSelection)
+            print("Handle grid selection: ", x, y)
+            sx, sy = self._selection._start
+            x, y = (x, y) if not self._selection.is_complete() else self._selection._end
+            pxs = self._pixel_canvas.pixel_size()
+            rsx = sx * pxs
+            rsy = sy * pxs
+            rx = x * pxs
+            ry = y * pxs
+            # if not self._selection.is_complete():
+                # sx, sy = self._selection._start
+            self._pixel_canvas._add_old_id(
+                self._pixel_canvas.create_rectangle(sx, sy, x, y, fill=None, width=2, outline="black")
+            )
+            if rsx != rx and rsy != ry:
+                print(sx, sy, x, y, rsx, rsy, rx, ry)
+
+                # img = Image.new(mode="RGBA", size=(abs(rsx - rx), abs(rsy-ry)), color=(0, 255, 255, 122))
+                img = self._selection_img.resize(size=(abs(rsx - rx), abs(rsy - ry)), resample=Image.Resampling.NEAREST)
+                self._temp_img = ImageTk.PhotoImage(img)
+                print(img.width, img.height)
+                
+                # self._pixel_canvas._add_old_id(
+                #     self._pixel_canvas.get_canvas().create_line(x - 3, y - 3, x + 3, y + 3, fill="black")
+                # )
+                
+                self._pixel_canvas._add_old_id(
+                    self._pixel_canvas.create_image(sx, sy, image=self._temp_img, anchor="nw")
                 )
-                self.grid(cell, row, col)
-                if row >= self.height() or col >= self.width():
-                    cell.grid_remove()
-                cell.bind("<Button-1>", click_color_listener(row, col))
-                row_cells.append(cell)
-            self._cells.append(row_cells)
-            pass
+                pass
+            # else:
+        match self._mode:
+            case UIMode.RECT_SELECTION:
+                print("Setting hover function")
+                self._pixel_canvas.set_hover_function(handle_grid_selection, should_reset_hover=False)
+                self._pixel_canvas.set_motif(None)
+                pass
+            case UIMode.PLACE_MOTIF:
+                print("Setting motif hover")
+                self._pixel_canvas.set_motif_hover()
+                if self._pixel_canvas.get_motif() is None:
+                    self.set_pixel_canvas_motif()
+            case _:
+                pass
+    
+    @abc.abstractmethod
+    def set_pixel_canvas_motif(self):
         pass
+    
+    def _init_pixels(self, click_color_listener: Callable) -> None:
+        self._pixel_canvas.get_canvas().bind("<Button-1>", click_color_listener)
+        # for row in range(self._MAX_HEIGHT):
+        #     row_cells = []
+        #     for col in range(self._MAX_WIDTH):
+        #         cell = tk.Label(
+        #             self._pixel_frame,
+        #             width=2,
+        #             height=1,
+        #             relief="solid",
+        #             borderwidth=1,
+        #         )
+        #         self.grid(cell, row, col)
+        #         if row >= self.height() or col >= self.width():
+        #             cell.grid_remove()
+        #         cell.bind("<Button-1>", click_color_listener(row, col))
+        #         row_cells.append(cell)
+        #     self._cells.append(row_cells)
+        #     pass
+        # pass
     
     def _init_labels(self) -> None:
         """Initializes the labels for the pixel array"""

@@ -9,4 +9,5 @@ class UIMode(Enum):
     LASSO_SELECTION = 3
     WAND_SELECTION = 4
     PAINT_SELECTION = 5
+    RECT_SELECTION = 6
     

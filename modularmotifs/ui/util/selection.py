@@ -48,6 +48,34 @@ class Selection:
 
     pass
 
+class GridSelection(Selection):
+    def __init__(self, startx: int, starty: int):
+        self._start = (startx, starty)
+        self._end = None
+        super().__init__()
+        pass
+    
+    def complete(self, endx: int, endy: int):
+        startx, starty = self._start
+        self._end = (endx, endy)
+        for x in range(startx, endx + 1):
+            for y in range(starty, endy + 1):
+                self.add(x, y)
+                pass
+            pass
+        pass
+    
+    def is_complete(self) -> bool:
+        return self._end is not None
+    
+    def bbox(self) -> tuple[tuple[int, int], tuple[int, int]]:
+        assert self.is_complete(), f"Selection not completed"
+        return (self._start, self._end)
+    
+    def __repr__(self):
+        end = "" if not self._end else f", {self._end}"
+        return f"GridSelection({self._start}{end})"
+    
 
 # Might want a specific subclass that does selections too, but this is probably good for now?
 # class GridSelection:
