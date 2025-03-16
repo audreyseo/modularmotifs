@@ -1,6 +1,9 @@
 from typing import Self
 import re
 
+def rgba_bounded(f: float):
+    return min(max(0, round(f)), 255)
+
 class RGBAColor:
     """Simple RGB [0, 255] 4-tuple"""
 
@@ -10,8 +13,8 @@ class RGBAColor:
         if min(red, green, blue, alpha) < 0:
             raise ValueError("RGBA coordinates must be greater than 0!")
         self.__red = red
-        self.__blue = blue
         self.__green = green
+        self.__blue = blue
         self.__alpha = alpha
 
     def hex(self) -> str:
@@ -24,7 +27,7 @@ class RGBAColor:
         return "#" + "".join(
             [
                 hex(p).lstrip("0x").zfill(2)
-                for p in [self.__red, self.__blue, self.__green]
+                for p in [self.__red, self.__green, self.__blue]
             ]
         )
 
@@ -63,3 +66,6 @@ class RGBAColor:
         """ Returns a tuple of the red, green, blue, and alpha parts
         """
         return (self.__red, self.__green, self.__blue, self.__alpha if opacity == 255 else opacity)
+    
+    def filtered(self, r: float=1.0, g: float=1.0, b: float=1.0, a: float=1.0) -> tuple[int, int, int, int]:
+        return (rgba_bounded(self.__red * r), rgba_bounded(self.__green * g), rgba_bounded(self.__blue * b), rgba_bounded(self.__alpha * a))
