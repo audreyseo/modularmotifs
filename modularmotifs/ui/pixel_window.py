@@ -1,9 +1,13 @@
 """Superclass of windows that support any kind of pixel editing"""
 import abc
+import os
 from modularmotifs.core.pixel_grid import PixelGrid
 from modularmotifs.core.rgb_color import RGBAColor
+
 import tkinter as tk
 import tkinter.ttk as ttk
+from tktooltip import ToolTip
+
 from typing import Any, Optional
 from collections.abc import Callable
 from modularmotifs.ui.grid_labels import GridLabels
@@ -211,6 +215,8 @@ class PixelWindow(abc.ABC):
             case UIMode.LASSO_SELECTION:
                 self._pixel_canvas.get_canvas().config(cursor="cross")
                 pass
+            case UIMode.REMOVE_MOTIF:
+                self._pixel_canvas.get_canvas().config(cursor="pirate")
             case _:
                 self._pixel_canvas.get_canvas().config(cursor="arrow")
                 pass
@@ -228,7 +234,12 @@ class PixelWindow(abc.ABC):
     
     def _reset_tools(self) -> None:
         for i in range(len(self._tools)):
-            self._tools[i].config(style="unselected.TLabel")
+            t, m = self._tools[i]
+            if self._mode == m:
+                t.config(style="selected.TLabel")
+                pass
+            else:
+                t.config(style="unselected.TLabel")
             pass
         pass
     
@@ -244,10 +255,36 @@ class PixelWindow(abc.ABC):
         return current_mode
     
     def _init_tools(self) -> None:
+        
+        def icon_path(name: str) -> str:
+            return os.path.join("icons", name)
         self._tool_images = []
         self._tools = []
-        images = ["icons/lasso_tool.png", "icons/select_rect.png", "icons/magic_wand.png", "icons/paint_select.png"]
-        modes = [UIMode.LASSO_SELECTION, UIMode.RECT_SELECTION, UIMode.WAND_SELECTION, UIMode.PAINT_SELECTION]
+
+        images = [
+            icon_path("motif_add.png"),
+            icon_path("motif_remove.png"),
+            icon_path("lasso_tool.png"),
+            icon_path("select_rect.png"),
+            icon_path("magic_wand.png"),
+            icon_path("paint_select.png"),
+        ]
+        modes = [
+            UIMode.PLACE_MOTIF,
+            UIMode.REMOVE_MOTIF,
+            UIMode.LASSO_SELECTION,
+            UIMode.RECT_SELECTION,
+            UIMode.WAND_SELECTION,
+            UIMode.PAINT_SELECTION
+        ]
+        tooltips = [
+            "add motif",
+            "remove motif",
+            "lasso selection",
+            "rectangle selection",
+            "magic wand selection",
+            "paint selection"
+        ]
         unselected_relief = "groove"
         
         
@@ -258,24 +295,25 @@ class PixelWindow(abc.ABC):
                 # print(column)
                 new_mode = None
                 for i in range(len(self._tools)):
-                    relief = self._tools[i].config()["style"][-1]
+                    t, _ = self._tools[i]
+                    relief = t.config()["style"][-1]
                     print(i, relief)
                     if i != column:
                         # self._tools[i].config(relief=unselected_relief, borderwidth=2)
-                        self._tools[i].config(style="unselected.TLabel")
+                        t.config(style="unselected.TLabel")
                         pass
                     else:
                         # print(relief, str(relief), str(relief).startswith("sunken"))
                         if str(relief).startswith("selected"):
                             # self._tools[i].config(relief=unselected_relief, borderwidth=2)
-                            self._tools[i].config(style="unselected.TLabel")
+                            t.config(style="unselected.TLabel")
                             if self._mode == modes[i]:
                                 self._pop_mode()
                                 # self._mode = UIMode.NORMAL
                             pass
                         else:
                             # self._tools[i].config(relief="sunken", borderwidth=2)
-                            self._tools[i].config(style="selected.TLabel")
+                            t.config(style="selected.TLabel")
                             new_mode = modes[i]
                             pass
                         pass
@@ -296,16 +334,17 @@ class PixelWindow(abc.ABC):
             lasso = ttk.Label(self._tools_frame, image=thumb, style="unselected.TLabel")
             # lasso = ttk.Label(self._tools_frame, image=thumb, style="unselected.TLabel") borderwidth=2, relief=unselected_relief) #, padx=20, pady=20)
             # print(lasso.config())
+            ToolTip(lasso, msg=tooltips[x], delay=1.0)
             lasso.grid(row=0, column=x, padx=2)
             lasso.bind("<Button-1>", handler(x))
-            self._tools.append(lasso)
+            self._tools.append((lasso, modes[x]))
     
     def _handle_hover_mode(self):
         def handle_grid_selection(x: int, y: int):
             if not self._selection:
                 return
             assert isinstance(self._selection, GridSelection)
-            print("Handle grid selection: ", x, y)
+            # print("Handle grid selection: ", x, y)
             sx, sy = self._selection._start
             x, y = (x, y) if not self._selection.is_complete() else self._selection._end
             pxs = self._pixel_canvas.pixel_size()
@@ -319,7 +358,7 @@ class PixelWindow(abc.ABC):
                 self._pixel_canvas.create_rectangle(sx, sy, x, y, fill=None, width=2, outline="black")
             )
             if rsx != rx and rsy != ry:
-                print(sx, sy, x, y, rsx, rsy, rx, ry)
+                # print(sx, sy, x, y, rsx, rsy, rx, ry)
 
                 # img = Image.new(mode="RGBA", size=(abs(rsx - rx), abs(rsy-ry)), color=(0, 255, 255, 122))
                 img = self._selection_img.resize(size=(abs(rsx - rx), abs(rsy - ry)), resample=Image.Resampling.NEAREST)
@@ -346,6 +385,12 @@ class PixelWindow(abc.ABC):
                 self._pixel_canvas.set_motif_hover()
                 if self._pixel_canvas.get_motif() is None:
                     self.set_pixel_canvas_motif()
+                    pass
+                pass
+            case UIMode.REMOVE_MOTIF:
+                print("Setting no hover")
+                self._pixel_canvas.set_hover_function(lambda x, y: None)
+                self._pixel_canvas.set_motif(None)
             case _:
                 pass
     

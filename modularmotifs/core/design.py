@@ -107,7 +107,7 @@ class PixelData:
             Optional[PlacedMotif]: None if this is not foreground (black),
             placed motif responsible for the color if foreground
         """
-        if self.__col != Color.FORE:
+        if self.__col == Color.INVIS:
             return None
         assert len(self.__motifs) == 1
         return next(iter(self.__motifs))

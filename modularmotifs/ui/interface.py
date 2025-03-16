@@ -326,6 +326,18 @@ class KnitWindow(PixelWindow):
         """Initializes the array of visible pixels from the
         current design's dimensions. Does not set colors"""
         
+        def handle_after_actions():
+            if self._redo_enabled():
+                self._disable_redo()
+                pass
+            
+            if not self._undo_enabled():
+                self._enable_undo()
+                pass
+            self._refresh_pixels()
+            pass
+                    
+        
         def add_motif(event):
             if self._selected_motif is not None:
                 try:
@@ -333,14 +345,7 @@ class KnitWindow(PixelWindow):
                     op = self._program_builder.add_motif(self._selected_motif[0], x, y)
                     print(op)
                     self._interpreter.interpret(op)
-                    if self._redo_enabled():
-                        self._disable_redo()
-                        pass
-                    
-                    if not self._undo_enabled():
-                        self._enable_undo()
-                        pass
-                    self._refresh_pixels()
+                    handle_after_actions()
                     pass
                 except MotifOverlapException:
                     self.error("Placed motif overlaps with something else!")
@@ -356,6 +361,19 @@ class KnitWindow(PixelWindow):
                 pass
             pass
         
+        def remove_motif(event):
+            x, y = self._pixel_canvas.event_to_coords(event)
+            placed = self._design.get_motif(x, y)
+            if not placed:
+                self.error(f"No placed motif at ({x}, {y})")
+                return
+            name = self._interpreter.placed_name(placed)
+            if name:
+                op = self._program_builder.remove_motif(name)
+                self._interpreter.interpret(op)
+                handle_after_actions()
+            
+    
         def grid_selection(event):
             cx, cy = self._pixel_canvas.event_to_coords(event)
             if self._selection is None or self._selection.is_complete():
@@ -375,8 +393,12 @@ class KnitWindow(PixelWindow):
                 case UIMode.PLACE_MOTIF:
                     add_motif(event)
                     pass
+                case UIMode.REMOVE_MOTIF:
+                    remove_motif(event)
+                    pass
                 case UIMode.RECT_SELECTION:
                     grid_selection(event)
+                    pass
                 case _:
                     pass
             pass

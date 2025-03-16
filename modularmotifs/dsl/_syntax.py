@@ -442,6 +442,13 @@ class DesignInterpreter:
         self._vars_to_vals = dict()
         
         pass
+    
+    def placed_name(self, pm: PlacedMotif) -> Optional[str]:
+        try:
+            key = next(key for key, value in self._placed_motifs.items() if value == pm)
+            return key
+        except StopIteration:
+            return None
 
     def eval(self, e: Expr):
         def map_eval_over(itr: list[Expr]):
@@ -716,7 +723,7 @@ class DesignProgramBuilder:
     def remove_motif(self, name: str) -> DesignOp:
         assert name in self.get_placed_motifs(), f"{self.cn}.remove_motif: could not find a placed motif with name {name}"
         
-        return self._add_action(RemoveMotif(Variable(name), self._fresh))
+        return self._add_action(RemoveMotif(self._design_var, Variable(name), self._fresh))
     
     def add_row(self, at_index: Optional[int] = None) -> DesignOp:
         at_index_arg = None if not at_index else Literal(at_index)
