@@ -486,10 +486,12 @@ class KnitWindow(PixelWindow):
                 if self._selected_motif_button is not None:
                     KnitWindow.deselect(self._selected_motif_button)
                 if self._selected_motif == motif:
+                    print("Deselecting motif")
                     self._pixel_canvas.set_motif(None)
                     self._selected_motif = None
                     self._selected_motif_button = None
                 else:
+                    print("Selecting Motif")
                     self._selected_motif_button = motif_button
                     self._selected_motif = (motif_name, motif) # motif
                     self._pixel_canvas.set_motif(motif)

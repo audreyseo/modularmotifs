@@ -3,12 +3,14 @@ import abc
 from modularmotifs.core.pixel_grid import PixelGrid
 from modularmotifs.core.rgb_color import RGBAColor
 import tkinter as tk
+import tkinter.ttk as ttk
 from typing import Any, Optional
 from collections.abc import Callable
 from modularmotifs.ui.grid_labels import GridLabels
 import sys
 from modularmotifs.ui.pixel_canvas import PixelCanvas
 from PIL import Image, ImageTk
+from modularmotifs.ui.modes import UIMode
 
 class PixelWindow(abc.ABC):
     """A pixel display window"""
@@ -25,6 +27,7 @@ class PixelWindow(abc.ABC):
     _pixel_grid: PixelGrid
     _undo_button: tk.Button
     _redo_button: tk.Button
+    _mode: UIMode
     
     def __init__(self, max_width: int, max_height: int, tkinter_offset: int, window_title: str, pixel_grid: PixelGrid):
         
@@ -39,6 +42,13 @@ class PixelWindow(abc.ABC):
         self._root.title(self._WINDOW_TITLE)
         # self._root.option_add("*Borderwidth", "3")
         # self._root.option_add("*Relief", "raised")
+        
+        style = ttk.Style(self._root)
+        style.configure("TLabel", padx=20, pady=20)
+        style1 = ttk.Style(self._root)
+        style.configure("selected.TLabel", padx=20, pady=20, relief="sunken", borderwidth=3)
+        style.configure("unselected.TLabel", padx=20, pady=20, relief="flat", borderwidth=3)
+        self._mode = UIMode.NORMAL
         
         self._controls_frame = tk.Frame(self._root)
         self._controls_frame.pack(side="top")
@@ -181,12 +191,18 @@ class PixelWindow(abc.ABC):
     def _refresh_pixels(self) -> None:
         self._pixel_canvas.refresh()
         """Queries the underlying object for new colors and displays them"""
-        for y, row in enumerate(self._cells):
-            for x, cell in enumerate(row):
-                if self._pixel_grid.in_range(x, y):
-                    cell.config(bg=self._pixel_grid.get_rgba(x, y).hex())
-                    pass
-                pass
+        # for y, row in enumerate(self._cells):
+        #     for x, cell in enumerate(row):
+        #         if self._pixel_grid.in_range(x, y):
+        #             cell.config(bg=self._pixel_grid.get_rgba(x, y).hex())
+        #             pass
+        #         pass
+        #     pass
+        pass
+    
+    def _reset_tools(self) -> None:
+        for i in range(len(self._tool)):
+            self._tools[i].config(relief="raised", borderwidth=2)
             pass
         pass
     
@@ -194,16 +210,34 @@ class PixelWindow(abc.ABC):
         self._tool_images = []
         self._tools = []
         images = ["icons/lasso_tool.png", "icons/magic_wand.png", "icons/paint_select.png"]
+        modes = [UIMode.LASSO_SELECTION, UIMode.WAND_SELECTION, UIMode.PAINT_SELECTION]
+        unselected_relief = "groove"
         
         def handler(column: int):
             def handle(event):
-                print(column)
+                # print(column)
                 for i in range(len(self._tools)):
+                    relief = self._tools[i].config()["style"][-1]
+                    print(i, relief)
                     if i != column:
-                        self._tools[i].config(relief="raised", borderwidth=0)
+                        # self._tools[i].config(relief=unselected_relief, borderwidth=2)
+                        self._tools[i].config(style="unselected.TLabel")
                         pass
                     else:
-                        self._tools[i].config(relief="sunken", borderwidth=2)
+                        # print(relief, str(relief), str(relief).startswith("sunken"))
+                        if str(relief).startswith("selected"):
+                            # self._tools[i].config(relief=unselected_relief, borderwidth=2)
+                            self._tools[i].config(style="unselected.TLabel")
+                            if self._mode == modes[i]:
+                                self._mode = UIMode.NORMAL
+                            pass
+                        else:
+                            # self._tools[i].config(relief="sunken", borderwidth=2)
+                            self._tools[i].config(style="selected.TLabel")
+                            self._mode = modes[i]
+                            pass
+                        pass
+                    pass
                 pass
             return handle
         
@@ -213,7 +247,8 @@ class PixelWindow(abc.ABC):
             img = img.resize((round(img.width * scale), round(img.height * scale)), resample=Image.LANCZOS)
             thumb = ImageTk.PhotoImage(img)
             self._tool_images.append(thumb)
-            lasso = tk.Label(self._tools_frame, image=thumb, borderwidth=0, relief="raised", padx=20, pady=20)
+            lasso = ttk.Label(self._tools_frame, image=thumb, style="unselected.TLabel")
+            # lasso = ttk.Label(self._tools_frame, image=thumb, style="unselected.TLabel") borderwidth=2, relief=unselected_relief) #, padx=20, pady=20)
             # print(lasso.config())
             lasso.grid(row=0, column=x, padx=2)
             lasso.bind("<Button-1>", handler(x))
