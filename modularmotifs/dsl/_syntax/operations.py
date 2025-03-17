@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from modularmotifs.dsl._syntax.basic_ast import *
 class Operation(Statement):
     fresh: FreshVar
@@ -176,4 +177,62 @@ class RemoveColumn(SizeOp):
                       contents=self.removed)
     def to_python(self) -> str:
         return f"{self.indexVar}, {self.removed} = {self.d}.{self.op_name}({self.get_at_index()})"
+    pass
+
+@dataclass
+class Motifify(DesignOp):
+    v: Variable
+    d: Variable
+    x0: Expr
+    y0: Expr
+    x1: Expr
+    y1: Expr
+    fresh: FreshVar
+    
+    def __init__(self, v: Variable, d: Variable, x0: Expr, y0: Expr, x1: Expr, y1: Expr, fresh: FreshVar):
+        super().__init__(d, "motifify", fresh)
+        self.v = v
+        self.x0 = x0
+        self.y0 = y0
+        self.x1 = x1
+        self.y1 = y1
+        pass
+    
+    
+    def inverse(self) -> DesignOp:
+        return UnMotifify(self.v, self.d, self.x0, self.y0, self.x1, self.y1, self.fresh)
+    
+    def to_python(self) -> str:
+        return f"{self.v} = {self.d}.{self.op_name}({self.x0}, {self.y0}, {self.x1}, {self.y1})"
+    pass
+
+@dataclass
+class UnMotifify(DesignOp):
+    """A dummy class that represents the "inverse" of a Motifify. Really just contains all of the same variables as a Motifify.
+    
+    The "inverse" of a Motifify just sets the variable containing the motif from the Design.motifify call to None
+    """
+    v: Variable
+    d: Variable
+    x0: Expr
+    y0: Expr
+    x1: Expr
+    y1: Expr
+    fresh: FreshVar
+    
+    def __init__(self, v: Variable, d: Variable, x0: Expr, y0: Expr, x1: Expr, y1: Expr, fresh: FreshVar):
+        super().__init__(d, "unmotifify", fresh)
+        self.v = v
+        self.x0 = x0
+        self.y0 = y0
+        self.x1 = x1
+        self.y1 = y1
+        pass
+    
+    
+    def inverse(self) -> DesignOp:
+        return Motifify(self.v, self.d, self.x0, self.y0, self.x1, self.y1, self.fresh)
+    
+    def to_python(self) -> str:
+        return f"{self.v} = None"
     pass

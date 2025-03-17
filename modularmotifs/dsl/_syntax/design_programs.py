@@ -93,6 +93,20 @@ class DesignInterpreter:
             pm = self.eval(action.placed_motif)
             self.design.remove_motif(pm)
             return
+        if isinstance(action, Motifify):
+            assert self.design_var == action.d.name, f"{self.cn}.interpret: design name {action.d.name} not recognized"
+            args = [action.x0, action.y0, action.x1, action.y1]
+            args = [self.eval(arg) for arg in args]
+            res = self.design.motifify(*args)
+            self._motifs[action.v.name] = res
+            self._vars_to_vals[action.v] = res
+            return res
+        if isinstance(action, UnMotifify):
+            assert action.v in self._vars_to_vals, f"{self.cn}.interpret: cannot find {action.v} in _vars_to_vals"
+            # basically just set the value of the variable action.v to None
+            self._motifs[action.v.name] = None
+            self._vars_to_vals[action.v] = None
+            return
         if isinstance(action, SizeOp):
             ind = self.eval(action.at_index) if action.at_index else -1
             if isinstance(action, RemoveRow):
@@ -296,6 +310,16 @@ class DesignProgramBuilder:
         self._actions.append(d)
         self._index += 1
         return d
+    
+    def motifify(self, x0: int, y0: int, x1: int, y1: int) -> DesignOp:
+        return self._add_action(Motifify(self._get_fresh_var(),
+                                         self._design_var,
+                                         Literal(x0),
+                                         Literal(y0),
+                                         Literal(x1),
+                                         Literal(y1),
+                                         self._fresh
+                                         ))
 
     def add_motif(self, name: str, x: int, y: int) -> DesignOp:
         assert name in self._motif_name_to_expr, f"{self.cn}.add_motif: could not find motif with name {name}, did you forget to load_motif it?"

@@ -17,6 +17,7 @@ grammar = r"""
 
 ?design_op : variable "=" variable "." ADD_MOTIF "(" expr "," expr "," expr ")"
            | variable "." REMOVE_MOTIF "(" expr ")"
+           | variable "=" variable "." MOTIFIFY "(" expr "," expr "," expr "," expr ")"
            | size_op
 
 ?size_op : variable "=" variable "." ADD_ROW "(" add_exprs? ")"
@@ -82,6 +83,7 @@ ADD_ROW : "add_row"
 ADD_COLUMN : "add_column"
 REMOVE_ROW : "remove_row"
 REMOVE_COLUMN : "remove_column"
+MOTIFIFY : "motifify"
 
 IDENTIFIER : CNAME
 

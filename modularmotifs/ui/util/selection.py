@@ -68,9 +68,11 @@ class GridSelection(Selection):
     def is_complete(self) -> bool:
         return self._end is not None
     
-    def bbox(self) -> tuple[tuple[int, int], tuple[int, int]]:
+    def bbox(self) -> tuple[int, int, int, int]:
         assert self.is_complete(), f"Selection not completed"
-        return (self._start, self._end)
+        x0, y0 = self._start
+        x1, y1 = self._end
+        return (x0, y0, x1, y1)
     
     def __repr__(self):
         end = "" if not self._end else f", {self._end}"

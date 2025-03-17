@@ -164,6 +164,17 @@ class Design(PixelGrid):
     def default_pixel_data(cls) -> PixelData:
         return PixelData(Color.INVIS, set())
     
+    def motifify(self, x0: int, y0: int, x1: int, y1: int) -> Motif:
+        colors = []
+        for y in range(y0, y1):
+            colors_row = []
+            for x in range(x0, x1):
+                colors_row.append(self.get_color(x, y))
+                pass
+            colors.append(colors_row)
+            pass
+        return Motif(colors)
+    
     
     def add_row(self, at_index: int = -1, contents: Optional[list[PixelData]] = None) -> int:
         """Add a row to this design, optionally at the specified index.

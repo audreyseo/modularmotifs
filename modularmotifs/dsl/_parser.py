@@ -158,6 +158,32 @@ class RemoveMotif(_DesignOp):
         
     def get_idents(self) -> set[str]:
         return self.d.get_idents().union(self.pm.get_idents())
+    pass
+
+@dataclass
+class Motifify(_DesignOp):
+    v: Variable
+    d: Variable
+    x0: _Expr
+    y0: _Expr
+    x1: _Expr
+    y1: _Expr
+    
+    def to_syntax(self, fresh):
+        return syn.Motifify(self.v.to_syntax(fresh),
+                            self.d.to_syntax(fresh),
+                            self.x0.to_syntax(fresh),
+                            self.y0.to_syntax(fresh),
+                            self.x1.to_syntax(fresh),
+                            self.y1.to_syntax(fresh),
+                            fresh)
+    
+    def get_idents(self):
+        s = self.v.get_idents()
+        s = s.union(self.d.get_idents())
+        s = s.union(self.x0.get_idents()).union(self.y0.get_idents())
+        s = s.union(self.x1.get_idents()).union(self.y1.get_idents())
+        return s
 
 class _SizeOp(_DesignOp):
     # skipped
@@ -353,6 +379,7 @@ class Ops(Enum):
     ADD_COLUMN = 4
     REMOVE_ROW = 5
     REMOVE_COLUMN = 6
+    MOTIFIFY = 7
 
 class ToAst(Transformer):
     
@@ -361,6 +388,9 @@ class ToAst(Transformer):
     
     def REMOVE_MOTIF(self, x):
         return Ops.REMOVE_MOTIF
+    
+    def MOTIFIFY(self, x):
+        return Ops.MOTIFIFY
     
     def ADD_ROW(self, x):
         return Ops.ADD_ROW
@@ -408,6 +438,9 @@ class ToAst(Transformer):
         elif Ops.REMOVE_MOTIF in args:
             # assert len(args) == 
             pass
+        elif Ops.MOTIFIFY in args:
+            assert len(args) == 7
+            return Motifify(args[0], args[1], args[3], args[4], args[5], args[6])
         return args
     # def variable(self, args):
     #     print("Variable: ", args)

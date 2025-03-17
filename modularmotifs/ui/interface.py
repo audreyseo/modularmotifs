@@ -152,7 +152,7 @@ class KnitWindow(PixelWindow):
         # Add grid selection integration here:
         # self.__grid_selector = GridSelection(self)
         if save_motif:
-            save_button = tk.Button(self._controls_frame, text="Save as Motif", command=lambda: save_as_motif(self))
+            save_button = tk.Button(self._controls_frame, text="Save as Motif", command=self._save_as_motif)
             save_button.pack(side="left", padx=10)
             pass
 
@@ -161,6 +161,36 @@ class KnitWindow(PixelWindow):
 
         # Starts the window
         self._root.mainloop()
+        pass
+    
+    def _reset_motif_library(self):
+        if self._selected_motif_button:
+            KnitWindow.deselect(self._selected_motif_button)
+            self._selected_motif_button = None
+        for k, v in self._library_frame.children.items():
+            v.grid_remove()
+            pass
+        self._motif_images = []
+        self._init_motifs()
+        pass
+
+    
+    def _save_as_motif(self):
+        if self._selection:
+            if isinstance(self._selection, GridSelection) and self._selection.is_complete():
+                x0, y0, x1, y1 = self._selection.bbox()
+                op = self._program_builder.motifify(x0, y0, x1, y1)
+                motif = self._interpreter.interpret(op)
+                self._program_builder.load_motif(op.v.name, motif, op.v)
+                self._reset_motif_library()
+                pass
+            else:
+                self.error(f"Selection {self._selection} is either not a GridSelection or is not complete")
+                pass
+            pass
+        else:
+            self.error(f"Selection is not truthy: {self._selection}")
+        pass
 
 
     def _populate_motif_buttons(self, parent_frame):
@@ -227,6 +257,7 @@ class KnitWindow(PixelWindow):
         self._pixel_canvas.get_toplevel().pack_forget()
         self._pixel_canvas = PixelCanvas(self._lower_frame, self._pixel_grid, pixel_size=20, line_width=1.5)
         self._pixel_canvas.get_toplevel().pack(side="left", padx=10, pady=10, fill="both", expand=True)
+        self._reset_motif_library()
     
 
     def _init_save(self) -> Callable:
