@@ -1,5 +1,5 @@
 # Represents selected cells
-from typing import Self, Generator, Tuple
+from typing import Self, Generator, Tuple, Union
 
 
 class Selection:
@@ -20,6 +20,15 @@ class Selection:
 
     def add(self, x: int, y: int) -> Self:
         self.selected_cells.add((x, y))
+        return self
+    
+    def union(self, other: Union['Selection', set[tuple[int, int]]]) -> Self:
+        if isinstance(other, set):
+            self.selected_cells = self.selected_cells.union(other)
+            pass
+        else:
+            self.selected_cells = self.selected_cells.union(other.selected_cells)
+            pass
         return self
 
     def _row_major_cells(self):
