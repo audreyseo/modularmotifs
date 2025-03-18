@@ -12,7 +12,7 @@ from typing import Any, Optional
 from collections.abc import Callable
 from modularmotifs.ui.grid_labels import GridLabels
 import sys
-from modularmotifs.ui.pixel_canvas import PixelCanvas
+from modularmotifs.ui.pixel_canvas import PixelCanvas, ViewMode
 from PIL import Image, ImageTk
 from modularmotifs.ui.modes import UIMode
 from modularmotifs.ui.util.selection import Selection, GridSelection
@@ -107,7 +107,18 @@ class PixelWindow(abc.ABC):
         save_as_handknit = tk.Button(self._controls_frame, text="Save as Hand Knit", command=self._init_handknit_output())
         save_as_handknit.pack(side="right", padx=10)
         
+        self._toggle_view_var = tk.StringVar()
+        self._toggle_view_var.set("Knit Mode" if self._pixel_canvas.is_knit_mode() else "Grid Mode")
+        toggle_view = tk.Button(self._controls_frame, textvariable=self._toggle_view_var, command=self._toggle_view_handler)
+        tt = ToolTip(toggle_view, msg="Toggle pixel view between grid mode and knit mode", delay=1.0)
+        toggle_view.pack(side="right", padx=10)
+        
         pass
+    
+    def _toggle_view_handler(self):
+        self._pixel_canvas.set_mode(ViewMode.KNIT if self._pixel_canvas.is_grid_mode() else ViewMode.GRID)
+        self._toggle_view_var.set("Knit Mode" if self._pixel_canvas.is_knit_mode() else "Grid Mode")
+        
     
     @classmethod
     def is_mac(cls) -> bool:

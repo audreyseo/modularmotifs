@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from enum import Enum
 import tkinter as tk
 from typing import Any, Optional
 
@@ -12,6 +13,18 @@ from modularmotifs.motiflibrary.examples import motifs
 from PIL import Image, ImageTk
 
 from modularmotifs.ui.grid_numbers import GridNumbers
+
+class ViewMode(Enum):
+    GRID = 1
+    KNIT = 2
+
+# def flatten_points(l: list[tuple[Any, Any]]) -> list[Any]:
+#     flat = []
+#     for x, y in l:
+#         flat.append(x)
+#         flat.append(y)
+#         pass
+#     return flat
 
 class PixelCanvas:
     __canvas: tk.Canvas
@@ -45,6 +58,8 @@ class PixelCanvas:
         self.__canvas.grid(row=1, column=1)
         self.__nums.get_right().grid(row=1, column=2)
         self.__nums.get_bottom().grid(row=2, column=1)
+        # self.__mode = ViewMode.GRID
+        self.__mode = ViewMode.KNIT
         
         self._should_reset_hover = True
         self.__hover_motif = None
@@ -67,7 +82,19 @@ class PixelCanvas:
         # self.__canvas.bind("<Button-1>", add_motif)
         pass
     
+    def is_grid_mode(self):
+        return self.__mode == ViewMode.GRID
     
+    def is_knit_mode(self):
+        return self.__mode == ViewMode.KNIT
+    
+    def set_mode(self, new_mode: ViewMode) -> None:
+        if self.__mode != new_mode:
+            self.__mode = new_mode
+            self._reset()
+            self.init_draw()
+            pass
+        pass
     
     def init_draw(self):
         
@@ -75,21 +102,47 @@ class PixelCanvas:
         self.__init_grid()
         pass
     
+    def _reset(self):
+        self._reset_design()
+        self._reset_grid()
     
-    def refresh_grid(self):
+    def _reset_grid(self):
         for id in self.__hor_lines:
             self.__canvas.delete(id)
             pass
         for id in self.__ver_lines:
             self.__canvas.delete(id)
             pass
+        pass
+    
+    
+    def refresh_grid(self):
+        self._reset_grid()
         self.__init_grid()
+    
+    def create_knit_horizontal_line(self, y0: int, **kwargs) -> int:
+        points = [(0, 0)]
+        for i in range(self.width()):
+            points.append(((i + 0.5) * self.__pixel_size, 0.5 * self.__pixel_size))
+            points.append(((i + 1) * self.__pixel_size, 0))
+            pass
+        points = [(x, y + y0) for x, y in points]
+        
+        flat = util.flatten_points(points)
+        
+        i = self.__canvas.create_line(*flat, **kwargs)
+        return i
     
     def __init_grid(self):
         self.__hor_lines = []
         for i in range(self.height() + 1):
             y = i * self.__pixel_size
-            self.__hor_lines.append(self.__canvas.create_line(0, y, self.pixel_width(), y, fill="#707070", width=self.__line_width))
+            match self.__mode:
+                case ViewMode.GRID:
+                    self.__hor_lines.append(self.__canvas.create_line(0, y, self.pixel_width(), y, fill="#707070", width=self.__line_width))
+                    pass
+                case ViewMode.KNIT:
+                    self.__hor_lines.append(self.create_knit_horizontal_line(y, fill="#707070", width=self.__line_width))
             pass
         self.__ver_lines = []
         for i in range(self.width() + 1):
@@ -108,10 +161,43 @@ class PixelCanvas:
             for j in range(self.width()):
                 c = self.__d.get_rgba(j, i)
                 x0 = j * self.__pixel_size
-                
-                rects_row.append(self.__canvas.create_rectangle(x0, y0, x0 + self.__pixel_size, y0 + self.__pixel_size, fill=c.hex(), width=0))
+                match self.__mode:
+                    case ViewMode.GRID:
+                        rects_row.append(self.__canvas.create_rectangle(x0, y0, x0 + self.__pixel_size, y0 + self.__pixel_size, fill=c.hex(), width=0))
+                        pass
+                    case ViewMode.KNIT:
+                        rects_row.append(self.create_knit(x0, y0, needs_multiply=False, fill=c.hex(), width=0))
+                        pass
                 pass
             self.__rects.append(rects_row)
+            pass
+        pass
+    
+    
+    
+    def create_knit(self, x0: int, y0: int, needs_multiply=True, **kwargs):
+        if needs_multiply:
+            x0 *= self.__pixel_size
+            y0 *= self.__pixel_size
+        points = [
+            (0, 0),
+            (self.__pixel_size * 0.5, self.__pixel_size * 0.5),
+            (self.__pixel_size, 0),
+            (self.__pixel_size, self.__pixel_size),
+            (self.__pixel_size * 0.5, self.__pixel_size * 1.5),
+            (0, self.__pixel_size)
+        ]
+        points = [(x0 + x, y0 + y) for x, y in points]
+        flat = util.flatten_points(points)
+        
+        id = self.__canvas.create_polygon(*flat, **kwargs)
+        return id
+    
+    def _reset_design(self):
+        for row in self.__rects:
+            for r in self.__rects:
+                self.__canvas.delete(r)
+                pass
             pass
         pass
     
@@ -212,7 +298,17 @@ class PixelCanvas:
     def set_motif(self, m: Motif):
         self.__hover_motif = m
         if m is not None:
-            img = util.rgbcolors_to_image(util.motif_to_lol(self.__hover_motif), square_size = self.__pixel_size, mode="RGBA", opacity=127)
+            shape = "rect"
+            if self.__mode == ViewMode.KNIT:
+                shape = [
+                    (0, 0),
+                    (0.5, 0.5),
+                    (1, 0),
+                    (1, 1),
+                    (0.5, 1.5),
+                    (0, 1)
+                ]
+            img = util.rgbcolors_to_image(util.motif_to_lol(self.__hover_motif), square_size = self.__pixel_size, mode="RGBA", opacity=127, shape=shape)
             self.__motif_image = ImageTk.PhotoImage(img)
             # self.__reset_hover()
             pass
@@ -271,8 +367,9 @@ class PixelCanvas:
     
     def create_pixel(self, x0: int, y0: int, **kwargs):
         id = self.__canvas.create_rectangle(x0, y0, x0 + self.__pixel_size, y0 + self.__pixel_size, width=0, **kwargs)
-        
-        self.__canvas.tag_lower(id, self.__hor_lines[0])
+        if self.__hor_lines:
+            self.__canvas.tag_lower(id, self.__hor_lines[0])
+            pass
         return id
     
     def __add_row(self, height: int) -> None:
