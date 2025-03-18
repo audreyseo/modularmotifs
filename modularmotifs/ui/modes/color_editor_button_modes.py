@@ -30,6 +30,15 @@ class ChangeButtonState:
         new_change = Change.from_ints(row, p + 1, n)
         return new_change
     
+    @classmethod
+    def toggle_backwards(cls, oldchange: Change) -> Change:
+        row = oldchange.row
+        p = oldchange.perms.value
+        n = oldchange.necc.value
+        
+        new_change = Change.from_ints(row, p - 1, n)
+        return new_change
+    
     # def toggle(self, newchange: Change) -> Change:
     #     row = self.change().row
     #     p = self.change().perms.value

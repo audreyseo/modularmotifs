@@ -16,6 +16,8 @@ from modularmotifs.ui.modes.color_editor_button_modes import ChangeButtonState
 from modularmotifs.core.algo.fair_isle import fair_isle_colorization_new, generate_changes
 from modularmotifs.handknit.generate import handknitting_instructions
 from design_examples.rubric_example import x0 as rubric_example
+from modularmotifs.ui.pixel_canvas import PixelCanvas, ViewMode
+from PIL import Image, ImageTk
 import sys
 
 class ColorEditor:
@@ -36,10 +38,14 @@ class ColorEditor:
         s = ttk.Style(self._root)
         s.configure("custom.TFrame", padding=5)
         # bs = ttk.Style()
-        s.configure("custom.TButton", font=('Helvetica', 5), padding=3)
+        one_pixel = Image.new(mode="RGBA", size=(1, 1), color=(0, 0, 0, 0))
+        self._single_pixel_image = ImageTk.PhotoImage(one_pixel)
+        s.configure("custom.TButton", font=('Helvetica', 5), image=self._single_pixel_image, compound="center",  padding=3, height=10)
+        s.configure("constraints.TLabel", font=('Helvetica', 5), image=self._single_pixel_image, compound="center", height=15, width=40, padding=(0, 0, 0, 0))
         s.configure("TButton", font=('Helvetica', 10), padding=(0, 3, 0, 3))
         s.configure("updown.TButton", font=('Helvetica', 10), padding=(0, 6, 0, 3))
         
+        self._constraints_style = "constraints.TLabel"
         
         self._updown_button_style = "updown.TButton"
         self._controls_frame = ttk.Frame(self._root, style=self._frame_style)
@@ -48,6 +54,9 @@ class ColorEditor:
         self._colorgrid = ttk.Frame(self._root, style=self._frame_style)
         self._colorgrid.grid(row=1, column=0, padx=20)
         self._pixels = list()
+        self._pixel_canvas = PixelCanvas(self._colorgrid, self._pretty, pixel_size=20)
+        self._pixel_canvas.set_mode(ViewMode.GRID)
+        self._pixel_canvas.get_toplevel().grid(row=0, column=0, rowspan=pretty.height())
         
         self._colorframe = ttk.Frame(self._root, style=self._frame_style)
         self._colorframe.grid(row=1, column=1, padx=10)
@@ -159,6 +168,7 @@ class ColorEditor:
             return handler
         
         reset_constraints_button = ttk.Button(self._controls_frame, text="Reset Row Constraints", style=self._default_button_style)
+        reset_tt = ToolTip(reset_constraints_button, msg="Doesn't do anything right now")
         reset_constraints_button.grid(row=0, column=3, padx=10)
         
         fair_isle_button = ttk.Button(self._controls_frame, text="Generate Fair Isle", style=self._default_button_style, command=fair_isle_handler())
@@ -188,38 +198,50 @@ class ColorEditor:
         # print(add_color_button.configure().keys())
     
     def _init_pixels(self):
-        for row in range(self.height()):
-            row_cells = []
-            for col in range(self.width()):
-                cell = tk.Label(
-                    self._colorgrid,
-                    width=2,
-                    height=1,
-                    relief="solid",
-                    borderwidth=1
-                )
-                cell.grid(row=row, column=col, padx=0, pady=0, sticky=tk.N + tk.S)
-                row_cells.append(cell)
-                pass
-            self._pixels.append(row_cells)
-            pass
+        # for row in range(self.height()):
+        #     row_cells = []
+        #     for col in range(self.width()):
+        #         cell = tk.Label(
+        #             self._colorgrid,
+        #             width=2,
+        #             height=1,
+        #             relief="solid",
+        #             borderwidth=1
+        #         )
+        #         cell.grid(row=row, column=col, padx=0, pady=0, sticky=tk.N + tk.S)
+        #         row_cells.append(cell)
+        #         pass
+        #     self._pixels.append(row_cells)
+        #     pass
         
         def button_callback(row: int, s: ChangeButtonState):
-            def handler():
+            def handler(event):
                 c = ChangeButtonState.toggle(s.change())
+                self._do_action(self._builder.set_changes(c, row))
+                # s._update_string()
+                pass
+            return handler
+        
+        def button_backwards_callback(row: int, s: ChangeButtonState):
+            def handler(event):
+                c = ChangeButtonState.toggle_backwards(s.change())
                 self._do_action(self._builder.set_changes(c, row))
                 # s._update_string()
                 pass
             return handler
 
         self._change_button_states = []
-        col = self.width()
+        col = 3 #self.width()
         for row in range(self.height()):
             buttonstring = tk.StringVar()
             state = ChangeButtonState(buttonstring, row, self._pretty)
             self._change_button_states.append(state)
-            button = ttk.Button(self._colorgrid, textvariable=buttonstring, style=self._button_style, padding=0, command=button_callback(row, state))
-            button.grid(row=row, column=col, padx=0, pady=0)
+            # button = ttk.Button(self._colorgrid, textvariable=buttonstring, style=self._constraints_style, padding=0, command=button_callback(row, state))
+            # button = ttk.Label(self._colorgrid, textvariable=buttonstring, padding=0, style=self._constraints_style)
+            button = ttk.Label(self._pixel_canvas.get_toplevel(), textvariable=buttonstring, padding=0, style=self._constraints_style)
+            button.bind("<Button-1>", button_callback(row, state))
+            button.bind("<Button-3>", button_backwards_callback(row, state))
+            button.grid(row=row + 1, column=col, padx=0, pady=0, ipadx=0, ipady=0)
         pass
     
     def _init_keyboard_shortcuts(self):
@@ -245,11 +267,12 @@ class ColorEditor:
         self._init_colors()
     
     def _refresh_pixels(self) -> None:
-        for y, row in enumerate(self._pixels):
-            for x, pixel in enumerate(row):
-                pixel.config(bg=self._pretty.get_color(x, y).hex())
-                pass
-            pass
+        self._pixel_canvas.refresh_design()
+        # for y, row in enumerate(self._pixels):
+        #     for x, pixel in enumerate(row):
+        #         pixel.config(bg=self._pretty.get_color(x, y).hex())
+        #         pass
+        #     pass
         
         for y, s in enumerate(self._change_button_states):
             # print(y)

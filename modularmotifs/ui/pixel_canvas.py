@@ -54,10 +54,10 @@ class PixelCanvas:
         self.__canvas.configure(width=self.pixel_width(), height=self.pixel_height())
         
         self.__nums.get_top().grid(row=0, column=1)
-        self.__nums.get_left().grid(row=1, column=0)
-        self.__canvas.grid(row=1, column=1)
-        self.__nums.get_right().grid(row=1, column=2)
-        self.__nums.get_bottom().grid(row=2, column=1)
+        self.__nums.get_left().grid(row=1, column=0, rowspan=self.__d.height())
+        self.__canvas.grid(row=1, column=1, rowspan=self.__d.height())
+        self.__nums.get_right().grid(row=1, column=2, rowspan=self.__d.height())
+        self.__nums.get_bottom().grid(row=1 + self.__d.height() + 1, column=1)
         # self.__mode = ViewMode.GRID
         self.__mode = ViewMode.KNIT
         

@@ -402,6 +402,11 @@ class Change:
     
     @classmethod
     def from_ints(cls, r: int, p: int, n: int) -> 'Change':
+        # while n <= 1:
+        #     n += cls._necc_max
+        #     pass
+        # while p <= 1:
+        #     p += cls._necc_max
         n = ((n - 1) % cls._necc_max) + 1
         p = ((p - 1) % cls._perm_max) + 1
         return Change(r, cls.Permissions.from_int(p), cls.Necessity.from_int(n))
