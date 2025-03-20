@@ -67,6 +67,58 @@ class Selection:
         cells = self._row_major_cells()
         cellstring = ",".join(list(map(str, cells)))
         return f"Selection([{cellstring}])"
+    
+    def __hash__(self):
+        return hash(self.selected_cells)
+    
+    def surrounding(self, x, y) -> set[tuple[int, int]]:
+        pts = [(x + i, y + j) for i, j in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]]
+        pts = [(x, y) for x, y in pts if (x, y) in self]
+        return set(pts)
+    
+    def x_limits(self) -> tuple[int, int]:
+        xs = set([x for x, _ in self.selected_cells])
+        return min(xs), max(xs)
+    
+    def y_limits(self) -> tuple[int, int]:
+        ys = set([y for _, y in self.selected_cells])
+        return min(ys), max(ys)
+    
+    
+    def plot_selection(self) -> str:
+        xmin, xmax = self.x_limits()
+        ymin, ymax = self.y_limits()
+        everything = [[(x, y) in self.selected_cells for x in range(xmax + 1)] for y in range(ymax + 1)]
+        everything = [["1" if e else "0" for e in row] for row in everything]
+        return "\n".join(list(map(lambda x: "".join(x), everything)))
+    
+    def contiguous_selections(self) -> set[frozenset[tuple[int, int]]]:
+        
+        def bfs(x, y, s: Selection, seen: set[tuple[int, int]]):
+            new = self.surrounding(x, y)
+            print(new)
+            for x0, y0 in new.difference(seen):
+                seen.add((x0, y0))
+                s.add(x0, y0)
+                bfs(x0, y0, s, seen)
+                pass
+            pass
+        
+        selections = set()
+        seen_points = set()
+        for x, y in self.selected_cells:
+            if self.selected_cells == seen_points:
+                break
+            if (x, y) not in seen_points:
+                seen_points.add((x, y))
+                s = Selection([(x, y)])
+                bfs(x, y, s, seen_points)
+                print(s)
+                selections.add(frozenset(s.selected_cells))
+                pass
+            pass
+        return selections
+                
 
     pass
 

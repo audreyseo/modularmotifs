@@ -89,3 +89,17 @@ def test_edge_case_out_of_bounds():
     # For now, it's just a placeholder since this class doesn't restrict bounds.
     selection = Selection([(0, 0), (4, 5)])
     assert list(selection) == [(0, 0), (4, 5)]
+    pass
+
+
+def test_plot_selection(sample_selection):
+    expected = """0000
+0010
+0100
+0001"""
+    assert sample_selection.plot_selection() == expected
+
+def test_contiguous_selections(sample_selection):
+    conts = sample_selection.contiguous_selections()
+    
+    assert conts == set([frozenset([(2, 1), (1, 2)]), frozenset([(3, 3)])])
