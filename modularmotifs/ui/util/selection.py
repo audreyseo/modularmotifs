@@ -30,6 +30,19 @@ class Selection:
             self.selected_cells = self.selected_cells.union(other.selected_cells)
             pass
         return self
+    
+    def __eq__(self, value):
+        if isinstance(value, set):
+            return self.selected_cells == value
+        if isinstance(value, Selection):
+            return self.selected_cells == value.selected_cells
+        return False
+    
+    def __ne__(self, value):
+        return not (self == value)
+    
+    def __contains__(self, item):
+        return item in self.selected_cells
 
     def _row_major_cells(self):
         # flip (x, y) -> (y, x) since we want lower y values first

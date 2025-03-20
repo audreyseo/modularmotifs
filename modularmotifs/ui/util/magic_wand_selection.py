@@ -13,7 +13,7 @@ def magic_wand_select(p: PixelGrid, x: int, y: int) -> Selection:
                 if (j == 0 and i == 0):
                     continue
                 y0 = y + j
-                if (x0, y0) not in seen and p.get_rgba(x0, y0) == c:
+                if (x0, y0) not in seen and p.in_range(x0, y0) and p.get_rgba(x0, y0) == c:
                     new.add((x0, y0))
                     pass
                 pass
@@ -24,7 +24,8 @@ def magic_wand_select(p: PixelGrid, x: int, y: int) -> Selection:
             seen = bfs(c, x1, y1, seen)
             pass
         return seen
-    
+    if not p.in_range(x, y):
+        return s
     c = p.get_rgba(x, y)
     s.add(x, y)
     seen = set()
