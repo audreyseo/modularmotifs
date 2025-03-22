@@ -12,7 +12,7 @@ from modularmotifs.core.rgb_color import RGBAColor
 
 def bfs(x, y, s: set[tuple[int, int]], seen: set[tuple[int, int]], surrounding: Callable[[int, int], set[tuple[int, int]]]):
     new = surrounding(x, y)
-    print(new)
+    # print(new)
     for x0, y0 in new.difference(seen):
         seen.add((x0, y0))
         s.add((x0, y0))
@@ -141,7 +141,7 @@ class AbstractSelection(abc.ABC):
     
     @classmethod
     @abc.abstractmethod
-    def from_implicit(cls, implicit: list[list[bool]], minx=0, miny=0) -> Self:
+    def from_implicit(cls, implicit: Union[list[list[bool]], np.ndarray], minx=0, miny=0) -> Self:
         pass
     
     def invert(self) -> Self:
@@ -175,11 +175,8 @@ class AbstractSelection(abc.ABC):
             pass
         return edge_counts
     
-    
-            
-    
-    def get_boundary(self) -> Optional[list[tuple[int, int]]]:
-        """*ives a line that would draw a boundary around the given selection, assuming that cell (x, y) is bounded by box
+    def get_outer_boundary(self) -> Optional[list[tuple[int, int]]]:
+        """Gives a line that would draw a boundary around the given selection, assuming that cell (x, y) is bounded by box
         
         (x, y) ------ (x + 1, y)
            |                |
@@ -190,29 +187,53 @@ class AbstractSelection(abc.ABC):
         Returns:
             Optional[list[tuple[int, int]]]: a list of points that make up the boundary
         """
-        def get_orthogonal(norm: tuple[int, int]) -> tuple[int, int]:
-            x, y = norm
-            return (y, -x)
-        
         if not self.is_connected():
             return None
         
         edge_counts = self.get_edge_counts()
         single_edges = set(e for e, count in edge_counts.items() if count == 1)
-        print(single_edges)
+        # print(single_edges)
         edge_verts = set(chain.from_iterable([e.to_list() for e in single_edges]))
-        print("Edge verts:", edge_verts)
+        # print("Edge verts:", edge_verts)
         
         edge_selection = ManhattanSelection(edge_verts, single_edges)
         boundaries = edge_selection.contiguous_selections()
-        print("Boundaries", boundaries, len(boundaries))
+        # print("Boundaries", boundaries, len(boundaries))
         arry = np.array([s for s in boundaries])
         # get the contiguous boundary with the largest number of points -- necessarily any holes must have less points
         sorting = np.argsort(np.array([len(s) for s in arry]))
         sarry = arry[sorting]
-        print("Array", sarry)
-        edge_verts = sarry[-1]
-        single_edges = {e for e in single_edges if e.start in edge_verts and e.end in edge_verts}
+        # print("Array", sarry)
+        return self._boundary(single_edges, sarry, -1)
+    
+    def get_boundaries(self) -> Optional[list[list[tuple[int, int]]]]:
+        if not self.is_connected():
+            return None
+        
+        edge_counts = self.get_edge_counts()
+        single_edges = set(e for e, count in edge_counts.items() if count == 1)
+        edge_verts = set(chain.from_iterable([e.to_list() for e in single_edges]))
+        edge_selection = ManhattanSelection(edge_verts, single_edges)
+        boundary_edges = edge_selection.contiguous_selections()
+        boundarrays = np.array([s for s in boundary_edges])
+        # sort in descending order of length
+        sorting = np.argsort(np.array([-len(s) for s in boundarrays]))
+        boundarrays = boundarrays[sorting]
+        
+        boundaries = []
+        for i in range(len(boundarrays)):
+            boundary = self._boundary(single_edges, boundarrays, i)
+            if boundary is not None:
+                boundaries.append(boundary)
+                pass
+            pass
+        return boundaries
+            
+        
+
+    def _boundary(self, _single_edges, sarry, index):
+        edge_verts = sarry[index]
+        single_edges = {e for e in _single_edges if e.start in edge_verts and e.end in edge_verts}
         # if len(boundaries) == 1:
         y, x = min([(y, x) for x, y in edge_verts])
         line = []
@@ -249,60 +270,6 @@ class AbstractSelection(abc.ABC):
             last_edge = next_edge
             pass
         return line
-        
-        
-        # xmin, xmax = self.x_limits()
-        # ymin, ymax = self.y_limits()
-        
-        # cells = self.get_cells()
-        # # start from smallest ys
-        # smallest_ys = [(x, y) for x, y in cells if y == ymin]
-        # smallest_ys_xmin = min([x for x, _ in smallest_ys])
-        # x0, y0 = (smallest_ys_xmin, ymin)
-        # line = []
-        # line.append((x0, y0))
-        # # we know that y0 = ymin, so there's no way that we would be going up
-        # line.append((x0 + 1, y0))
-        # x_t, y_t = (x0 + 1, y0)
-        # # normal vector -- points down currently
-        # norm = (0, 1)
-        # max_iter = 20
-        # index = 0
-        # while (x_t, y_t) != (x0, y0) and index < max_iter:
-        #     print("Norm: ", norm)
-        #     if (x_t, y_t) in cells:
-        #         norm = (0, 1)
-        #         xn, yn = get_orthogonal(norm)
-        #         x_t, y_t = (x_t + xn, y_t + yn)
-        #         line.append((x_t, y_t))
-        #         pass
-        #     elif (x_t - 1, y_t) in cells:
-        #         line.append((x_t, y_t + 1))
-        #         y_t = y_t + 1
-        #         norm = (-1, 0)
-        #     elif (x_t - 1, y_t - 1) in cells:
-        #         line.append((x_t-1, y_t))
-        #         x_t = x_t - 1
-        #         norm = (0, -1)
-        #         pass
-        #     elif (x_t, y_t - 1) in cells:
-        #         line.append((x_t, y_t - 1))
-        #         y_t = y_t - 1
-        #         norm = (1, 0)
-        #     else:
-        #         xn, yn = get_orthogonal(norm)
-        #         # x_t, y_t = (x_t - xn, y_t - yn)
-        #         nx, ny = norm
-        #         x_t, y_t = (x_t + nx, y_t + ny)
-        #         line.append((x_t, y_t))
-        #         norm = (xn, yn)
-        #         pass
-        #     index += 1
-        #     print(line)
-        #     # if len(line) == 9:
-        #     #     break
-        #     pass 
-        # return line
     
     def contiguous_selections(self) -> set[frozenset[tuple[int, int]]]:
         selections = set()
@@ -328,24 +295,36 @@ class AbstractSelection(abc.ABC):
         cells = self.get_cells()
         return [[(x, y) in cells for x in range(xmin, xmax + 1)] for y in range(ymin, ymax + 1)]
     
-    def to_image(self, square_size=10) -> Image.Image:
+    def to_image(self, square_size=10, only_outer_boundary: bool = True, blank_color: RGBAColor=RGBAColor.from_hex("#FFFFFF"), select_color: RGBAColor=RGBAColor.from_hex("#69edff"), outline_color: RGBAColor=RGBAColor.from_hex("#000000"), selection_outline_color: RGBAColor=RGBAColor.from_hex("#00ffbf"), insetx: int=15, insety: int=15) -> Image.Image:
         implicit = self.get_implicit()
-        blank_color = RGBAColor.from_hex("#FFFFFF")
-        select_color = RGBAColor.from_hex("#69edff")
-        print(implicit)
+        # blank_color = RGBAColor.from_hex("#FFFFFF")
+        # select_color = RGBAColor.from_hex("#69edff")
+        # print(implicit)
         rgb_colors = [[select_color if selected else blank_color for selected in row] for row in implicit]
-        img = rgbcolors_to_image(rgb_colors, square_size=square_size)
-        full_image = Image.new(mode="RGB", size=(img.width + 30, img.height + 30), color=(255, 255, 255))
-        full_image.paste(img, box=(15, 15))
+        img = rgbcolors_to_image(rgb_colors, square_size=square_size, mode="RGBA")
+        full_image = Image.new(mode="RGBA", size=(img.width + insetx * 2, img.height + insety * 2), color=blank_color.rgba_tuple())
+        full_image.paste(img, box=(insetx, insety))
         draw = ImageDraw.Draw(full_image)
         
-        draw.rectangle([(15, 15), (15 + img.width, 15 + img.height)], outline=(0, 0, 0))
+        draw.rectangle([(insetx, insety), (insetx + img.width, insety + img.height)], outline=outline_color.rgba_tuple())
         
-        selection_outline_color = RGBAColor.from_hex("#00ffbf")
-        line = self.get_boundary()
-        if line:
-            line = [(x * square_size + 15, y * square_size + 15) for x, y in line]
-            draw.line(line, fill=selection_outline_color.hex(), width=1)
+        def resize_points(line):
+            return [(x * square_size + insetx, y * square_size + insety) for x, y in line]
+        
+        # selection_outline_color = RGBAColor.from_hex("#00ffbf")
+        if only_outer_boundary:
+            line = self.get_outer_boundary()
+            if line:
+                # line = [(x * square_size + 15, y * square_size + 15) for x, y in line]
+                draw.line(resize_points(line), fill=selection_outline_color.rgba_tuple(), width=1)
+                pass
+            pass
+        else:
+            lines = self.get_boundaries()
+            if lines:
+                for line in lines:
+                    
+                    draw.line(resize_points(line), fill=selection_outline_color.rgba_tuple(), width=1)
         
         return full_image
     
@@ -403,6 +382,17 @@ class AbstractSelection(abc.ABC):
     pass
 
 
+def from_implicit(cls, implicit: Union[list[list[bool]], np.ndarray], minx=0, miny=0):
+    if isinstance(implicit, list):
+        assert implicit, f"{cls.__qualname__}.from_implicit: implicit must be non-empty!"
+        width = len(implicit[0])
+        assert all(len(row) == width for row in implicit), f"{cls.__qualname__}.from_implicit: implicit's rows must all be the same width {width}"
+        height = len(implicit)  
+    # # must be an np.ndarray
+    # width, height = implicit.shape
+    # print(list(enumerate(implicit)))
+    return cls([(minx + x, miny + y) for y, row in enumerate(implicit) for x, cell in enumerate(row) if cell])
+
 @dataclass
 class ImmutableSelection(AbstractSelection):
     selected_cells: frozenset[tuple[int, int]]
@@ -426,12 +416,19 @@ class ImmutableSelection(AbstractSelection):
         pass
     
     @classmethod
-    def from_implicit(cls, implicit: list[list[bool]], minx=0, miny=0):
-        assert implicit, f"{cls.__qualname__}.from_implicit: implicit must be non-empty!"
-        width = len(implicit[0])
-        assert all(len(row) == width for row in implicit), f"{cls.__qualname__}.from_implicit: implicit's rows must all be the same width {width}"
-        height = len(implicit)
-        return ImmutableSelection([(x, y) for y, row in enumerate(implicit) for x, cell in enumerate(row) if cell])
+    def from_implicit(cls, implicit: Union[list[list[bool]], np.ndarray], minx=0, miny=0):
+        # if isinstance(implicit, list):
+        #     assert implicit, f"{cls.__qualname__}.from_implicit: implicit must be non-empty!"
+        #     width = len(implicit[0])
+        #     assert all(len(row) == width for row in implicit), f"{cls.__qualname__}.from_implicit: implicit's rows must all be the same width {width}"
+        #     height = len(implicit)
+        # else:
+        #     # must be an np.ndarray
+        #     width, height = implicit.shape
+        #     print(enumerate(implicit))
+        #     pass
+        # return ImmutableSelection([(minx + x, miny + y) for y, row in enumerate(implicit) for x, cell in enumerate(row) if cell])
+        return from_implicit(cls, implicit, minx=minx, miny=miny)
         
     
     @override
@@ -487,12 +484,17 @@ class Selection(AbstractSelection):
         return self
     
     @classmethod
-    def from_implicit(cls, implicit: list[list[bool]], minx=0, miny=0):
-        assert implicit, f"{cls.__qualname__}.from_implicit: implicit must be non-empty!"
-        width = len(implicit[0])
-        assert all(len(row) == width for row in implicit), f"{cls.__qualname__}.from_implicit: implicit's rows must all be the same width {width}"
-        height = len(implicit)
-        return Selection([(x, y) for y, row in enumerate(implicit) for x, cell in enumerate(row) if cell])
+    def from_implicit(cls, implicit: Union[list[list[bool]], np.ndarray], minx=0, miny=0):
+        # if isinstance(implicit, list):
+        #     assert implicit, f"{cls.__qualname__}.from_implicit: implicit must be non-empty!"
+        #     width = len(implicit[0])
+        #     assert all(len(row) == width for row in implicit), f"{cls.__qualname__}.from_implicit: implicit's rows must all be the same width {width}"
+        #     height = len(implicit)  
+        # # # must be an np.ndarray
+        # # width, height = implicit.shape
+        # # print(list(enumerate(implicit)))
+        # return Selection([(minx + x, miny + y) for y, row in enumerate(implicit) for x, cell in enumerate(row) if cell])
+        return from_implicit(Selection, implicit, minx=minx, miny=miny)
     
     @override
     def __eq__(self, value):
@@ -515,74 +517,17 @@ class Selection(AbstractSelection):
     @override 
     def get_cells(self):
         return self.selected_cells
-
-    # def _row_major_cells(self):
-    #     # flip (x, y) -> (y, x) since we want lower y values first
-    #     cells = [(y, x) for x, y in list(self.selected_cells)]
-    #     # sorts in lexicographical order
-    #     cells.sort()
-    #     # flip back (y, x) -> (x, y)
-    #     cells = [(x, y) for y, x in cells]
-    #     return cells
-
-    # def __iter__(self) -> Generator[Tuple[int, int], None, None]:
-    #     """
-    #     Returns an iterator that iterates through the selected cells in row major order
-    #     """
-    #     cells = self._row_major_cells()
-
-    #     for x, y in cells:
-    #         yield (x, y)
-    #     pass
-
-    
-    
-    # def __hash__(self):
-    #     return hash(repr(self))
-    
-    # def surrounding(self, x, y) -> set[tuple[int, int]]:
-    #     pts = [(x + i, y + j) for i, j in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]]
-    #     pts = [(x, y) for x, y in pts if (x, y) in self]
-    #     return set(pts)
-    
-    # def contiguous_selections(self) -> set[frozenset[tuple[int, int]]]:
-        
-    #     def bfs(x, y, s: set[tuple[int, int]], seen: set[tuple[int, int]]):
-    #         new = self.surrounding(x, y)
-    #         print(new)
-    #         for x0, y0 in new.difference(seen):
-    #             seen.add((x0, y0))
-    #             s.add((x0, y0))
-    #             bfs(x0, y0, s, seen)
-    #             pass
-    #         pass
-        
-    #     selections = set()
-    #     seen_points = set()
-    #     for x, y in self.selected_cells:
-    #         if self.selected_cells == seen_points:
-    #             break
-    #         if (x, y) not in seen_points:
-    #             seen_points.add((x, y))
-    #             s = set([(x, y)])
-    #             bfs(x, y, s, seen_points)
-    #             print(s)
-    #             selections.add(frozenset(s))
-    #             pass
-    #         pass
-    #     return selections
-                
-
-    # pass
     
 class ManhattanSelection(Selection):
+    # Manhattan selection where you can only move N, S, E, W and only some edges exist
+    # Mostly for calculating boundaries
     def __init__(self, selected, edges: set[Edge]):
         super().__init__(selected)
         self.edges = edges
     
     @override
     def surrounding(self, x, y):
-        print("ManhattanSelection")
+        # print("ManhattanSelection")
         pts = [(x + i, y + j) for i, j in [(-1, 0), (0, -1), (0, 1), (1, 0)]]
         pts = [(x0, y0) for x0, y0 in pts if (x0, y0) in self.get_cells() and Edge((x, y), (x0, y0)) in self.edges]
         return set(pts)
@@ -615,7 +560,7 @@ class GridSelection(Selection):
     
     def __repr__(self):
         end = "" if not self._end else f", {self._end}"
-        return f"GridSelection({self._start}{end})"
+        return f"{self.cn}({self._start}{end})"
     
 
 # Might want a specific subclass that does selections too, but this is probably good for now?
@@ -636,24 +581,24 @@ if __name__ == "__main__":
     sel1.add(1, 0)
     sel1.add(0, 1)
     print(sel1)
-    print(sel1.get_boundary())
+    print(sel1.get_outer_boundary())
     print(sel1.get_edge_counts())
 
-    img = sel1.to_image(square_size=30)
+    img = sel1.to_image(square_size=30, only_outer_boundary=False)
     img.save("test_selection.png")
     
     sel2 = Selection()
     sel2.add(0, 0)
     sel2.add(1, 1)
     
-    print(sel2.get_boundary())
+    print(sel2.get_outer_boundary())
     print(sel2.get_edge_counts())
     
-    img = sel2.to_image(square_size=30)
+    img = sel2.to_image(square_size=30, only_outer_boundary=False)
     img.save("test_selection2.png")
     
     sel3 = sel2.invert()
-    print(sel3.get_boundary())
+    print(sel3.get_outer_boundary())
     print(sel3.get_edge_counts())
     
     sel4 = Selection()
@@ -665,7 +610,7 @@ if __name__ == "__main__":
     sel4.add(0, 2)
     sel4.add(1, 2)
     sel4.add(2, 2)
-    img = sel4.to_image(square_size=30)
+    img = sel4.to_image(square_size=30, only_outer_boundary=False)
     img.save("test_selection4.png")
     
     sel5 = Selection()
@@ -674,5 +619,33 @@ if __name__ == "__main__":
     sel5.add(1, 1)
     sel5.add(0, 2)
     sel5.add(2, 2)
-    img = sel5.to_image(square_size=30)
+    img = sel5.to_image(square_size=30, only_outer_boundary=False)
     img.save("test_selection5.png")
+    
+    img = sel5.to_image(square_size=30, only_outer_boundary=False,
+                        blank_color=RGBAColor(0, 0, 0, 0),
+                        outline_color=RGBAColor(0, 0, 0, 0),
+                        select_color=RGBAColor(0, 0, 0, 0),
+                        insetx=1,
+                        insety=1)
+    img.save("test_selection5_1.png")
+    implicit6 = [[True for _ in range(10)] for _ in range(10)]
+    implicit6[2][2] = False
+    implicit6[5][5] = False
+    implicit6[4][4] = False
+    implicit6[4][5] = False
+    implicit6[4][6] = False
+    implicit6[9][0] = False
+    sel6 = Selection.from_implicit(implicit6)
+    img = sel6.to_image(square_size=30, only_outer_boundary=False)
+    img.save("test_selection6.png")
+    
+    implicit7 = np.zeros((10, 10))
+    implicit7[2, 2] = 1
+    implicit7[5, 5] = 1
+    implicit7[4, 4:7] = 1
+    implicit7[9, 0] = 1
+    implicit7 = implicit7 == 0
+    sel7 = Selection.from_implicit(implicit7)
+    img = sel7.to_image(square_size=30, only_outer_boundary=False)
+    img.save("test_selection7.png")
