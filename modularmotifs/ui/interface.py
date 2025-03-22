@@ -453,6 +453,7 @@ class KnitWindow(PixelWindow):
             print("Event:", event)
             cx, cy = self._pixel_canvas.event_to_coords(event)
             self._selection = magic_wand_select(self._design, cx, cy)
+            # manually force it to refresh because you don't typically move your mouse after doing a magic wand-type selection, unlike with a grid selection
             self._pixel_canvas._hover_function(cx, cy)
             pass
 

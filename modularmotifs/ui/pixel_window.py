@@ -1,6 +1,7 @@
 """Superclass of windows that support any kind of pixel editing"""
 
 import abc
+import copy
 import os
 from modularmotifs.core.pixel_grid import PixelGrid
 from modularmotifs.core.rgb_color import RGBAColor
@@ -401,23 +402,36 @@ class PixelWindow(abc.ABC):
             pxs = self._pixel_canvas.pixel_size()
             rsx = sx * pxs
             rsy = sy * pxs
-            rx = x * pxs
-            ry = y * pxs
+            rx = x * pxs + pxs
+            ry = y * pxs + pxs
             # if not self._selection.is_complete():
             # sx, sy = self._selection._start
+            
+            gs = copy.deepcopy(self._selection)
+            gs.complete(x, y)
+            
             self._pixel_canvas._add_old_id(
                 self._pixel_canvas.create_rectangle(
-                    sx, sy, x, y, fill=None, width=2, outline="black"
+                    sx, sy, x + 1, y + 1, fill=None, width=2, outline="black"
                 )
             )
+            
+            
             if rsx != rx and rsy != ry:
                 # print(sx, sy, x, y, rsx, rsy, rx, ry)
 
                 # img = Image.new(mode="RGBA", size=(abs(rsx - rx), abs(rsy-ry)), color=(0, 255, 255, 122))
-                img = self._selection_img.resize(
-                    size=(abs(rsx - rx), abs(rsy - ry)),
-                    resample=Image.Resampling.NEAREST,
-                )
+                if self._pixel_canvas.is_knit_mode():
+                    img = gs.to_outline_image(
+                        square_size=self._pixel_canvas.pixel_size(),
+                        shape=self._pixel_canvas.get_shape(),
+                    )
+                    pass
+                else:
+                    img = self._selection_img.resize(
+                        size=(abs(rsx - rx), abs(rsy - ry)),
+                        resample=Image.Resampling.NEAREST,
+                    )
                 self._temp_img = ImageTk.PhotoImage(img)
                 print(img.width, img.height)
 
