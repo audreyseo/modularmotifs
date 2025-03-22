@@ -427,11 +427,38 @@ class PixelWindow(abc.ABC):
 
                 self._pixel_canvas._add_old_id(
                     self._pixel_canvas.create_image(
-                        sx, sy, image=self._temp_img, anchor="nw"
+                        sx,
+                        sy,
+                        # x_offset=-1,
+                        # y_offset=-1,
+                        image=self._temp_img,
+                        anchor="nw",
                     )
                 )
                 pass
             # else:
+
+        def handle_magic_wand_selection(x: int, y: int):
+            if not self._selection:
+                return
+            assert isinstance(self._selection, Selection)
+            img = self._selection.to_outline_image(
+                square_size=self._pixel_canvas.pixel_size()
+            )
+            minx, miny = self._selection.minimum()
+            self._temp_img = ImageTk.PhotoImage(img)
+            self._pixel_canvas._add_old_id(
+                self._pixel_canvas.create_image(
+                    minx,
+                    miny,
+                    x_offset=-1,
+                    y_offset=-1,
+                    image=self._temp_img,
+                    anchor="nw",
+                )
+            )
+            self._pixel_canvas._lower_old_ids()
+            pass
 
         match self._mode:
             case UIMode.RECT_SELECTION:
@@ -440,6 +467,12 @@ class PixelWindow(abc.ABC):
                     handle_grid_selection, should_reset_hover=False
                 )
                 self._pixel_canvas.set_motif(None)
+                pass
+            case UIMode.WAND_SELECTION:
+                print("Setting wand hover")
+                self._pixel_canvas.set_hover_function(
+                    handle_magic_wand_selection, should_reset_hover=False
+                )
                 pass
             case UIMode.PLACE_MOTIF:
                 print("Setting motif hover")

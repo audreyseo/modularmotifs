@@ -410,10 +410,12 @@ class PixelCanvas:
 
         pass
 
-    def create_image(self, x, y, image=None, anchor="nw", **kwargs) -> int:
+    def create_image(
+        self, x, y, x_offset=0, y_offset=0, image=None, anchor="nw", **kwargs
+    ) -> int:
         ident = self.__canvas.create_image(
-            x * self.__pixel_size,
-            y * self.__pixel_size,
+            x * self.__pixel_size + x_offset,
+            y * self.__pixel_size + y_offset,
             image=image,
             anchor=anchor,
             **kwargs,

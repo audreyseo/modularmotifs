@@ -25,7 +25,8 @@ from modularmotifs.ui.modes import UIMode
 from modularmotifs.ui.motif_saver import save_as_motif
 
 # from modularmotifs.ui.grid_selection import GridSelection
-from modularmotifs.ui.util.selection import GridSelection
+from modularmotifs.ui.util.magic_wand_selection import magic_wand_select
+from modularmotifs.ui.util.selection import GridSelection, Selection
 from modularmotifs.ui.grid_labels import GridLabels
 
 from modularmotifs.dsl import DesignProgramBuilder, DesignInterpreter, parse
@@ -199,7 +200,7 @@ class KnitWindow(PixelWindow):
             if (
                 isinstance(self._selection, GridSelection)
                 and self._selection.is_complete()
-            ):
+            ) or (isinstance(self._selection, Selection)):
                 x0, y0, x1, y1 = self._selection.bbox()
                 op = self._program_builder.motifify(x0, y0, x1, y1)
                 motif = self._interpreter.interpret(op)
@@ -448,6 +449,13 @@ class KnitWindow(PixelWindow):
             print(self._selection)
             pass
 
+        def wand_selection(event):
+            print("Event:", event)
+            cx, cy = self._pixel_canvas.event_to_coords(event)
+            self._selection = magic_wand_select(self._design, cx, cy)
+            self._pixel_canvas._hover_function(cx, cy)
+            pass
+
         def handle(event):
             print("Handling:", self._mode)
             match self._mode:
@@ -459,12 +467,16 @@ class KnitWindow(PixelWindow):
                 case UIMode.REMOVE_MOTIF:
                     remove_motif(event)
                     pass
+                case UIMode.WAND_SELECTION:
+                    wand_selection(event)
                 case UIMode.RECT_SELECTION:
                     grid_selection(event)
                     pass
                 case _:
                     pass
             pass
+
+        self._pixel_canvas.get_canvas().bind("<Shift-Button-1>", lambda e: print(e))
 
         super()._init_pixels(handle)
 

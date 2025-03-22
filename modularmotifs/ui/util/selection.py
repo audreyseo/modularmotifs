@@ -180,6 +180,21 @@ class AbstractSelection(abc.ABC):
         bfs(x, y, selection, seen, self.surrounding)
         return selection == cells
 
+    def minimum(self) -> tuple[int, int]:
+        minx = min([x for x, _ in self.get_cells()])
+        miny = min([y for _, y in self.get_cells()])
+        return minx, miny
+
+    def maximum(self) -> tuple[int, int]:
+        maxx = max([x for x, _ in self.get_cells()])
+        maxy = max([y for _, y in self.get_cells()])
+        return (maxx, maxy)
+
+    def bbox(self) -> tuple[int, int, int, int]:
+        minx, maxx = self.x_limits()
+        miny, maxy = self.y_limits()
+        return minx, miny, maxx + 1, maxy + 1
+
     @classmethod
     @abc.abstractmethod
     def from_implicit(
@@ -349,6 +364,20 @@ class AbstractSelection(abc.ABC):
             [(x, y) in cells for x in range(xmin, xmax + 1)]
             for y in range(ymin, ymax + 1)
         ]
+
+    def to_outline_image(
+        self, square_size=10, only_outer_boundary: bool = False
+    ) -> Image.Image:
+        return self.to_image(
+            square_size=square_size,
+            only_outer_boundary=only_outer_boundary,
+            blank_color=RGBAColor(0, 0, 0, 0),
+            select_color=RGBAColor(0x69, 0xED, 0xFF, 127),
+            outline_color=RGBAColor(0, 0, 0, 0),
+            selection_outline_color=RGBAColor(0, 0, 0, 0),
+            insetx=1,
+            insety=1,
+        )
 
     def to_image(
         self,
