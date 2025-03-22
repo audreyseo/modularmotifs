@@ -366,7 +366,10 @@ class AbstractSelection(abc.ABC):
         ]
 
     def to_outline_image(
-        self, square_size=10, only_outer_boundary: bool = False
+        self,
+        square_size=10,
+        only_outer_boundary: bool = False,
+        shape: Union[list[tuple[int, int]], list[int], str] = "rect",
     ) -> Image.Image:
         return self.to_image(
             square_size=square_size,
@@ -375,6 +378,7 @@ class AbstractSelection(abc.ABC):
             select_color=RGBAColor(0x69, 0xED, 0xFF, 127),
             outline_color=RGBAColor(0, 0, 0, 0),
             selection_outline_color=RGBAColor(0, 0, 0, 0),
+            shape=shape,
             insetx=1,
             insety=1,
         )
@@ -387,6 +391,7 @@ class AbstractSelection(abc.ABC):
         select_color: RGBAColor = RGBAColor.from_hex("#69edff"),
         outline_color: RGBAColor = RGBAColor.from_hex("#000000"),
         selection_outline_color: RGBAColor = RGBAColor.from_hex("#00ffbf"),
+        shape: Union[list[tuple[int, int]], list[int], str] = "rect",
         insetx: int = 15,
         insety: int = 15,
     ) -> Image.Image:
@@ -398,7 +403,9 @@ class AbstractSelection(abc.ABC):
             [select_color if selected else blank_color for selected in row]
             for row in implicit
         ]
-        img = rgbcolors_to_image(rgb_colors, square_size=square_size, mode="RGBA")
+        img = rgbcolors_to_image(
+            rgb_colors, square_size=square_size, mode="RGBA", shape=shape
+        )
         full_image = Image.new(
             mode="RGBA",
             size=(img.width + insetx * 2, img.height + insety * 2),

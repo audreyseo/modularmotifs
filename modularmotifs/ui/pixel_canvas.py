@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from enum import Enum
 import tkinter as tk
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from design_examples.deer_scene import x0 as deer_scene
 from modularmotifs.core.design import Design
@@ -299,6 +299,13 @@ class PixelCanvas:
         self._reset_motion()
         pass
 
+    def get_shape(self) -> Union[list[tuple[int, int]], list[int], str]:
+        shape = "rect"
+        if self.__mode == ViewMode.KNIT:
+            shape = [(0, 0), (0.5, 0.5), (1, 0), (1, 1), (0.5, 1.5), (0, 1)]
+            pass
+        return shape
+
     def set_motif_hover(self):
         def motif_hover(simple_x: int, simple_y: int):
             if not self.__hover_motif:
@@ -309,6 +316,7 @@ class PixelCanvas:
                     square_size=self.__pixel_size,
                     mode="RGBA",
                     opacity=127,
+                    shape=self.get_shape(),
                 )
                 self.__motif_image = ImageTk.PhotoImage(img)
                 pass
@@ -356,15 +364,12 @@ class PixelCanvas:
     def set_motif(self, m: Motif):
         self.__hover_motif = m
         if m is not None:
-            shape = "rect"
-            if self.__mode == ViewMode.KNIT:
-                shape = [(0, 0), (0.5, 0.5), (1, 0), (1, 1), (0.5, 1.5), (0, 1)]
             img = util.rgbcolors_to_image(
                 util.motif_to_lol(self.__hover_motif),
                 square_size=self.__pixel_size,
                 mode="RGBA",
                 opacity=127,
-                shape=shape,
+                shape=self.get_shape(),
             )
             self.__motif_image = ImageTk.PhotoImage(img)
             # self.__reset_hover()

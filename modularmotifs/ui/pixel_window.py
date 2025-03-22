@@ -443,7 +443,8 @@ class PixelWindow(abc.ABC):
                 return
             assert isinstance(self._selection, Selection)
             img = self._selection.to_outline_image(
-                square_size=self._pixel_canvas.pixel_size()
+                square_size=self._pixel_canvas.pixel_size(),
+                shape=self._pixel_canvas.get_shape(),
             )
             minx, miny = self._selection.minimum()
             self._temp_img = ImageTk.PhotoImage(img)
