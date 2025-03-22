@@ -18,17 +18,19 @@ def export_square(d: Design, res: int = 27) -> Image:
         Image: Image representing the design
     """
     w, h = d.width(), d.height()
-    img = Image.new("RGBA", (w*res, h*res))
+    img = Image.new("RGBA", (w * res, h * res))
     for x in range(w):
         for y in range(h):
             rgba = d.get_rgba(x, y).rgba_tuple()
             for xi in range(res):
                 for yi in range(res):
-                    img.putpixel((x*res + xi, y*res + yi), rgba)
+                    img.putpixel((x * res + xi, y * res + yi), rgba)
     return img
 
-HEART_HEIGHT = 1/3
-HEART_WIDTH = 1/3
+
+HEART_HEIGHT = 1 / 3
+HEART_WIDTH = 1 / 3
+
 
 def export_heart(d: Design, res: int = 27) -> Image:
     """Exports a design to an image, with each
@@ -42,27 +44,32 @@ def export_heart(d: Design, res: int = 27) -> Image:
         Image: Image representing the design
     """
     w, h = d.width(), d.height()
-    img = Image.new("RGBA", (w*res, h*res))
-    for x in range(w*res):
-        for y in range(h*res):
+    img = Image.new("RGBA", (w * res, h * res))
+    for x in range(w * res):
+        for y in range(h * res):
             img.putpixel((x, y), (255, 0, 0, 255))
     for x in range(w):
         for y in range(h):
             rgba = d.get_rgba(x, y).rgba_tuple()
             for xi in range(res):
                 for yi in range(int(res + res * HEART_HEIGHT)):
-                    if y == h-1 and yi >= res:
-                        continue # off the image
+                    if y == h - 1 and yi >= res:
+                        continue  # off the image
 
-                    if y > 0 and res * HEART_WIDTH <= xi < res * HEART_WIDTH * 2 and yi < res * HEART_HEIGHT:
-                        continue # TODO: this is not exactly a heart
+                    if (
+                        y > 0
+                        and res * HEART_WIDTH <= xi < res * HEART_WIDTH * 2
+                        and yi < res * HEART_HEIGHT
+                    ):
+                        continue  # TODO: this is not exactly a heart
                     if yi >= res:
                         if xi < res * HEART_WIDTH or xi >= res * HEART_WIDTH * 2:
                             continue
                         else:
-                            pass # TODO: this is not exactly a heart
-                    img.putpixel((x*res + xi, y*res + yi), rgba)
+                            pass  # TODO: this is not exactly a heart
+                    img.putpixel((x * res + xi, y * res + yi), rgba)
     return img
+
 
 def show_design(d: Design) -> None:
     bg_color = (128, 128, 128)
@@ -89,6 +96,7 @@ def show_design(d: Design) -> None:
     img = export_heart(d, res=9)
 
     wrap_image_around_cylinder(img)
+
 
 def wrap_image_around_cylinder(img):
     """Wrap an RGBA image around a 3D cylinder."""

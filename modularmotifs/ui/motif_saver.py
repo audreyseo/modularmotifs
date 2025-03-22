@@ -3,6 +3,7 @@ import datetime
 
 from modularmotifs.motiflibrary.examples import int_lol_to_motif
 
+
 def save_as_motif(knit_window, callback=None):
     """
     Converts the currently selected grids into a motif and stores it in a Python file.
@@ -28,7 +29,7 @@ def save_as_motif(knit_window, callback=None):
     # Build a 2D list representing the motif.
     # Initialize all cells with the invisible value (3).
     motif_data = [[3 for _ in range(width)] for _ in range(height)]
-    for (col, row) in coords:
+    for col, row in coords:
         rel_col = col - min_col
         rel_row = row - min_row
         # Retrieve the color code at (col, row); its .value is assumed to be 1 (fore), 2 (back), or 3 (invis).
@@ -64,6 +65,6 @@ def save_as_motif(knit_window, callback=None):
         f.write(repr(saved))
         f.write("\n")
     print(f"Saved motif '{motif_name}' to {saved_file}")
-        # New: Trigger UI refresh after saving
+    # New: Trigger UI refresh after saving
     if callback:
         callback()

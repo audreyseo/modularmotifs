@@ -9,6 +9,7 @@ from modularmotifs.core.pixel_grid import PixelGrid
 from modularmotifs.core.rgb_color import RGBAColor
 import abc
 
+
 class Color(Enum):
     """Colors are either foreground (black?),
     background (white?), or invisible (to help everything
@@ -114,6 +115,7 @@ def empty(lst: Iterable[Color]) -> bool:
 # class AbstractMotif(PixelGrid):
 #     pass
 
+
 class Motif(PixelGrid):
     """A motif is an immutable rectangle of Color.
     There's no restriction that the visible Colors are
@@ -150,7 +152,9 @@ class Motif(PixelGrid):
             raise ValueError("Motifs must have positive width!")
         for y, row in enumerate(bbox[1:]):
             if len(row) != self.__width:
-                raise ValueError(f"Motifs must have rectangular bounding boxes! Row {y+1} has length {len(row)} versus {self.__width}")
+                raise ValueError(
+                    f"Motifs must have rectangular bounding boxes! Row {y+1} has length {len(row)} versus {self.__width}"
+                )
 
         self.__data = [MotifRow(row) for row in bbox]
 
@@ -195,16 +199,19 @@ class Motif(PixelGrid):
 
     def __repr__(self) -> str:
         return f"Motif({self.__data})"
-    
+
     def get_color(self, x: int, y: int) -> Color:
         return self.__data[y].get_color(x)
-    
+
     def to_lists_of_ints(self) -> list[list[int]]:
-        return [[self.get_color(x, y).value for x in range(self.width())] for y in range(self.height())]
-    
+        return [
+            [self.get_color(x, y).value for x in range(self.width())]
+            for y in range(self.height())
+        ]
+
     def dims(self) -> tuple[int, int]:
         return self.width(), self.height()
-    
+
     def get_rgba(self, x: int, y: int) -> RGBAColor:
         match self.get_color(x, y):
             case Color.FORE:
@@ -215,7 +222,6 @@ class Motif(PixelGrid):
                 return RGBAColor.Invis()
         assert False, f"{self.get_rgba.__qualname__}: Impossible case reached"
         pass
-    
 
 
 class MotifRow:

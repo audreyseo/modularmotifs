@@ -1,4 +1,4 @@
-""" Fair isle is a style of stranded colorwork knitting.
+"""Fair isle is a style of stranded colorwork knitting.
 
 https://en.wikipedia.org/wiki/Fair_Isle_(technique)
 """
@@ -51,26 +51,27 @@ def fair_isle_colorization(
             assignments.set(i, twocolors[0], twocolors[1])
             pass
         pass
-    return assignments    # simplest form: for any given row,
+    return assignments  # simplest form: for any given row,
+
 
 def fair_isle_colorization_new(p: PrettierTwoColorRows, random_seed: int = None):
-    
+
     if random_seed is not None:
         np.random.seed(seed=random_seed)
         pass
-    
+
     rng = np.random.default_rng()
-    
+
     def choice(a: np.ndarray) -> int:
         return int(rng.choice(a, size=1, replace=False))
-    
+
     colors = p._colors
     ncolors = np.arange(len(colors))
-    
+
     sample = rng.choice(ncolors, size=2, replace=False)
-    
+
     p.set(0, *[int(s) for s in sample])
-    
+
     for i in range(1, p.height()):
         change = p.get_change(i)
         match change.perms.to_str():
@@ -103,14 +104,17 @@ def fair_isle_colorization_new(p: PrettierTwoColorRows, random_seed: int = None)
                     else:
                         p.set(i, p.last_fg(i), c)
                 else:
-                    p.set(i, *[int(k) for k in rng.choice(subset, size=2, replace=False)])
+                    p.set(
+                        i, *[int(k) for k in rng.choice(subset, size=2, replace=False)]
+                    )
                     pass
             case "CHANGE_BOTH":
                 fg, bg = p.last(i)
                 lastfg, lastbg = p.last(i)
                 subset = ncolors[(ncolors != lastfg) & (ncolors != lastbg)]
                 p.set(i, *[int(k) for k in rng.choice(subset, size=2, replace=False)])
-                    
+
+
 def generate_changes(d: Design) -> list[Change]:
     row_motifs = set()
     changes = []
@@ -128,7 +132,7 @@ def generate_changes(d: Design) -> list[Change]:
             pass
         pass
     return changes
-        
+
 
 if __name__ == "__main__":
     # do some very basic testing out of stuff...
@@ -147,7 +151,7 @@ if __name__ == "__main__":
     d.add_motif(motifs["plus-3x3"], 8, 8)
 
     for r in d:
-        for (col, x, y) in r:
+        for col, x, y in r:
             print(x, y, col)
             pass
         pass
@@ -158,17 +162,16 @@ if __name__ == "__main__":
         print(" ".join(list(map(str, r))))
         pass
 
-    colors = [RGBAColor.from_hex("#320E3B"),
-              RGBAColor.from_hex("#E56399"),
-              RGBAColor.from_hex("#7F96FF"),
-              RGBAColor.from_hex("#A6CFD5"),
-              RGBAColor.from_hex("#DBFCFF")]
+    colors = [
+        RGBAColor.from_hex("#320E3B"),
+        RGBAColor.from_hex("#E56399"),
+        RGBAColor.from_hex("#7F96FF"),
+        RGBAColor.from_hex("#A6CFD5"),
+        RGBAColor.from_hex("#DBFCFF"),
+    ]
 
     seed = 1
 
     colorized = fair_isle_colorization(d, colors, random_seed=seed)
     img = colorized.to_image(square_size=30)
     img.save(f"example{seed}.png")
-    
-
-

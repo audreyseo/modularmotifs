@@ -1,18 +1,22 @@
 from dataclasses import dataclass
 from modularmotifs.dsl._syntax.basic_ast import *
+
+
 class Operation(Statement):
     fresh: FreshVar
     op_name: str
-    
+
     def __init__(self, op_name: str, fresh: FreshVar):
         super().__init__()
         self.op_name = op_name
         self.fresh = fresh
-    
+
     @abc.abstractmethod
-    def inverse(self) -> 'Operation':
+    def inverse(self) -> "Operation":
         pass
+
     pass
+
 
 class DesignOp(Statement):
     cn = __qualname__
@@ -25,9 +29,11 @@ class DesignOp(Statement):
         self.fresh = fresh
 
     @abc.abstractmethod
-    def inverse(self) -> 'DesignOp':
+    def inverse(self) -> "DesignOp":
         pass
+
     pass
+
 
 class SetVariable(Statement):
     def __init__(self, x: Variable, expr: Expr):
@@ -43,7 +49,9 @@ class SetVariable(Statement):
 class AddMotif(DesignOp):
     cn = __qualname__
 
-    def __init__(self, v: Variable, d: Variable, m: Expr, x: Expr, y: Expr, fresh: FreshVar):
+    def __init__(
+        self, v: Variable, d: Variable, m: Expr, x: Expr, y: Expr, fresh: FreshVar
+    ):
         super().__init__(d, "add_motif", fresh)
         # where the placed motif is stored -- should be a fresh variable
         self.v = v
@@ -62,6 +70,7 @@ class AddMotif(DesignOp):
 
     pass
 
+
 class RemoveMotif(DesignOp):
     def __init__(self, d: Variable, placedmotif: Variable, fresh: FreshVar):
         super().__init__(d, "remove_motif", fresh)
@@ -70,26 +79,46 @@ class RemoveMotif(DesignOp):
         pass
 
     def inverse(self) -> DesignOp:
-        return AddMotif(Variable(self.fresh.get_fresh()),
-                        self.d,
-                        ObjectMethodCall(self.placed_motif, "motif"),
-                        ObjectMethodCall(self.placed_motif, "x"),
-                        ObjectMethodCall(self.placed_motif, "y"),
-                        self.fresh)
+        return AddMotif(
+            Variable(self.fresh.get_fresh()),
+            self.d,
+            ObjectMethodCall(self.placed_motif, "motif"),
+            ObjectMethodCall(self.placed_motif, "x"),
+            ObjectMethodCall(self.placed_motif, "y"),
+            self.fresh,
+        )
+
     def to_python(self) -> str:
         return f"{self.d}.{self.op_name}({self.placed_motif})"
+
     pass
 
+
 class SizeOp(DesignOp):
-    def __init__(self, d: Variable, op_name: str, fresh: FreshVar, at_index: Optional[Expr] = None, contents: Optional[Expr] = None):
+    def __init__(
+        self,
+        d: Variable,
+        op_name: str,
+        fresh: FreshVar,
+        at_index: Optional[Expr] = None,
+        contents: Optional[Expr] = None,
+    ):
         super().__init__(d, op_name, fresh)
         self.at_index = at_index
         self.contents = contents
         pass
-    
+
     def get_at_index(self) -> str:
-        return "" if not self.at_index else (f"at_index={self.at_index.to_python()}" if not isinstance(self.at_index, KeywordArg) else self.at_index.to_python())
-    
+        return (
+            ""
+            if not self.at_index
+            else (
+                f"at_index={self.at_index.to_python()}"
+                if not isinstance(self.at_index, KeywordArg)
+                else self.at_index.to_python()
+            )
+        )
+
     def get_args_to_python(self) -> list[str]:
         args = []
         at_index = self.get_at_index()
@@ -100,19 +129,29 @@ class SizeOp(DesignOp):
             args.append(contents)
         return args
 
+
 class AddRow(SizeOp):
-    def __init__(self, v: Variable, d: Variable, fresh: FreshVar, at_index: Optional[Expr] = None, contents: Optional[Expr] = None):
+    def __init__(
+        self,
+        v: Variable,
+        d: Variable,
+        fresh: FreshVar,
+        at_index: Optional[Expr] = None,
+        contents: Optional[Expr] = None,
+    ):
         super().__init__(d, "add_row", fresh, at_index=at_index, contents=contents)
         self.v = v
         pass
-    
+
     def inverse(self) -> DesignOp:
-        return RemoveRow(Variable(self.fresh.get_fresh()),
-                         Variable(self.fresh.get_fresh()),
-                         self.d,
-                         at_index=self.v,
-                         fresh=self.fresh)
-        
+        return RemoveRow(
+            Variable(self.fresh.get_fresh()),
+            Variable(self.fresh.get_fresh()),
+            self.d,
+            at_index=self.v,
+            fresh=self.fresh,
+        )
+
     def to_python(self) -> str:
         args = self.get_args_to_python()
         # []
@@ -123,61 +162,98 @@ class AddRow(SizeOp):
         # if contents:
         #     args.append(contents)
         return f"{self.v} = {self.d}.{self.op_name}({", ".join(args)})"
+
     pass
 
+
 class RemoveRow(SizeOp):
-    def __init__(self, indexVar: Variable, removed: Variable, d: Variable, fresh: FreshVar, at_index: Optional[Expr]=None):
+    def __init__(
+        self,
+        indexVar: Variable,
+        removed: Variable,
+        d: Variable,
+        fresh: FreshVar,
+        at_index: Optional[Expr] = None,
+    ):
         super().__init__(d, "remove_row", fresh, at_index=at_index)
         self.indexVar = indexVar
         self.removed = removed
         pass
-    
+
     def inverse(self) -> DesignOp:
-        return AddRow(Variable(self.fresh.get_fresh()),
-                      self.d,
-                      at_index=self.indexVar,
-                      fresh=self.fresh,
-                      contents=self.removed)
+        return AddRow(
+            Variable(self.fresh.get_fresh()),
+            self.d,
+            at_index=self.indexVar,
+            fresh=self.fresh,
+            contents=self.removed,
+        )
+
     def to_python(self) -> str:
         return f"{self.indexVar}, {self.removed} = {self.d}.{self.op_name}({self.get_at_index()})"
+
     pass
 
+
 class AddColumn(SizeOp):
-    def __init__(self, v: Variable, d: Variable, fresh: FreshVar, at_index: Optional[Expr]=None, contents: Optional[Expr] = None):
+    def __init__(
+        self,
+        v: Variable,
+        d: Variable,
+        fresh: FreshVar,
+        at_index: Optional[Expr] = None,
+        contents: Optional[Expr] = None,
+    ):
         super().__init__(d, "add_column", fresh, at_index=at_index, contents=contents)
         self.v = v
         pass
-    
+
     def inverse(self) -> DesignOp:
-        return RemoveColumn(Variable(self.fresh.get_fresh()),
-                         Variable(self.fresh.get_fresh()),
-                         self.d,
-                         at_index=self.v,
-                         fresh=self.fresh)
-        
+        return RemoveColumn(
+            Variable(self.fresh.get_fresh()),
+            Variable(self.fresh.get_fresh()),
+            self.d,
+            at_index=self.v,
+            fresh=self.fresh,
+        )
+
     def to_python(self) -> str:
         args = self.get_args_to_python()
         # at_index = self.get_at_index()
         # contents = f", contents={self.contents.to_python()}" if self.contents else ""
         return f"{self.v} = {self.d}.{self.op_name}({", ".join(args)})"
+
     pass
 
+
 class RemoveColumn(SizeOp):
-    def __init__(self, indexVar: Variable, removed: Variable, d: Variable, fresh: FreshVar, at_index: Optional[Expr]=None):
+    def __init__(
+        self,
+        indexVar: Variable,
+        removed: Variable,
+        d: Variable,
+        fresh: FreshVar,
+        at_index: Optional[Expr] = None,
+    ):
         super().__init__(d, "remove_column", fresh, at_index=at_index)
         self.indexVar = indexVar
         self.removed = removed
         pass
-    
+
     def inverse(self) -> DesignOp:
-        return AddColumn(Variable(self.fresh.get_fresh()),
-                      self.d,
-                      at_index=self.indexVar,
-                      fresh=self.fresh,
-                      contents=self.removed)
+        return AddColumn(
+            Variable(self.fresh.get_fresh()),
+            self.d,
+            at_index=self.indexVar,
+            fresh=self.fresh,
+            contents=self.removed,
+        )
+
     def to_python(self) -> str:
         return f"{self.indexVar}, {self.removed} = {self.d}.{self.op_name}({self.get_at_index()})"
+
     pass
+
 
 @dataclass
 class Motifify(DesignOp):
@@ -188,8 +264,17 @@ class Motifify(DesignOp):
     x1: Expr
     y1: Expr
     fresh: FreshVar
-    
-    def __init__(self, v: Variable, d: Variable, x0: Expr, y0: Expr, x1: Expr, y1: Expr, fresh: FreshVar):
+
+    def __init__(
+        self,
+        v: Variable,
+        d: Variable,
+        x0: Expr,
+        y0: Expr,
+        x1: Expr,
+        y1: Expr,
+        fresh: FreshVar,
+    ):
         super().__init__(d, "motifify", fresh)
         self.v = v
         self.x0 = x0
@@ -197,21 +282,25 @@ class Motifify(DesignOp):
         self.x1 = x1
         self.y1 = y1
         pass
-    
-    
+
     def inverse(self) -> DesignOp:
-        return UnMotifify(self.v, self.d, self.x0, self.y0, self.x1, self.y1, self.fresh)
-    
+        return UnMotifify(
+            self.v, self.d, self.x0, self.y0, self.x1, self.y1, self.fresh
+        )
+
     def to_python(self) -> str:
         return f"{self.v} = {self.d}.{self.op_name}({self.x0}, {self.y0}, {self.x1}, {self.y1})"
+
     pass
+
 
 @dataclass
 class UnMotifify(DesignOp):
     """A dummy class that represents the "inverse" of a Motifify. Really just contains all of the same variables as a Motifify.
-    
+
     The "inverse" of a Motifify just sets the variable containing the motif from the Design.motifify call to None
     """
+
     v: Variable
     d: Variable
     x0: Expr
@@ -219,8 +308,17 @@ class UnMotifify(DesignOp):
     x1: Expr
     y1: Expr
     fresh: FreshVar
-    
-    def __init__(self, v: Variable, d: Variable, x0: Expr, y0: Expr, x1: Expr, y1: Expr, fresh: FreshVar):
+
+    def __init__(
+        self,
+        v: Variable,
+        d: Variable,
+        x0: Expr,
+        y0: Expr,
+        x1: Expr,
+        y1: Expr,
+        fresh: FreshVar,
+    ):
         super().__init__(d, "unmotifify", fresh)
         self.v = v
         self.x0 = x0
@@ -228,11 +326,11 @@ class UnMotifify(DesignOp):
         self.x1 = x1
         self.y1 = y1
         pass
-    
-    
+
     def inverse(self) -> DesignOp:
         return Motifify(self.v, self.d, self.x0, self.y0, self.x1, self.y1, self.fresh)
-    
+
     def to_python(self) -> str:
         return f"{self.v} = None"
+
     pass

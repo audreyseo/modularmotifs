@@ -9,10 +9,17 @@ class DesignInterpreter:
     _imports: list[Import]
     _placed_motifs: dict[str, PlacedMotif]
     _classes: set[str] = set([Motif.__name__, Design.__name__])
-    _builder: 'DesignProgramBuilder'
+    _builder: "DesignProgramBuilder"
     _vars_to_vals: dict[Variable, Any]
 
-    def __init__(self, design: Design, design_var: str, motifs: dict[str, Motif], imports: list[Import], builder: 'DesignProgramBuilder'):
+    def __init__(
+        self,
+        design: Design,
+        design_var: str,
+        motifs: dict[str, Motif],
+        imports: list[Import],
+        builder: "DesignProgramBuilder",
+    ):
         self.cn = self.__class__.__qualname__
         self.design = design
         self.design_var = design_var
@@ -21,9 +28,9 @@ class DesignInterpreter:
         self._placed_motifs = dict()
         self._builder = builder
         self._vars_to_vals = dict()
-        
+
         pass
-    
+
     def placed_name(self, pm: PlacedMotif) -> Optional[str]:
         try:
             key = next(key for key, value in self._placed_motifs.items() if value == pm)
@@ -34,14 +41,16 @@ class DesignInterpreter:
     def eval(self, e: Expr):
         def map_eval_over(itr: list[Expr]):
             return list(map(lambda x: self.eval(x), itr))
-        
+
         def get_args_keyword_args(exprs: list[Expr]):
-            args = map_eval_over(list(filter(lambda x: not isinstance(x, KeywordArg), exprs)))
+            args = map_eval_over(
+                list(filter(lambda x: not isinstance(x, KeywordArg), exprs))
+            )
             keywordargs = list(filter(lambda x: isinstance(x, KeywordArg), exprs))
             keywordargs = [(kwa.key, self.eval(kwa.e)) for kwa in keywordargs]
             keywordargs = {k: e for k, e in keywordargs}
             return args, keywordargs
-        
+
         if isinstance(e, Literal):
             return e.const
         if isinstance(e, Variable):
@@ -57,7 +66,9 @@ class DesignInterpreter:
             assert False, f"{self.cn}.eval: no such name {n}"
             pass
         if isinstance(e, ObjectInit):
-            assert e.className in self._classes, f"{self.cn}.eval: the class {e.className} is not supported for object initialization"
+            assert (
+                e.className in self._classes
+            ), f"{self.cn}.eval: the class {e.className} is not supported for object initialization"
             args, keywordargs = get_args_keyword_args(e.args)
             return eval(e.className)(*args, **keywordargs)
             pass
@@ -89,12 +100,16 @@ class DesignInterpreter:
             self._placed_motifs[action.v.name] = res
             return res
         if isinstance(action, RemoveMotif):
-            assert self.design_var == action.d.name, f"{self.cn}.interpret: design name {action.d.name} not recognized"
+            assert (
+                self.design_var == action.d.name
+            ), f"{self.cn}.interpret: design name {action.d.name} not recognized"
             pm = self.eval(action.placed_motif)
             self.design.remove_motif(pm)
             return
         if isinstance(action, Motifify):
-            assert self.design_var == action.d.name, f"{self.cn}.interpret: design name {action.d.name} not recognized"
+            assert (
+                self.design_var == action.d.name
+            ), f"{self.cn}.interpret: design name {action.d.name} not recognized"
             args = [action.x0, action.y0, action.x1, action.y1]
             args = [self.eval(arg) for arg in args]
             res = self.design.motifify(*args)
@@ -102,7 +117,9 @@ class DesignInterpreter:
             self._vars_to_vals[action.v] = res
             return res
         if isinstance(action, UnMotifify):
-            assert action.v in self._vars_to_vals, f"{self.cn}.interpret: cannot find {action.v} in _vars_to_vals"
+            assert (
+                action.v in self._vars_to_vals
+            ), f"{self.cn}.interpret: cannot find {action.v} in _vars_to_vals"
             # basically just set the value of the variable action.v to None
             self._motifs[action.v.name] = None
             self._vars_to_vals[action.v] = None
@@ -130,7 +147,7 @@ class DesignInterpreter:
                     self._vars_to_vals[action.v] = v
                     return
         pass
-    
+
 
 class DesignProgramBuilder:
     _imports: list[Import]
@@ -147,7 +164,6 @@ class DesignProgramBuilder:
     _motif_creations: list[SetVariable]
     _expr_to_motif_name: dict[Expr, str]
     _original_size: tuple[int, int]
-    
 
     def __init__(self, base_design: Design):
         self._imports = list()
@@ -163,56 +179,66 @@ class DesignProgramBuilder:
         self._motif_creations = list()
         self._original_size = (self.base_design.width(), self.base_design.height())
         pass
-    
+
     @classmethod
     def init_list(cls, l: list[Syntax], fresh: FreshVar) -> Self:
         # TODO: Account for when a design is actually imported from another file. This would amount to searching for a design variable that's being used and then searching for where that design variable comes from. What we have here though is a good enough first step
-        d = list(filter(lambda x: (isinstance(x, SetVariable) and
-                              isinstance(x.expr, ObjectInit) and
-                              x.expr.className == "Design"),
-                   l))
-        assert d, f"{cls.init_list.__qualname__}: found no Design variables set in list {l}"
+        d = list(
+            filter(
+                lambda x: (
+                    isinstance(x, SetVariable)
+                    and isinstance(x.expr, ObjectInit)
+                    and x.expr.className == "Design"
+                ),
+                l,
+            )
+        )
+        assert (
+            d
+        ), f"{cls.init_list.__qualname__}: found no Design variables set in list {l}"
         # list is nonempty => get the first thing
         d = d[0]
         # this is technically unsafe, so TODO: FIX
         base_design = eval(d.expr.to_python())
-        
+
         dpb = DesignProgramBuilder(base_design)
         dpb.add_modularmotifs_motif_library()
-        
+
         imports = list(filter(lambda x: isinstance(x, Import), l))
         for i in imports:
             if i not in dpb._imports:
                 dpb._imports.append(i)
                 pass
             pass
-        
+
         dpb._fresh = fresh
         dpb._design_var = d.x
-        
-        
-        motifs = list(filter(lambda x: (isinstance(x, SetVariable) and
-                                        isinstance(x.expr, ObjectInit) and
-                                        x.expr.className == "Motif"),
-                             l))
+
+        motifs = list(
+            filter(
+                lambda x: (
+                    isinstance(x, SetVariable)
+                    and isinstance(x.expr, ObjectInit)
+                    and x.expr.className == "Motif"
+                ),
+                l,
+            )
+        )
         for m in motifs:
             # TODO: FIX, also unsafe
             m_eval = eval(m.expr.to_python())
             dpb.load_motif(m.x.name, m_eval)
             pass
         dpb._motif_creations.extend(motifs)
-        
+
         interp = dpb.get_interpreter()
         actions = list(filter(lambda x: isinstance(x, DesignOp), l))
         for a in actions:
             dpb._actions.append(a)
             interp.interpret(a)
             dpb._index += 1
-        
-        return dpb, interp
-        
-        
 
+        return dpb, interp
 
     def load_motif(self, name: str, m: Motif, e: Optional[Expr] = None) -> Self:
         self._motifs[name] = m
@@ -234,24 +260,33 @@ class DesignProgramBuilder:
                 return self._motifs[mname]
             pass
         return None
-    
+
     @classmethod
     def map_to_python(cls, l: list[Syntax]) -> list[str]:
         return list(map(lambda x: x.to_python(), l))
-    
+
     def _imports_to_python(self) -> str:
         return "\n".join(DesignProgramBuilder.map_to_python(self._imports))
-    
+
     def _motifs_to_python(self) -> str:
         return "\n".join(DesignProgramBuilder.map_to_python(self._motif_creations))
-    
+
     def _design_statement(self) -> str:
-        design_statement = SetVariable(self._design_var, ObjectInit("Design", Literal(self._original_size[0]), Literal(self._original_size[1]))).to_python()
+        design_statement = SetVariable(
+            self._design_var,
+            ObjectInit(
+                "Design",
+                Literal(self._original_size[0]),
+                Literal(self._original_size[1]),
+            ),
+        ).to_python()
         return design_statement
-    
+
     def _ops_to_python(self) -> str:
-        return "\n".join(DesignProgramBuilder.map_to_python(self._actions[:self._index + 1]))
-    
+        return "\n".join(
+            DesignProgramBuilder.map_to_python(self._actions[: self._index + 1])
+        )
+
     @classmethod
     def _format_to_python(cls, l: list[str]) -> str:
         return "\n\n".join(l)
@@ -261,24 +296,34 @@ class DesignProgramBuilder:
         design_statement = self._design_statement()
         motifs = self._motifs_to_python()
         ops = self._ops_to_python()
-        return DesignProgramBuilder._format_to_python([imports, design_statement, motifs, ops])
+        return DesignProgramBuilder._format_to_python(
+            [imports, design_statement, motifs, ops]
+        )
 
     def add_modularmotifs_motif_library(self) -> Self:
         print(libexamples.__name__)
         self.add_import(libexamples, _as="libexamples")
 
         for m in libexamples.motifs:
-            self.load_motif(m, libexamples.motifs[m], e=AttrAccess(ModuleAccess(ModuleRef("libexamples"), "motifs"), Literal(m)))
+            self.load_motif(
+                m,
+                libexamples.motifs[m],
+                e=AttrAccess(
+                    ModuleAccess(ModuleRef("libexamples"), "motifs"), Literal(m)
+                ),
+            )
             pass
-        
+
         return self
 
     def get_interpreter(self) -> DesignInterpreter:
-        return DesignInterpreter(self.base_design, self._design_var.name, self._motifs, self._imports, self)
+        return DesignInterpreter(
+            self.base_design, self._design_var.name, self._motifs, self._imports, self
+        )
 
     def _get_fresh_var(self):
         return Variable(self._fresh.get_fresh())
-    
+
     def has_import(self, i: Import) -> bool:
         return i in self._imports
 
@@ -297,75 +342,118 @@ class DesignProgramBuilder:
         If at any point we add another action that overwrites past, undone actions, we overwrite the old history
         """
         if self._index < self.num_actions() - 1:
-            self._actions = self._actions[:self._index + 1]
+            self._actions = self._actions[: self._index + 1]
             pass
         pass
-    
+
     def get_placed_motifs(self):
         placed_names = [a.v.name for a in self._actions if isinstance(a, AddMotif)]
         return placed_names
-    
+
     def _add_action(self, d: DesignOp):
         self._overwrite()
         self._actions.append(d)
         self._index += 1
         return d
-    
+
     def motifify(self, x0: int, y0: int, x1: int, y1: int) -> DesignOp:
-        return self._add_action(Motifify(self._get_fresh_var(),
-                                         self._design_var,
-                                         Literal(x0),
-                                         Literal(y0),
-                                         Literal(x1),
-                                         Literal(y1),
-                                         self._fresh
-                                         ))
+        return self._add_action(
+            Motifify(
+                self._get_fresh_var(),
+                self._design_var,
+                Literal(x0),
+                Literal(y0),
+                Literal(x1),
+                Literal(y1),
+                self._fresh,
+            )
+        )
 
     def add_motif(self, name: str, x: int, y: int) -> DesignOp:
-        assert name in self._motif_name_to_expr, f"{self.cn}.add_motif: could not find motif with name {name}, did you forget to load_motif it?"
-        return self._add_action(AddMotif(self._get_fresh_var(), self._design_var, self._motif_name_to_expr[name], Literal(x), Literal(y), self._fresh))
+        assert (
+            name in self._motif_name_to_expr
+        ), f"{self.cn}.add_motif: could not find motif with name {name}, did you forget to load_motif it?"
+        return self._add_action(
+            AddMotif(
+                self._get_fresh_var(),
+                self._design_var,
+                self._motif_name_to_expr[name],
+                Literal(x),
+                Literal(y),
+                self._fresh,
+            )
+        )
 
     def remove_motif(self, name: str) -> DesignOp:
-        assert name in self.get_placed_motifs(), f"{self.cn}.remove_motif: could not find a placed motif with name {name}"
-        
-        return self._add_action(RemoveMotif(self._design_var, Variable(name), self._fresh))
-    
+        assert (
+            name in self.get_placed_motifs()
+        ), f"{self.cn}.remove_motif: could not find a placed motif with name {name}"
+
+        return self._add_action(
+            RemoveMotif(self._design_var, Variable(name), self._fresh)
+        )
+
     def add_row(self, at_index: Optional[int] = None) -> DesignOp:
         at_index_arg = None if not at_index else Literal(at_index)
-        
-        return self._add_action(AddRow(self._get_fresh_var(), self._design_var, at_index=at_index_arg, fresh=self._fresh))
-    
+
+        return self._add_action(
+            AddRow(
+                self._get_fresh_var(),
+                self._design_var,
+                at_index=at_index_arg,
+                fresh=self._fresh,
+            )
+        )
+
     def add_column(self, at_index: Optional[int] = None) -> DesignOp:
         at_index_arg = None if not at_index else Literal(at_index)
-        
-        return self._add_action(AddColumn(self._get_fresh_var(), self._design_var, at_index=at_index_arg, fresh=self._fresh))
-    
+
+        return self._add_action(
+            AddColumn(
+                self._get_fresh_var(),
+                self._design_var,
+                at_index=at_index_arg,
+                fresh=self._fresh,
+            )
+        )
+
     def remove_row(self, at_index: Optional[int] = None) -> DesignOp:
         at_index_arg = None if not at_index else Literal(at_index)
-        
-        return self._add_action(RemoveRow(self._get_fresh_var(),
-                                       self._get_fresh_var(),
-                                       self._design_var,
-                                       at_index=at_index_arg,
-                                       fresh=self._fresh))
-        
+
+        return self._add_action(
+            RemoveRow(
+                self._get_fresh_var(),
+                self._get_fresh_var(),
+                self._design_var,
+                at_index=at_index_arg,
+                fresh=self._fresh,
+            )
+        )
+
     def remove_column(self, at_index: Optional[int] = None) -> DesignOp:
         at_index_arg = None if not at_index else Literal(at_index)
-        
-        return self._add_action(RemoveColumn(self._get_fresh_var(),
-                                             self._get_fresh_var(),
-                                             self._design_var,
-                                             at_index=at_index_arg,
-                                             fresh=self._fresh))
-    
+
+        return self._add_action(
+            RemoveColumn(
+                self._get_fresh_var(),
+                self._get_fresh_var(),
+                self._design_var,
+                at_index=at_index_arg,
+                fresh=self._fresh,
+            )
+        )
+
     def remove_last_action(self) -> DesignOp:
-        assert self.can_undo(), f"{self.remove_last_action.__qualname__}: No last action to remove"
+        assert (
+            self.can_undo()
+        ), f"{self.remove_last_action.__qualname__}: No last action to remove"
         old_index = self._index
         self._index -= 1
         return self._actions.pop(old_index)
 
     def can_undo(self) -> bool:
         return self._index >= 0
+
     def can_redo(self) -> bool:
         return self._index < self.num_actions() - 1
 
@@ -388,11 +476,11 @@ class DesignProgramBuilder:
     # def load_base_design(self) -> Self:
     #     # TODO: complete
     #     return self
-    
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.base_design})"
-    pass
 
+    pass
 
 
 if __name__ == "__main__":
@@ -403,8 +491,15 @@ if __name__ == "__main__":
     c5 = Literal("constant")
 
     fresh = FreshVar()
-    
-    c6 = AddMotif(Variable(fresh.get_fresh()), Variable(fresh.get_fresh()), Variable(fresh.get_fresh()), Literal(10), Literal(11), fresh)
+
+    c6 = AddMotif(
+        Variable(fresh.get_fresh()),
+        Variable(fresh.get_fresh()),
+        Variable(fresh.get_fresh()),
+        Literal(10),
+        Literal(11),
+        fresh,
+    )
 
     syntax = [c1, c2, c3, c4, c5, c6, c6.inverse(), c6.inverse().inverse()]
 
@@ -418,10 +513,10 @@ if __name__ == "__main__":
     interp = builder.get_interpreter()
     op = builder.add_motif("plus-3x3", 0, 0)
     _ = builder.add_motif("crosshair-3x3", 3, 3)
-    
+
     print(op)
     res = interp.interpret(op)
     print(res)
     print(builder.to_python())
-    
+
     pass

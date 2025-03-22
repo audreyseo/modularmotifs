@@ -8,6 +8,7 @@ from modularmotifs.core.motif import Color, ColorOverflowException, Motif
 from modularmotifs.core.rgb_color import RGBAColor
 from modularmotifs.core.pixel_grid import PixelGrid
 
+
 class PlacedMotif:
     """Glorified immutable struct"""
 
@@ -111,13 +112,11 @@ class PixelData:
             return None
         assert len(self.__motifs) == 1
         return next(iter(self.__motifs))
-                                        
 
 
 DEFAULT_FORE: RGBAColor = RGBAColor.Fore()
 DEFAULT_BACK: RGBAColor = RGBAColor.Back()
 DEFAULT_INVIS: RGBAColor = RGBAColor.Invis()
-
 
 
 class Design(PixelGrid):
@@ -127,43 +126,37 @@ class Design(PixelGrid):
     __width: int
     __motifs: set[PlacedMotif]
     __canvas: list[list[PixelData]]
-    
-    
 
     def __init__(self, height: int, width: int):
         self.__height = height
         self.__width = width
-        self.__canvas = [
-            self.__new_row()
-            for _ in range(self.__height)
-        ]
+        self.__canvas = [self.__new_row() for _ in range(self.__height)]
         self.__motifs = set()
 
         self.fore_color: RGBAColor = DEFAULT_FORE
         self.back_color: RGBAColor = DEFAULT_BACK
         self.invis_color: RGBAColor = DEFAULT_INVIS
         pass
-    
+
     def set_fore_color(self, color: RGBAColor):
         self.fore_color = color
         pass
-    
+
     def set_back_color(self, color: RGBAColor):
         self.back_color = color
         pass
-    
+
     def set_invis_color(self, color: RGBAColor):
         self.invis_color = color
         pass
-    
-    
+
     def __new_row(self) -> list[PixelData]:
         return [Design.default_pixel_data() for _ in range(self.__width)]
-    
+
     @classmethod
     def default_pixel_data(cls) -> PixelData:
         return PixelData(Color.INVIS, set())
-    
+
     def motifify(self, x0: int, y0: int, x1: int, y1: int) -> Motif:
         colors = []
         for y in range(y0, y1):
@@ -174,11 +167,12 @@ class Design(PixelGrid):
             colors.append(colors_row)
             pass
         return Motif(colors)
-    
-    
-    def add_row(self, at_index: int = -1, contents: Optional[list[PixelData]] = None) -> int:
+
+    def add_row(
+        self, at_index: int = -1, contents: Optional[list[PixelData]] = None
+    ) -> int:
         """Add a row to this design, optionally at the specified index.
-        
+
         Args:
             at_index (int, optional): The row at which to insert a new row. This
                 will shift all rows at_index, at_index+1, etc. to at_index + 1,
@@ -189,24 +183,30 @@ class Design(PixelGrid):
         """
         content = contents
         if contents:
-            assert len(contents) == self.width(), f"{self.add_row.__qualname__}: given row contents is the wrong length -- expected length {self.width()} but got {len(contents)}"
+            assert (
+                len(contents) == self.width()
+            ), f"{self.add_row.__qualname__}: given row contents is the wrong length -- expected length {self.width()} but got {len(contents)}"
             pass
         else:
             content = self.__new_row()
             pass
-        
+
         if at_index == -1 or at_index == self.__height:
             at_index = self.__height
             self.__canvas.append(content)
             pass
         else:
-            assert 0 <= at_index < self.__height, f"{self.add_row.__qualname__}: Expected index {at_index} to be in [0, {self.__height})"
+            assert (
+                0 <= at_index < self.__height
+            ), f"{self.add_row.__qualname__}: Expected index {at_index} to be in [0, {self.__height})"
             self.__canvas.insert(at_index, content)
             pass
         self.__height += 1
         return at_index
-    
-    def add_column(self, at_index: int = -1, contents: Optional[list[PixelData]] = None) -> int:
+
+    def add_column(
+        self, at_index: int = -1, contents: Optional[list[PixelData]] = None
+    ) -> int:
         """Add a column to this design, optionally at the specified index.
 
         Args:
@@ -217,12 +217,14 @@ class Design(PixelGrid):
         """
         content = contents
         if contents:
-            assert len(contents) == self.height(), f"{self.add_column.__qualname__}: given column contents is the wrong length -- expected length {self.height()} but got {len(contents)}"
+            assert (
+                len(contents) == self.height()
+            ), f"{self.add_column.__qualname__}: given column contents is the wrong length -- expected length {self.height()} but got {len(contents)}"
             pass
         else:
             content = [Design.default_pixel_data() for i in range(self.__height)]
             pass
-        
+
         if at_index == -1 or at_index == self.__width:
             at_index = self.__width
             for i in range(self.__height):
@@ -230,14 +232,16 @@ class Design(PixelGrid):
                 pass
             pass
         else:
-            assert 0 <= at_index < self.__width, f"{self.add_column.__qualname__}: Expected index {at_index} to be in [0, {self.__width})"
+            assert (
+                0 <= at_index < self.__width
+            ), f"{self.add_column.__qualname__}: Expected index {at_index} to be in [0, {self.__width})"
             for i in range(self.__height):
                 self.__canvas[i].insert(at_index, content[i])
                 pass
             pass
         self.__width += 1
         return at_index
-    
+
     def remove_row(self, at_index: int = -1) -> tuple[int, list[PixelData]]:
         """Remove a row from this design, optionally at the specified index
 
@@ -251,7 +255,7 @@ class Design(PixelGrid):
         self.__height -= 1
         at_index = self.__height if at_index == -1 else at_index
         return at_index, self.__canvas.pop(at_index)
-    
+
     def remove_column(self, at_index: int = -1) -> tuple[int, list[PixelData]]:
         """Remove a column from this design, optionally at the specified index
 
@@ -268,7 +272,7 @@ class Design(PixelGrid):
         self.__width -= 1
         at_index = self.__width if at_index == -1 else at_index
         return at_index, col
-        
+
     def width(self) -> int:
         """Getter
 
@@ -297,7 +301,7 @@ class Design(PixelGrid):
                 if px.col == Color.INVIS:
                     return False
         return True
-    
+
     def get_motifs(self, x: int, y: int) -> set[PlacedMotif]:
         return self.__canvas[y][x].motifs()
 
@@ -323,7 +327,9 @@ class Design(PixelGrid):
             or m.width() + x > self.__width
             or min(x, y) < 0
         ):
-            raise IndexError(f"Motif is out of bounds!: {m.height()} x {m.width()} vs ({x}, {y}) and {self.__height}, {self.__width}")
+            raise IndexError(
+                f"Motif is out of bounds!: {m.height()} x {m.width()} vs ({x}, {y}) and {self.__height}, {self.__width}"
+            )
 
         p = PlacedMotif(x, y, m)
         if p in self.__motifs:
@@ -346,8 +352,6 @@ class Design(PixelGrid):
                     successful_pixel_operations -= 1
             raise MotifOverlapException from exc
         return p
-    
-    
 
     def remove_motif(self, p: PlacedMotif):
         """Removes a motif from the design

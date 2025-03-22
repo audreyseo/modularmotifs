@@ -20,9 +20,10 @@ Usage (in interface.py):
 
 import tkinter as tk
 
-#Constants for the overlay effect.
+# Constants for the overlay effect.
 HOVER_OVERLAY_COLOR = "#d3d3d3"  # Light grey overlay color.
-HOVER_ALPHA = 0.5                # Transparency factor (0: fully transparent, 1: opaque).
+HOVER_ALPHA = 0.5  # Transparency factor (0: fully transparent, 1: opaque).
+
 
 def blend_colors(bg_color, overlay_color, alpha, tk_root):
     """
@@ -32,10 +33,11 @@ def blend_colors(bg_color, overlay_color, alpha, tk_root):
     Returns a hex string representing the blended color.
     """
     # Get RGB values in the 0-65535 range, then scale to 0-255.
-    bg_rgb = tuple(int(c/256) for c in tk_root.winfo_rgb(bg_color))
-    ov_rgb = tuple(int(c/256) for c in tk_root.winfo_rgb(overlay_color))
+    bg_rgb = tuple(int(c / 256) for c in tk_root.winfo_rgb(bg_color))
+    ov_rgb = tuple(int(c / 256) for c in tk_root.winfo_rgb(overlay_color))
     blended = tuple(int(alpha * ov_rgb[i] + (1 - alpha) * bg_rgb[i]) for i in range(3))
     return "#%02x%02x%02x" % blended
+
 
 class GridSelection:
     def __init__(self, knit_window):
@@ -65,7 +67,9 @@ class GridSelection:
 
         # "Select Mode" button activates grid selection.
         self.select_mode_button = tk.Button(
-            self.selection_frame, text="Select Mode", command=self.activate_selection_mode
+            self.selection_frame,
+            text="Select Mode",
+            command=self.activate_selection_mode,
         )
         self.select_mode_button.pack(side="left", padx=5)
 
@@ -88,11 +92,21 @@ class GridSelection:
                         tags.insert(0, "GridSelection")
                         cell.bindtags(tuple(tags))
             # Bind our selection events to the custom bindtag.
-            self.root.bind_class("GridSelection", "<Enter>", self.on_cell_enter, add="+")
-            self.root.bind_class("GridSelection", "<Leave>", self.on_cell_leave, add="+")
-            self.root.bind_class("GridSelection", "<ButtonPress-1>", self.on_cell_press, add="+")
-            self.root.bind_class("GridSelection", "<B1-Motion>", self.on_cell_motion, add="+")
-            self.root.bind_class("GridSelection", "<ButtonRelease-1>", self.on_cell_release, add="+")
+            self.root.bind_class(
+                "GridSelection", "<Enter>", self.on_cell_enter, add="+"
+            )
+            self.root.bind_class(
+                "GridSelection", "<Leave>", self.on_cell_leave, add="+"
+            )
+            self.root.bind_class(
+                "GridSelection", "<ButtonPress-1>", self.on_cell_press, add="+"
+            )
+            self.root.bind_class(
+                "GridSelection", "<B1-Motion>", self.on_cell_motion, add="+"
+            )
+            self.root.bind_class(
+                "GridSelection", "<ButtonRelease-1>", self.on_cell_release, add="+"
+            )
 
     def deactivate_selection_mode(self):
         if self.selection_mode:
@@ -126,9 +140,11 @@ class GridSelection:
             return "break"
         if not self.dragging:
             # Save the cell’s current (design/motif) background if not already saved.
-            if not hasattr(cell, '_orig_bg'):
+            if not hasattr(cell, "_orig_bg"):
                 cell._orig_bg = cell.cget("bg")
-            new_color = blend_colors(cell._orig_bg, HOVER_OVERLAY_COLOR, HOVER_ALPHA, self.root)
+            new_color = blend_colors(
+                cell._orig_bg, HOVER_OVERLAY_COLOR, HOVER_ALPHA, self.root
+            )
             cell.config(bg=new_color)
         return "break"
 
@@ -139,7 +155,7 @@ class GridSelection:
         if cell.grid_pos in self.selected_coords:
             return "break"
         if not self.dragging:
-            if hasattr(cell, '_orig_bg'):
+            if hasattr(cell, "_orig_bg"):
                 cell.config(bg=cell._orig_bg)
                 del cell._orig_bg
         return "break"
@@ -177,32 +193,36 @@ class GridSelection:
         for row in self.cells:
             for cell in row:
                 if cell.grid_pos in self.selected_coords:
-                    if not hasattr(cell, '_orig_bg'):
+                    if not hasattr(cell, "_orig_bg"):
                         cell._orig_bg = cell.cget("bg")
-                    final_color = blend_colors(cell._orig_bg, HOVER_OVERLAY_COLOR, HOVER_ALPHA, self.root)
+                    final_color = blend_colors(
+                        cell._orig_bg, HOVER_OVERLAY_COLOR, HOVER_ALPHA, self.root
+                    )
                     cell.config(bg=final_color)
                 else:
-                    if hasattr(cell, '_orig_bg'):
+                    if hasattr(cell, "_orig_bg"):
                         cell.config(bg=cell._orig_bg)
                         del cell._orig_bg
         print("Selected grids:", sorted(list(self.selected_coords)))
 
-        #--- New Functionality: Capture color and motif information ---
-        #Access the design instance from the KnitWindow.
+        # --- New Functionality: Capture color and motif information ---
+        # Access the design instance from the KnitWindow.
         design = self.knit_window._design
         selected_details = []
-        for (col, row) in sorted(list(self.selected_coords)):
+        for col, row in sorted(list(self.selected_coords)):
             # Get the effective RGB color at this grid cell.
             cell_rgb = design.get_rgba(col, row)
             # Get the motif (if any) associated with this grid cell.
             cell_motif = design.get_motif(col, row)
-            selected_details.append({
-                "coords": (col, row),
-                "color": cell_rgb.hex(),
-                "motif": repr(cell_motif) if cell_motif is not None else None
-            })
+            selected_details.append(
+                {
+                    "coords": (col, row),
+                    "color": cell_rgb.hex(),
+                    "motif": repr(cell_motif) if cell_motif is not None else None,
+                }
+            )
         print("Selected grid details:", selected_details)
-        #--- End New Functionality ---
+        # --- End New Functionality ---
 
         self.start_cell = None
         return "break"
@@ -214,8 +234,11 @@ class GridSelection:
         col2, row2 = end
         min_col, max_col = min(col1, col2), max(col1, col2)
         min_row, max_row = min(row1, row2), max(row1, row2)
-        selected = {(c, r) for r in range(min_row, max_row + 1)
-                            for c in range(min_col, max_col + 1)}
+        selected = {
+            (c, r)
+            for r in range(min_row, max_row + 1)
+            for c in range(min_col, max_col + 1)
+        }
         return selected
 
     def highlight_selection_area(self, start, current):
@@ -225,19 +248,22 @@ class GridSelection:
         for row in self.cells:
             for cell in row:
                 if cell.grid_pos in selected:
-                    if not hasattr(cell, '_orig_bg'):
+                    if not hasattr(cell, "_orig_bg"):
                         cell._orig_bg = cell.cget("bg")
-                    new_color = blend_colors(cell._orig_bg, HOVER_OVERLAY_COLOR, HOVER_ALPHA, self.root)
+                    new_color = blend_colors(
+                        cell._orig_bg, HOVER_OVERLAY_COLOR, HOVER_ALPHA, self.root
+                    )
                     cell.config(bg=new_color)
                 else:
-                    if hasattr(cell, '_orig_bg'):
+                    if hasattr(cell, "_orig_bg"):
                         cell.config(bg=cell._orig_bg)
                         del cell._orig_bg
 
     def get_selected_coords(self):
         return self.selected_coords
 
-#If desired, you can add a simple test routine here.
+
+# If desired, you can add a simple test routine here.
 if __name__ == "__main__":
     # For testing outside of the main interface, you might create a dummy window
     # with a simple grid. (In practice, this module is imported and used in interface.py.)
@@ -252,7 +278,9 @@ if __name__ == "__main__":
     for r in range(rows):
         row_cells = []
         for c in range(cols):
-            lbl = tk.Label(frame, text=f"{c},{r}", width=4, height=2, borderwidth=1, relief="solid")
+            lbl = tk.Label(
+                frame, text=f"{c},{r}", width=4, height=2, borderwidth=1, relief="solid"
+            )
             lbl.grid(row=r, column=c)
             row_cells.append(lbl)
         cells.append(row_cells)

@@ -2,11 +2,14 @@
 # python3
 # see example() for usage
 import re
-validHeaders = ['Carriers', 'Machine', 'Position', 'Yarn', 'Gauge']
+
+validHeaders = ["Carriers", "Machine", "Position", "Yarn", "Gauge"]
 ############### helpers ######################################################
 
 
 reg = re.compile("([a-zA-Z]+)([\+\-]?[0-9]+)")
+
+
 def shiftCarrierSet(args, carriers):
     if len(args) == 0:
         raise AssertionError("No carriers specified")
@@ -14,28 +17,34 @@ def shiftCarrierSet(args, carriers):
     for c in args:
         if not str(c) in carriers:
             raise ValueError("Carrier not specified in initial set", c)
-    cs = ' '.join(str(c) for c in args)
+    cs = " ".join(str(c) for c in args)
     return cs
+
 
 def shiftBedNeedle(args):
     if len(args) == 0:
         raise AssertionError("No needles specified")
     bn = args.pop(0)
-    if  not (type(bn) == str or type(bn) == list or type(bn) == tuple):
+    if not (type(bn) == str or type(bn) == list or type(bn) == tuple):
         raise AssertionError("Invalid BedNeedle type")
     bed = None
     needle = None
     if type(bn) == str:
         m = reg.match(bn)
-        if not m and (bn == 'f' or bn == 'b' or bn == 'fs' or bn == 'bs'):
+        if not m and (bn == "f" or bn == "b" or bn == "fs" or bn == "bs"):
             bed = bn
             if not len(args):
                 raise ValueError("Needle not specified")
-            if  isinstance(args[0],int) or args[0].isdgit():
+            if isinstance(args[0], int) or args[0].isdgit():
                 needle = int(args.pop(0))
 
         else:
-            if (m.group(1) == 'f' or m.group(1) == 'b' or m.group(1) == 'fs' or m.group(1) == 'bs'):
+            if (
+                m.group(1) == "f"
+                or m.group(1) == "b"
+                or m.group(1) == "fs"
+                or m.group(1) == "bs"
+            ):
                 bed = m.group(1)
             else:
                 raise ValueError("Invalid bed type. Must be 'f' 'b' 'fs' 'bs'.")
@@ -46,7 +55,7 @@ def shiftBedNeedle(args):
     else:
         if len(bn) != 2:
             raise ValueError("Bed and Needle need to be supplied.")
-        if (bn[0] == 'f' or bn[0] == 'b' or bn[0] == 'fs' or bn[0] == 'bs'):
+        if bn[0] == "f" or bn[0] == "b" or bn[0] == "fs" or bn[0] == "bs":
             bed = bn[0]
         else:
             raise ValueError("Invalid bed type. Must be 'f' 'b' 'fs' 'bs'.")
@@ -57,13 +66,15 @@ def shiftBedNeedle(args):
 
     return bed + str(needle)
 
+
 def shiftDirection(args):
     if len(args) == 0:
         raise AssertionError("No direction specified")
     direction = args.pop(0)
-    if direction != '+' and direction != '-':
+    if direction != "+" and direction != "-":
         raise ValueError("Invalid direction: " + direction)
     return direction
+
 
 ##############################################################################
 
@@ -79,154 +90,157 @@ class Writer:
         self.headers = list()
 
         self.carriers = cs.split()
-        self.addHeader('Carriers', cs);
+        self.addHeader("Carriers", cs)
+
     def addHeader(self, name, value):
         if not name in validHeaders:
-            raise ValueError("Unknown header, must be " + ' '.join(validHeaders) + "; " + name)
-        self.headers.append(';;' + name + ': ' + value)
+            raise ValueError(
+                "Unknown header, must be " + " ".join(validHeaders) + "; " + name
+            )
+        self.headers.append(";;" + name + ": " + value)
 
     def addRawOperation(self, op):
         self.operations.append(op)
 
     def ingripper(self, *args):
         argl = list(args)
-        self.operations.append('in ' +  shiftCarrierSet(argl, self.carriers))
+        self.operations.append("in " + shiftCarrierSet(argl, self.carriers))
 
     def inhook(self, *args):
         argl = list(args)
-        self.operations.append('inhook ' + shiftCarrierSet(argl, self.carriers))
+        self.operations.append("inhook " + shiftCarrierSet(argl, self.carriers))
 
-    def incarrier(self, *args): #NOTE: can't name func `in` since that is a keyword in python
+    def incarrier(
+        self, *args
+    ):  # NOTE: can't name func `in` since that is a keyword in python
         argl = list(args)
-        self.operations.append('in ' + shiftCarrierSet(argl, self.carriers))
+        self.operations.append("in " + shiftCarrierSet(argl, self.carriers))
 
     def outgripper(self, *args):
         argl = list(args)
-        self.operations.append('out ' + shiftCarrierSet(argl, self.carriers))
+        self.operations.append("out " + shiftCarrierSet(argl, self.carriers))
 
     def outhook(self, *args):
         argl = list(args)
-        self.operations.append('outhook ' + shiftCarrierSet(argl, self.carriers))
+        self.operations.append("outhook " + shiftCarrierSet(argl, self.carriers))
 
     def outcarrier(self, *args):
         argl = list(args)
-        self.operations.append('out ' + shiftCarrierSet(argl, self.carriers))
+        self.operations.append("out " + shiftCarrierSet(argl, self.carriers))
 
     def releasehook(self, *args):
         argl = list(args)
-        self.operations.append('releasehook ' + shiftCarrierSet(argl, self.carriers))
-
+        self.operations.append("releasehook " + shiftCarrierSet(argl, self.carriers))
 
     def rack(self, r):
         if not (type(r) == int or type(r) == float or (type(r) == str and r.isdigit())):
             raise ValueError("Rack is not an integer or fraction")
-        #TODO only certain values make sense
-        self.operations.append('rack ' + str(r))
-
+        # TODO only certain values make sense
+        self.operations.append("rack " + str(r))
 
     def knit(self, *args):
         argl = list(args)
         direction = shiftDirection(argl)
         bn = shiftBedNeedle(argl)
         cs = shiftCarrierSet(argl, self.carriers)
-        self.operations.append('knit ' + direction + ' ' + bn + ' ' + cs)
+        self.operations.append("knit " + direction + " " + bn + " " + cs)
 
     def tuck(self, *args):
         argl = list(args)
         direction = shiftDirection(argl)
         bn = shiftBedNeedle(argl)
         cs = shiftCarrierSet(argl, self.carriers)
-        self.operations.append('tuck ' + direction + ' ' + bn + ' ' + cs)
-
+        self.operations.append("tuck " + direction + " " + bn + " " + cs)
 
     def xfer(self, *args):
         argl = list(args)
         bn_from = shiftBedNeedle(argl)
         bn_to = shiftBedNeedle(argl)
-        self.operations.append('xfer ' + bn_from + ' ' + bn_to)
-
+        self.operations.append("xfer " + bn_from + " " + bn_to)
 
     def split(self, *args):
         argl = list(args)
-        direction  = shiftDirection(argl)
+        direction = shiftDirection(argl)
         bn_from = shiftBedNeedle(argl)
         bn_to = shiftBedNeedle(argl)
         cs = shiftCarrierSet(argl, self.carriers)
-        self.operations.append('split '+ direction + ' '  + bn_from + ' ' + bn_to + ' ' + cs)
-
+        self.operations.append(
+            "split " + direction + " " + bn_from + " " + bn_to + " " + cs
+        )
 
     def miss(self, *args):
         argl = list(args)
         direction = shiftDirection(argl)
         bn = shiftBedNeedle(argl)
         cs = shiftCarrierSet(argl, self.carriers)
-        self.operations.append('miss ' + direction + ' ' + bn + ' ' + cs)
+        self.operations.append("miss " + direction + " " + bn + " " + cs)
 
     def drop(self, *args):
         argl = list(args)
         bn = shiftBedNeedle(argl)
-        self.operations.append('drop ' + bn)
+        self.operations.append("drop " + bn)
 
     def amiss(self, *args):
         argl = list(args)
         bn = shiftBedNeedle(argl)
-        self.operations.append('amiss ' + bn)
+        self.operations.append("amiss " + bn)
 
-    def pause(self, message=''):
-        self.operations.append(f'pause {message}')
+    def pause(self, message=""):
+        self.operations.append(f"pause {message}")
 
     def comment(self, commentString):
         if type(commentString) != str:
-            raise ValueError('comment has to be string')
-        self.operations.append(';' + commentString)
+            raise ValueError("comment has to be string")
+        self.operations.append(";" + commentString)
 
     def kcodecomment(self, commentString):
         if type(commentString) != str:
-            raise ValueError('comment has to be string')
-        self.operations.append(';kniterate ' + commentString)
+            raise ValueError("comment has to be string")
+        self.operations.append(";kniterate " + commentString)
 
-    #Extensions:
+    # Extensions:
     def stitchNumber(self, val):
-        self.operations.append('x-stitch-number ' + str(val))
+        self.operations.append("x-stitch-number " + str(val))
 
     def speedNumber(self, val):
-        self.operations.append('x-speed-number ' + str(val))
+        self.operations.append("x-speed-number " + str(val))
 
     def subRollerNumber(self, val):
-        self.operations.append('x-sub-roller-number ' + str(val))
+        self.operations.append("x-sub-roller-number " + str(val))
 
     def fabricPresser(self, mode):
-        if not (mode == 'auto' or mode == 'on' or mode == 'off'):
-            raise ValueError("Mode must be one of 'auto','on','off' : "+ str(mode))
-        self.operations.append('x-presser-mode ' + mode)
+        if not (mode == "auto" or mode == "on" or mode == "off"):
+            raise ValueError("Mode must be one of 'auto','on','off' : " + str(mode))
+        self.operations.append("x-presser-mode " + mode)
 
-    #for kniterate:
+    # for kniterate:
     def rollerAdvance(self, val):
-        self.operations.append('x-roller-advance ' + str(val))
+        self.operations.append("x-roller-advance " + str(val))
 
-    def addRollerAdvance(self,val):
-        self.operations.append('x-add-roller-advance ' + str(val))
+    def addRollerAdvance(self, val):
+        self.operations.append("x-add-roller-advance " + str(val))
 
-    def stoppingDistance(self,val):
-        self.operations.append('x-carrier-stopping-distance ' + str(val))
+    def stoppingDistance(self, val):
+        self.operations.append("x-carrier-stopping-distance " + str(val))
 
     def xferStitchNumber(self, val):
-        self.operations.append('x-xfer-stitch-number ' + str(val))
+        self.operations.append("x-xfer-stitch-number " + str(val))
 
     def clear(self):
-        #clear buffers
+        # clear buffers
         self.headers = list()
         self.operations = list()
 
     def write(self, filename):
-        version = ';!knitout-2\n'
-        content = version + '\n'.join(self.headers) + '\n' +  '\n'.join(self.operations)
+        version = ";!knitout-2\n"
+        content = version + "\n".join(self.headers) + "\n" + "\n".join(self.operations)
         try:
             with open(filename, "w") as out:
                 print(content, file=out)
-            print('wrote file ' + filename)
+            print("wrote file " + filename)
         except IOError as error:
-            print('Could not write to file ' + filename)
+            print("Could not write to file " + filename)
+
 
 def example():
     stockinette_rectangle()
@@ -235,184 +249,188 @@ def example():
     cable_rectangle()
     stockinette_band()
 
+
 def stockinette_rectangle(width=10, height=20):
-    writer = Writer('1 2 3 4')
-    writer.addHeader('Machine', 'swg')
-    carrier = '1'
+    writer = Writer("1 2 3 4")
+    writer.addHeader("Machine", "swg")
+    carrier = "1"
     writer.inhook(carrier)
-    for i in range(width-1, 0, -2):
-        writer.tuck('-', ('f',i), carrier)
+    for i in range(width - 1, 0, -2):
+        writer.tuck("-", ("f", i), carrier)
     writer.releasehook(carrier)
     for i in range(0, width, 2):
-        writer.tuck('+', ('f', i), carrier)
+        writer.tuck("+", ("f", i), carrier)
     for j in range(0, height):
-        if j%2 == 0:
-            for i in range(width, 0,-1):
-                writer.knit('-', ('f', i-1), carrier)
+        if j % 2 == 0:
+            for i in range(width, 0, -1):
+                writer.knit("-", ("f", i - 1), carrier)
         else:
             for i in range(0, width):
-                writer.knit('+', ('f', i), carrier)
+                writer.knit("+", ("f", i), carrier)
 
     writer.outhook(carrier)
     for i in range(0, width):
-        writer.drop(('f', i))
+        writer.drop(("f", i))
 
-    writer.write('stockinette-'+str(width)+'x'+str(height)+'.k')
+    writer.write("stockinette-" + str(width) + "x" + str(height) + ".k")
+
 
 def garter_rectangle(width=10, height=20):
-    writer = Writer('1 2 3 4')
-    writer.addHeader('Machine', 'swg')
-    carrier = '1'
+    writer = Writer("1 2 3 4")
+    writer.addHeader("Machine", "swg")
+    carrier = "1"
     writer.inhook(carrier)
-    for i in range(width-1, 0, -2):
-        writer.tuck('-', ('f',i), carrier)
+    for i in range(width - 1, 0, -2):
+        writer.tuck("-", ("f", i), carrier)
     writer.releasehook(carrier)
     for i in range(0, width, 2):
-        writer.tuck('+', ('f', i), carrier)
+        writer.tuck("+", ("f", i), carrier)
     for j in range(0, height):
-        if j%2 == 0:
-            for i in range(width, 0,-1):
-                writer.knit('-', ('f', i-1), carrier)
+        if j % 2 == 0:
+            for i in range(width, 0, -1):
+                writer.knit("-", ("f", i - 1), carrier)
         else:
             for i in range(0, width):
-                writer.xfer(('f',i), ('b',i))
+                writer.xfer(("f", i), ("b", i))
             for i in range(0, width):
-                writer.knit('+', ('b', i), carrier)
+                writer.knit("+", ("b", i), carrier)
             for i in range(0, width):
-                writer.xfer(('b',i), ('f',i))
+                writer.xfer(("b", i), ("f", i))
 
     writer.outhook(carrier)
     for i in range(0, width):
-        writer.drop(('f', i))
+        writer.drop(("f", i))
 
-    writer.write('garter-'+str(width)+'x'+str(height)+'.k')
+    writer.write("garter-" + str(width) + "x" + str(height) + ".k")
+
 
 def rib_rectangle(width=10, height=20):
-    writer = Writer('1 2 3 4')
-    writer.addHeader('Machine', 'swg')
-    carrier = '1'
+    writer = Writer("1 2 3 4")
+    writer.addHeader("Machine", "swg")
+    carrier = "1"
     writer.inhook(carrier)
-    for i in range(width-1, 0, -2):
-        bed = 'f'
-        if i%2:
-            bed = 'b'
-        writer.tuck('-', (bed,i), carrier)
+    for i in range(width - 1, 0, -2):
+        bed = "f"
+        if i % 2:
+            bed = "b"
+        writer.tuck("-", (bed, i), carrier)
 
     writer.releasehook(carrier)
 
     for i in range(0, width, 2):
-        bed = 'f'
-        if i%2:
-            bed = 'b'
+        bed = "f"
+        if i % 2:
+            bed = "b"
 
-        writer.tuck('+', (bed, i), carrier)
+        writer.tuck("+", (bed, i), carrier)
     for j in range(0, height):
-        if j%2 == 0:
-            for i in range(width, 0,-1):
-                bed = 'f'
-                if (i-1)%2:
-                    bed = 'b'
-                writer.knit('-', (bed, i-1), carrier)
+        if j % 2 == 0:
+            for i in range(width, 0, -1):
+                bed = "f"
+                if (i - 1) % 2:
+                    bed = "b"
+                writer.knit("-", (bed, i - 1), carrier)
         else:
             for i in range(0, width):
-                bed = 'f'
-                if i%2:
-                    bed = 'b'
-                writer.knit('+', (bed, i), carrier)
+                bed = "f"
+                if i % 2:
+                    bed = "b"
+                writer.knit("+", (bed, i), carrier)
 
     writer.outhook(carrier)
     for i in range(0, width):
-        writer.drop(('f', i))
-        writer.drop(('b', i))
+        writer.drop(("f", i))
+        writer.drop(("b", i))
 
-    writer.write('rib-'+str(width)+'x'+str(height)+'.k')
+    writer.write("rib-" + str(width) + "x" + str(height) + ".k")
 
-#to test xfers, rack:
+
+# to test xfers, rack:
 def cable_rectangle(width=30, height=40):
-    writer = Writer('1 2 3 4')
-    writer.addHeader('Machine', 'swg')
-    carrier = '1'
-    mid = int(width/2)
+    writer = Writer("1 2 3 4")
+    writer.addHeader("Machine", "swg")
+    carrier = "1"
+    mid = int(width / 2)
     writer.inhook(carrier)
-    for i in range(width-1, 0, -2):
-        writer.tuck('-', ('f',i), carrier)
+    for i in range(width - 1, 0, -2):
+        writer.tuck("-", ("f", i), carrier)
 
     writer.releasehook(carrier)
     for i in range(0, width, 2):
-        writer.tuck('+', ('f', i), carrier)
+        writer.tuck("+", ("f", i), carrier)
     for j in range(0, height):
-        if j%2 == 0:
-            for i in range(width, 0,-1):
-                writer.knit('-', ('f', i-1), carrier)
+        if j % 2 == 0:
+            for i in range(width, 0, -1):
+                writer.knit("-", ("f", i - 1), carrier)
         else:
             for i in range(0, width):
-                writer.knit('+', ('f', i), carrier)
-        if j > 2 and j < height-2 and j%4==0: #every 4th row
+                writer.knit("+", ("f", i), carrier)
+        if j > 2 and j < height - 2 and j % 4 == 0:  # every 4th row
             writer.comment("cable op at row " + str(j))
-            writer.xfer('f', mid-2, 'b', mid-2)
-            writer.xfer('f', mid-1, 'b', mid-1)
-            writer.xfer('f', mid, 'b', mid)
-            writer.xfer('f', mid+1, 'b', mid+1)
+            writer.xfer("f", mid - 2, "b", mid - 2)
+            writer.xfer("f", mid - 1, "b", mid - 1)
+            writer.xfer("f", mid, "b", mid)
+            writer.xfer("f", mid + 1, "b", mid + 1)
             writer.rack(2)
-            writer.xfer('b',mid-2, 'f', mid)
-            writer.xfer('b',mid-1, 'f', mid+1)
+            writer.xfer("b", mid - 2, "f", mid)
+            writer.xfer("b", mid - 1, "f", mid + 1)
             writer.rack(-2)
-            writer.xfer('b',mid, 'f', mid-2)
-            writer.xfer('b',mid+1, 'f', mid-1)
+            writer.xfer("b", mid, "f", mid - 2)
+            writer.xfer("b", mid + 1, "f", mid - 1)
             writer.rack(0)
     writer.outhook(carrier)
     for i in range(0, width):
-        writer.drop(('f', i))
+        writer.drop(("f", i))
 
-    writer.write('cable-'+str(width)+'x'+str(height)+'.k')
+    writer.write("cable-" + str(width) + "x" + str(height) + ".k")
 
-#to test split
+
+# to test split
 def stockinette_band(width=20, height=40):
-    writer = Writer('1 2 3 4')
-    writer.addHeader('Machine', 'swg')
-    carrier = '1'
+    writer = Writer("1 2 3 4")
+    writer.addHeader("Machine", "swg")
+    carrier = "1"
     writer.inhook(carrier)
-    for i in range(width-1, 0, -2):
-        writer.tuck('-', ('f',i), carrier)
+    for i in range(width - 1, 0, -2):
+        writer.tuck("-", ("f", i), carrier)
 
     writer.releasehook(carrier)
     for i in range(0, width, 2):
-        writer.tuck('+', ('f', i), carrier)
+        writer.tuck("+", ("f", i), carrier)
 
     for j in range(0, height):
-        if j%2 == 0:
-            for i in range(width, 0,-1):
-                writer.knit('-', ('f', i-1), carrier)
+        if j % 2 == 0:
+            for i in range(width, 0, -1):
+                writer.knit("-", ("f", i - 1), carrier)
         else:
             if j == 1:
                 for i in range(0, width):
-                    writer.split('+','f',i,'b',i, carrier)
+                    writer.split("+", "f", i, "b", i, carrier)
             else:
                 for i in range(0, width):
-                    writer.knit('+', ('f', i), carrier)
-
+                    writer.knit("+", ("f", i), carrier)
 
     for i in range(0, width):
-        writer.xfer('b',i,'f',i)
+        writer.xfer("b", i, "f", i)
 
-    if height%2 == 0:
-        for i in range(width, 0,-1):
-            writer.knit('-', ('f', i-1), carrier)
+    if height % 2 == 0:
+        for i in range(width, 0, -1):
+            writer.knit("-", ("f", i - 1), carrier)
         for i in range(0, width):
-            writer.knit('+', ('f', i), carrier)
-
+            writer.knit("+", ("f", i), carrier)
 
     else:
         for i in range(0, width):
-            writer.knit('+', ('f', i), carrier)
-        for i in range(width, 0,-1):
-            writer.knit('-', ('f', i-1), carrier)
+            writer.knit("+", ("f", i), carrier)
+        for i in range(width, 0, -1):
+            writer.knit("-", ("f", i - 1), carrier)
 
-    #todo bindoff
+    # todo bindoff
     writer.outhook(carrier)
     for i in range(0, width):
-        writer.drop(('f', i))
+        writer.drop(("f", i))
 
-    writer.write('band-'+str(width)+'x'+str(height)+'.k')
+    writer.write("band-" + str(width) + "x" + str(height) + ".k")
 
-#todo tubes, castons, bindoffs
+
+# todo tubes, castons, bindoffs

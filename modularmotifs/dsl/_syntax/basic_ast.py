@@ -1,15 +1,18 @@
 import abc
+
 # TODO: I think we would want to replace TypeGuard with TypeIs if we were all using Python 3.13...
 from typing import Union, TypeGuard, Self, Optional, Type, Any, List
 from types import ModuleType
 from modularmotifs.core import Motif, Design, Color, CompositeMotif
 from modularmotifs.core.design import PlacedMotif
 import modularmotifs.motiflibrary.examples as libexamples
+
 # from pathlib import Path
 
+
 class FreshVar:
-    """A source of fresh variable names
-    """
+    """A source of fresh variable names"""
+
     def __init__(self, base_name="x", names_to_avoid: Optional[set[str]] = None):
         """Initialize a new FreshVar instance
 
@@ -32,14 +35,13 @@ class FreshVar:
                 pass
             pass
         return fresh
-        
+
 
 class Syntax(abc.ABC):
-    """ An immutable type that represents the syntax of the DSL
-    """
-    
+    """An immutable type that represents the syntax of the DSL"""
+
     cn = __qualname__
-    
+
     def __init__(self):
         self.cn = self.__class__.__qualname__
         pass
@@ -54,7 +56,7 @@ class Syntax(abc.ABC):
     def __str__(self) -> str:
         return self.to_python()
 
-    def __eq__(self, other: 'Syntax'):
+    def __eq__(self, other: "Syntax"):
         # TODO: Find out what type other should have
         # if it returns the same code, it's the same
         return self.to_python() == other.to_python()
@@ -62,12 +64,14 @@ class Syntax(abc.ABC):
     def __hash__(self):
         # as a bare minimum, let's treat anything that returns the same code as the same
         return hash(self.to_python())
+
     pass
 
 
 class Import(Syntax):
     # cn = __qualname__
     imported_module: str
+
     def __init__(self, mod: str, _as: Optional[str] = None):
         super().__init__()
         self.imported_module = mod
@@ -88,23 +92,29 @@ class Import(Syntax):
             as_clause = f" as {self._as}"
             pass
         return f"import {self.imported_module}{as_clause}"
+
     pass
+
 
 class FromImport(Import):
     imports: list[str]
+
     def __init__(self, mod: str, *imports):
         super().__init__(mod)
         self.imports = imports
         pass
-    
+
     def to_python(self) -> str:
         return f"from {self.imported_module} import {", ".join(self.imports)}"
+
 
 class Expr(Syntax):
     cn = __qualname__
     pass
 
+
 primitive = Union[int, float, str]
+
 
 class Literal(Expr):
     # cn = __qualname__
@@ -131,18 +141,19 @@ class Literal(Expr):
     def is_list(self) -> TypeGuard[list]:
         return isinstance(self.const, List)
 
-
     def __repr__(self) -> str:
         return f"{self.cn}({self.to_python()})"
 
     def to_python(self) -> str:
         if self.is_str():
-            return "\"" + self.const + "\""
+            return '"' + self.const + '"'
         if self.is_list():
             print(self.const)
             return f"[{", ".join(list(map(lambda x: x.to_python(), self.const)))}]"
         return str(self.const)
+
     pass
+
 
 class Variable(Expr):
     # cn = __qualname__
@@ -153,16 +164,18 @@ class Variable(Expr):
 
     def __repr__(self) -> str:
         return f"{self.cn}({self.name})"
-    
+
     def to_python(self) -> str:
         return self.name
-    
+
     def __str__(self) -> str:
         return self.to_python()
 
+
 class ObjectInit(Expr):
     cn = __qualname__
-    def __init__(self, className: str,  *args: Expr):
+
+    def __init__(self, className: str, *args: Expr):
         super().__init__()
         self.className = className
         self.args = args
@@ -171,7 +184,9 @@ class ObjectInit(Expr):
     def to_python(self) -> str:
         args = ", ".join(list(map(lambda x: x.to_python(), self.args)))
         return f"{self.className}({args})"
+
     pass
+
 
 class AttrAccess(Expr):
     def __init__(self, obj: Expr, key: Expr):
@@ -182,7 +197,9 @@ class AttrAccess(Expr):
 
     def to_python(self) -> str:
         return f"{self.obj}[{self.key}]"
+
     pass
+
 
 class ModuleRef(Expr):
     def __init__(self, module: str):
@@ -192,6 +209,7 @@ class ModuleRef(Expr):
 
     def to_python(self) -> str:
         return self.module
+
 
 class ModuleAccess(Expr):
     def __init__(self, module: Expr, attr: str):
@@ -203,6 +221,7 @@ class ModuleAccess(Expr):
     def to_python(self) -> str:
         return f"{self.module.to_python()}.{self.attr}"
 
+
 class ObjectAccess(Expr):
     def __init__(self, e: Expr, prop: str):
         super().__init__()
@@ -212,7 +231,9 @@ class ObjectAccess(Expr):
 
     def to_python(self) -> str:
         return f"{self.e}.{self.prop}"
+
     pass
+
 
 class ObjectMethodCall(Expr):
     def __init__(self, v: Variable, method: str, *args: Expr):
@@ -228,15 +249,17 @@ class ObjectMethodCall(Expr):
 
     pass
 
+
 class KeywordArg(Expr):
     def __init__(self, key: str, e: Expr):
         super().__init__()
         self.key = key
         self.e = e
         pass
-    
+
     def to_python(self) -> str:
         return f"{self.key}={self.e.to_python()}"
+
 
 class Statement(Syntax):
     pass
