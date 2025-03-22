@@ -33,3 +33,10 @@ poetry run pytest
 in the repo's root directory, and it will run the test.
 
 Tests should be in `tests/`.
+
+# Code style/formatting
+This project uses [`black`](https://pypi.org/project/black/) to format code. You can run the code formatter by using
+
+```bash
+poetry run black modularmotifs
+```
