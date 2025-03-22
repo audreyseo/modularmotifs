@@ -29,6 +29,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run image
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: "latest"
+      - name: Setup a local virtual environment (if no poetry.toml file)
+        run: |
+            poetry config virtualenvs.create true --local
+            poetry config virtualenvs.in-project true --local
       - uses: actions/cache@v3
         name: Define a cache for the virtual environment based on the dependencies lock file
         with:
@@ -40,6 +52,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run image
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: "latest"
+      - name: Setup a local virtual environment (if no poetry.toml file)
+        run: |
+            poetry config virtualenvs.create true --local
+            poetry config virtualenvs.in-project true --local
       - uses: actions/cache@v3
         name: Define a cache for the virtual environment based on the dependencies lock file
         with:
