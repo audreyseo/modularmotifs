@@ -7,7 +7,7 @@ validHeaders = ["Carriers", "Machine", "Position", "Yarn", "Gauge"]
 ############### helpers ######################################################
 
 
-reg = re.compile("([a-zA-Z]+)([\+\-]?[0-9]+)")
+reg = re.compile("([a-zA-Z]+)([-+]?[0-9]+)")
 
 
 def shiftCarrierSet(args, carriers):
