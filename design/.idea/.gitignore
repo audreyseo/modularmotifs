@@ -1,0 +1,16 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+/libraries
+
+
+# according to this we should ignore scala_compiler.xml https://stackoverflow.com/questions/49235143/scala-on-intellij-with-git-how-should-the-gitignore-look-like
+scala_compiler.xml
+
+/modules
+/modules.xml
