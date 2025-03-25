@@ -179,3 +179,4 @@ settings.json
 
 # Outputs by tests
 *convert.png
+node_modules
