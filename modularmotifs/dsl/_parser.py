@@ -86,6 +86,7 @@ class Statements(_Ast, ast_utils.AsList):
     def get_idents(self) -> set[str]:
         idents = set()
         for stmt in self.statements:
+            print(stmt)
             idents = idents.union(stmt.get_idents())
             pass
         return idents
@@ -488,6 +489,8 @@ class ToAst(Transformer):
             assert len(args) == 6
             return AddMotif(args[0], args[1], args[3], args[4], args[5])
         elif Ops.REMOVE_MOTIF in args:
+            assert len(args) == 3
+            return RemoveMotif(args[0], args[2])
             # assert len(args) ==
             pass
         elif Ops.MOTIFIFY in args:

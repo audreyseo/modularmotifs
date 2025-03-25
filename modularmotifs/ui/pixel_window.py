@@ -406,17 +406,27 @@ class PixelWindow(abc.ABC):
             ry = y * pxs + pxs
             # if not self._selection.is_complete():
             # sx, sy = self._selection._start
-            
+
             gs = copy.deepcopy(self._selection)
             gs.complete(x, y)
-            
+
+            xdiff = 1 if sx < x else -1
+            ydiff = 1 if sy < y else -1
+            sxdiff = 0 if sx < x else 1
+            sydiff = 0 if sy < y else 1
+
             self._pixel_canvas._add_old_id(
                 self._pixel_canvas.create_rectangle(
-                    sx, sy, x + 1, y + 1, fill=None, width=2, outline="black"
+                    sx + sxdiff,
+                    sy + sydiff,
+                    x + xdiff,
+                    y + ydiff,
+                    fill=None,
+                    width=2,
+                    outline="black",
                 )
             )
-            
-            
+
             if rsx != rx and rsy != ry:
                 # print(sx, sy, x, y, rsx, rsy, rx, ry)
 
@@ -433,20 +443,26 @@ class PixelWindow(abc.ABC):
                         resample=Image.Resampling.NEAREST,
                     )
                 self._temp_img = ImageTk.PhotoImage(img)
-                print(img.width, img.height)
+                # print(img.width, img.height)
 
                 # self._pixel_canvas._add_old_id(
                 #     self._pixel_canvas.get_canvas().create_line(x - 3, y - 3, x + 3, y + 3, fill="black")
                 # )
 
+                anchor = ("n" if y > sy else "s") + ("w" if x > sx else "e")
+
                 self._pixel_canvas._add_old_id(
                     self._pixel_canvas.create_image(
-                        sx,
-                        sy,
+                        sx + sxdiff,
+                        sy + sydiff,
                         # x_offset=-1,
-                        # y_offset=-1,
+                        y_offset=(
+                            (-ydiff * 0.5 * self._pixel_canvas.pixel_size())
+                            if self._pixel_canvas.is_knit_mode() and y <= sy
+                            else 0
+                        ),
                         image=self._temp_img,
-                        anchor="nw",
+                        anchor=anchor,
                     )
                 )
                 pass
@@ -620,15 +636,6 @@ class PixelWindow(abc.ABC):
     ) -> None:
         print(f"Remove row: {at_index}")
         self._pixel_canvas.remove_row()
-        # if remove_labels:
-        #     self._grid_labels.grid_remove_bottom()
-        # for i in range(self._MAX_WIDTH):
-        #     self._cells[at_index][i].grid_remove()
-        #     if add_labels and i < self.width():
-        #         self.grid(self._grid_labels.get_bottom_label(i), self.height(), i)
-        #         pass
-        #     pass
-        # self._grid_labels.grid_remove_lr(at_index)
         pass
 
     def _remove_column(
@@ -636,18 +643,6 @@ class PixelWindow(abc.ABC):
     ) -> None:
         print(f"Remove column: {at_index}")
         self._pixel_canvas.remove_column()
-        # if remove_labels:
-        #     self._grid_labels.grid_remove_right()
-        #     pass
-        # for i in range(self._MAX_HEIGHT):
-        #     if self._GLOBAL_GRID[i + self._TKINTER_OFFSET][at_index + self._TKINTER_OFFSET] is not None:
-        #         self._GLOBAL_GRID[i + self._TKINTER_OFFSET][at_index + self._TKINTER_OFFSET].grid_remove()
-        #     self._cells[i][at_index].grid_remove()
-        #     if add_labels and i < self.height():
-        #         self.grid(self._grid_labels.get_right_label(i), i, self.width())
-        #         pass
-        #     pass
-        # self._grid_labels.grid_remove_tb(at_index)
         pass
 
     def _add_row(

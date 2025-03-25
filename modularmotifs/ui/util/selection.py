@@ -683,8 +683,10 @@ class GridSelection(Selection):
     def complete(self, endx: int, endy: int):
         startx, starty = self._start
         self._end = (endx, endy)
-        for x in range(startx, endx + 1):
-            for y in range(starty, endy + 1):
+        xiter = range(startx, endx + 1) if startx < endx else range(endx, startx + 1)
+        yiter = range(starty, endy + 1) if starty < endy else range(endy, starty + 1)
+        for x in xiter:
+            for y in yiter:
                 self.add(x, y)
                 pass
             pass

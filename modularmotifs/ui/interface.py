@@ -3,6 +3,7 @@
 import tkinter as tk
 from tkinter import Image, filedialog
 from tkinter import colorchooser
+import traceback
 from tktooltip import ToolTip
 from typing import Any, List, Optional
 from collections.abc import Callable
@@ -201,9 +202,12 @@ class KnitWindow(PixelWindow):
                 isinstance(self._selection, GridSelection)
                 and self._selection.is_complete()
             ) or (isinstance(self._selection, Selection)):
+                print(self._selection)
                 x0, y0, x1, y1 = self._selection.bbox()
+                print(x0, y0, x1, y1)
                 op = self._program_builder.motifify(x0, y0, x1, y1)
                 motif = self._interpreter.interpret(op)
+                print(motif)
                 self._program_builder.load_motif(op.v.name, motif, op.v)
                 self._reset_motif_library()
                 pass
@@ -289,6 +293,8 @@ class KnitWindow(PixelWindow):
         self._interpreter = interp
         self._design = interp.design
         self._pixel_grid = self._design
+        self._width_var.set(str(self._design.width()))
+        self._height_var.set(str(self._design.height()))
         self._pixel_canvas.get_toplevel().pack_forget()
         self._pixel_canvas = PixelCanvas(
             self._lower_frame, self._pixel_grid, pixel_size=20, line_width=1.5
@@ -322,6 +328,8 @@ class KnitWindow(PixelWindow):
     def _adjust_width_height(self):
         w = int(self._width_var.get())
         h = int(self._height_var.get())
+        print(f"Width: {self.width()} vs {w}")
+        print(f"Height: {self.height()} vs {h}")
 
         if w < self.width():
             while w < self.width():
@@ -369,19 +377,16 @@ class KnitWindow(PixelWindow):
             try:
                 dpb, interp = parse(text)
                 self._init_underlying(dpb, interp)
-                # self._program_builder = dpb
-                # print(dpb.to_python())
-                # self._intepreter = interp
-                # self._design = interp.design
-                # self._pixel_grid = self._design
 
                 # add rows and columns
                 self._adjust_width_height()
+                self._init_pixels()
 
                 # now refresh the display
                 self._refresh_pixels()
                 pass
             except Exception as e:
+                print(traceback.format_exc())
                 print(e)
                 pass
             pass
@@ -446,7 +451,7 @@ class KnitWindow(PixelWindow):
             else:
                 self._selection.complete(cx, cy)
                 pass
-            print(self._selection)
+            # print(self._selection)
             pass
 
         def wand_selection(event):
@@ -554,8 +559,8 @@ class KnitWindow(PixelWindow):
         scrollbar.grid(row=0, column=1, sticky=tk.N + tk.S)
         # scrollbar.configure(borderwidth=4, relief="raised")
         canvas.configure(yscrollcommand=scrollbar.set)
-        print(canvas.grid_info())
-        print(scrollbar.grid_info())
+        # print(canvas.grid_info())
+        # print(scrollbar.grid_info())
 
         inner_frame = tk.Frame(canvas)
         canvas.create_window((0, 0), window=inner_frame, anchor="nw")
@@ -580,7 +585,8 @@ class KnitWindow(PixelWindow):
                     print("Selecting Motif")
                     self._selected_motif_button = motif_button
                     self._selected_motif = (motif_name, motif)  # motif
-                    self._pixel_canvas.set_motif(motif)
+                    self.set_pixel_canvas_motif()
+                    # self._pixel_canvas.set_motif(motif)
                     self._pixel_canvas.set_motif_hover()
                     KnitWindow.select(self._selected_motif_button)
                     self._change_mode(UIMode.PLACE_MOTIF)
@@ -629,45 +635,6 @@ class KnitWindow(PixelWindow):
             return
         _, m = self._selected_motif
         self._pixel_canvas.set_motif(m)
-
-    def _refresh_motif_library(self):
-        """Refresh the motif library to include newly saved motifs without changing window location."""
-        from importlib import reload
-        import modularmotifs.motiflibrary.saved_motifs as saved_motifs_module
-
-        reload(saved_motifs_module)
-        new_saved_motifs = saved_motifs_module.saved_motifs
-
-        # Update the motif dictionary
-        self._program_builder._motifs.update(new_saved_motifs)
-
-        # *** NEW CODE: Update the DSL mapping for saved motifs ***
-        for saved_name, saved_data in new_saved_motifs.items():
-            cleaned_data = clean_motif_data(saved_data)
-            motif_obj = int_lol_to_motif(cleaned_data)
-            self._program_builder._motif_name_to_expr[saved_name] = Literal(motif_obj)
-        # *** End of new code ***
-
-        # Find the canvas inside the motifs frame and its inner frame
-        for widget in self._motifs_frame.winfo_children():
-            if isinstance(widget, tk.Canvas):
-                canvas = widget
-                break
-        else:
-            return  # Exit if no canvas found
-
-        inner_frame = canvas.winfo_children()[0]
-
-        # Remove existing motif labels
-        for widget in inner_frame.winfo_children():
-            widget.destroy()
-
-        # Clear selected motif references
-        self._selected_motif = None
-        self._selected_motif_button = None
-
-        # Re-add motif buttons using the helper method
-        self._populate_motif_buttons(inner_frame)
 
     def _init_history(self) -> None:
         # initialize buttons that deal with the history manipulation -- i.e., undo, redo

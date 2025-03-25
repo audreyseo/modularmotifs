@@ -115,6 +115,7 @@ class DesignInterpreter:
             res = self.design.motifify(*args)
             self._motifs[action.v.name] = res
             self._vars_to_vals[action.v] = res
+            self._builder.load_motif(action.v.name, res, action.v)
             return res
         if isinstance(action, UnMotifify):
             assert (

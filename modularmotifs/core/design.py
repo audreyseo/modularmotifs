@@ -159,9 +159,9 @@ class Design(PixelGrid):
 
     def motifify(self, x0: int, y0: int, x1: int, y1: int) -> Motif:
         colors = []
-        for y in range(y0, y1):
+        for y in range(y0, y1 + 1):
             colors_row = []
-            for x in range(x0, x1):
+            for x in range(x0, x1 + 1):
                 colors_row.append(self.get_color(x, y))
                 pass
             colors.append(colors_row)
