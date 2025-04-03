@@ -5,11 +5,13 @@ import './MotifImage.css'
 interface MotifImageProps {
     motif_name: string;
     img_width: number;
+    on_click?: () => void;
 }
 
 const MotifImage: React.FC<MotifImageProps> = ({
     motif_name = "x-3x3",
-    img_width = 100
+    img_width = 100,
+    on_click = () => console.log(motif_name + " clicked!")
 }) => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
@@ -35,7 +37,7 @@ const MotifImage: React.FC<MotifImageProps> = ({
                 // .then(data => console.log("data", data))
 
                 const response = await fetch(request);
-                console.log(response)
+                // console.log(response)
                 if (!response.ok) {
                     const text = await response.text();
                     throw new Error(`HTTP error! Status: ${response.status} ${text}`);
@@ -43,14 +45,14 @@ const MotifImage: React.FC<MotifImageProps> = ({
 
                 // const text = await response.text();
                 // console.log("text", text)
-                console.log("response", response)
+                // console.log("response", response)
                 const blob = await response.json();
-                console.log("blob", blob)
+                // console.log("blob", blob)
                 // Convert blob to object URL
                 // const imageUrl = URL.createObjectURL(blob);
                 const imageUrl = `data:image/png;base64,${blob.data}`
                 setImageSrc(imageUrl);
-                console.log(imageUrl)
+                // console.log(imageUrl)
             } catch (err) {
                 setError("Failed to fetch image.");
                 console.error("Error fetching image:", err);
@@ -66,7 +68,7 @@ const MotifImage: React.FC<MotifImageProps> = ({
     if (error) return <p style={{ color: "red" }}>{error}</p>;
 
     return (
-        <tr className={"motif-image"}>
+        <tr className={"motif-image"} onClick={on_click}>
             {/* <h2>Fetched Image</h2> */}
             <td>{motif_name}</td>
             <td>{imageSrc && <img src={imageSrc} alt="Fetched from server" style={{ maxWidth: "100%" }} width={img_width} />}</td>

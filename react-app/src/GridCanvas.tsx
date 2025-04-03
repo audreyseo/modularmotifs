@@ -7,6 +7,7 @@ import Design from './core/Design';
 import { ReactColorPicker } from 'react-color-picker-tool';
 import { SketchPicker } from 'react-color';
 import ButtonPicker from './ButtonPicker';
+import MotifLibrary from './ui/MotifLibrary';
 
 
 interface GridCanvasProps {
@@ -57,6 +58,8 @@ const GridCanvas: React.FC<GridCanvasProps> = ({
       key: ""
     })
 
+    const [chosenMotif, setChosenMotif] = useState<Motif>(new Motif([[Color.FORE, Color.BACK], [Color.BACK, Color.FORE]]));
+
     const [myDesign, setDesign] = useState<Design>(new Design(numCols, numRows))
     const [color, setColor] = useState<ColorProp>({r: 123, g: 123, b: 123, a: 0.5})
   
@@ -71,7 +74,7 @@ const GridCanvas: React.FC<GridCanvasProps> = ({
         }
       }
       const design = myDesign
-      design.add_motif(myAnnotation.motif, col, row)
+      design.add_motif(chosenMotif, col, row)
       // Toggle between white and a new color (e.g., red)
       // newColors[row][col] = newColors[row][col] === 'transparent' ? '#FF0000AA' : 'transparent';
       // Update the state with the new colors
@@ -158,17 +161,22 @@ const GridCanvas: React.FC<GridCanvasProps> = ({
         <Hoverer
           x={myAnnotation.x}
           y={myAnnotation.y}
-          motif={myAnnotation.motif}
+          motif={chosenMotif}
           colors={myAnnotation.colors}
-          height={2}
-          width={2}
+          height={chosenMotif.height()}
+          width={chosenMotif.width()}
           gridSize={gridSize}
         />
       </Stage>
       <ButtonPicker color={color}
         setter={setColor}
         />
-
+      <MotifLibrary motif_setter={(motif_name: string, motif: Motif) => (
+        () => {
+          console.log(`Motif ${motif_name} clicked!`)
+          setChosenMotif(motif)
+        }
+      )}/>
     </div>
   );
 };

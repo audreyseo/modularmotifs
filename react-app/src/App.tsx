@@ -2,15 +2,15 @@ import React from 'react';
 import logo from './logo.svg';
 import './App.css';
 import GridCanvas from "./GridCanvas"
-import MotifImage from './ui/MotifImage';
-import MotifLibrary from './ui/MotifLibrary';
+// import MotifImage from './ui/MotifImage';
+// import MotifLibrary from './ui/MotifLibrary';
 
 function App() {
   return (
     <div style={{position: "relative"}}>
     <h1>Grid Canvas</h1>
     <GridCanvas gridSize={40} numRows={15} numCols={15} />
-    <MotifLibrary/>
+    
       {/* <MotifImage></MotifImage> */}
   </div>
     // <div className="App">
