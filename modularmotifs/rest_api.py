@@ -31,12 +31,13 @@ def serve_pil_image(img: Image.Image) -> io.BytesIO:
 
 def add_frontend_access(response: Response):
     # response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:3000')
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+    # response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+    response.headers.add('Access-Control-Allow-Origin', "*")
 
 
 @app.route("/motifs")
 def serve_motifs():
-    response = make_response(jsonify(data=list(motifs.keys())), 200)
+    response = make_response(jsonify(data=list(motifs.keys()), motifs={k: v.to_json() for k,v in motifs.items()}), 200)
     add_frontend_access(response)
     return response
     

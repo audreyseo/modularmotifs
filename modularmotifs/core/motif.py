@@ -185,6 +185,13 @@ class Motif(PixelGrid):
             int
         """
         return self.__width
+    
+    def to_json(self):
+        return {
+            "width": self.__width,
+            "height": self.__height,
+            "colors": [[cell.value for cell in row] for row in self]
+        }
 
     def __iter__(self):
         return iter(self.__data)
